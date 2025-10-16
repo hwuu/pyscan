@@ -114,13 +114,6 @@ class ProgressManager:
         except Exception as e:
             logger.error(f"Failed to save progress: {e}")
 
-    def clear_progress(self):
-        """清除进度文件。"""
-        if self.progress_file.exists():
-            self.progress_file.unlink()
-        if self.reports_file.exists():
-            self.reports_file.unlink()
-
 
 def main():
     """Main entry point for pyscan CLI."""
@@ -202,6 +195,13 @@ def main():
 
         # 加载之前的进度
         completed_functions, reports = progress_manager.load_progress()
+
+        # 如果有之前的进度，先生成一次报告
+        if reports:
+            logger.info("Found previous progress, generating report from existing data...")
+            reporter = Reporter(reports)
+            reporter.to_json(args.output)
+            logger.info(f"Existing report generated: {args.output}")
 
         # 4. 构建上下文并检测 bug
         logger.info("Building context and detecting bugs...")
