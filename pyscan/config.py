@@ -19,6 +19,7 @@ class Config:
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_CONCURRENCY = 1
     DEFAULT_CONTEXT_TOKEN_LIMIT = 6000
+    DEFAULT_USE_TIKTOKEN = False
     DEFAULT_EXCLUDE_PATTERNS = [
         "test_*.py",
         "*_test.py",
@@ -82,6 +83,9 @@ class Config:
         )
         self.detector_context_token_limit = detector_config.get(
             "context_token_limit", self.DEFAULT_CONTEXT_TOKEN_LIMIT
+        )
+        self.detector_use_tiktoken = detector_config.get(
+            "use_tiktoken", self.DEFAULT_USE_TIKTOKEN
         )
 
     def _validate_values(self) -> None:

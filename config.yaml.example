@@ -19,3 +19,4 @@ detector:
   max_retries: 3
   concurrency: 1
   context_token_limit: 6000
+  # use_tiktoken: false  # 是否使用 tiktoken 精确计算 token 数 (默认: false, 使用字符估算)

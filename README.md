@@ -45,6 +45,23 @@ detector:
   max_retries: 3
   concurrency: 1
   context_token_limit: 6000
+  use_tiktoken: false  # 可选: 使用 tiktoken 精确计算 token (需安装 tiktoken)
+```
+
+### 配置说明
+
+- **llm.base_url**: LLM API 基础 URL
+- **llm.api_key**: API 密钥
+- **llm.model**: 使用的模型名称
+- **llm.max_tokens**: LLM 单次请求最大 token 数
+- **llm.temperature**: 温度参数 (0-2)，值越低结果越确定
+- **scan.exclude_patterns**: 扫描时排除的文件模式
+- **detector.max_retries**: 检测失败时的最大重试次数
+- **detector.concurrency**: 并发检测数量（建议为 1 以避免 API 限流）
+- **detector.context_token_limit**: 上下文 token 限制（必须小于 llm.max_tokens）
+- **detector.use_tiktoken**: 是否使用 tiktoken 精确计算 token 数
+  - `false` (默认): 使用简单估算 (1 token ≈ 4 字符)，无需额外依赖
+  - `true`: 使用 tiktoken 精确计算，需要安装 tiktoken 包
 ```
 
 ## 使用方法

@@ -8,7 +8,7 @@ class ContextBuilder:
     """Builder for constructing function analysis context."""
 
     def __init__(
-        self, functions: List[FunctionInfo], max_tokens: int = 6000
+        self, functions: List[FunctionInfo], max_tokens: int = 6000, use_tiktoken: bool = False
     ):
         """
         Initialize context builder.
@@ -16,17 +16,22 @@ class ContextBuilder:
         Args:
             functions: List of all functions in the codebase.
             max_tokens: Maximum tokens for context.
+            use_tiktoken: If True, use tiktoken for accurate token counting.
+                         If False, use simple character-based estimation (1 token ≈ 4 chars).
         """
         self.functions = functions
         self.max_tokens = max_tokens
         self.function_map = {f.name: f for f in functions}
+        self.use_tiktoken = use_tiktoken
+        self.tokenizer = None
 
-        # Initialize tokenizer
-        try:
-            self.tokenizer = tiktoken.encoding_for_model("gpt-4")
-        except Exception:
-            # Fallback to cl100k_base encoding
-            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        # Initialize tokenizer if requested
+        if self.use_tiktoken:
+            try:
+                self.tokenizer = tiktoken.encoding_for_model("gpt-4")
+            except Exception:
+                # Fallback to cl100k_base encoding
+                self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
     def build_context(self, function: FunctionInfo) -> Dict[str, Any]:
         """
@@ -151,10 +156,14 @@ class ContextBuilder:
         Returns:
             Number of tokens.
         """
-        try:
-            return len(self.tokenizer.encode(text))
-        except Exception:
-            # Fallback: rough estimate (1 token ≈ 4 characters)
+        if self.use_tiktoken and self.tokenizer is not None:
+            try:
+                return len(self.tokenizer.encode(text))
+            except Exception:
+                # Fallback to simple estimation if tiktoken fails
+                return len(text) // 4
+        else:
+            # Simple estimation: 1 token ≈ 4 characters
             return len(text) // 4
 
     def _extract_signature(self, code: str) -> str:
