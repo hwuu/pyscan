@@ -207,7 +207,8 @@ def main():
         logger.info("Building context and detecting bugs...")
         context_builder = ContextBuilder(
             all_functions,
-            max_tokens=config.detector_context_token_limit
+            max_tokens=config.detector_context_token_limit,
+            use_tiktoken=config.detector_use_tiktoken
         )
         detector = BugDetector(config)
 
