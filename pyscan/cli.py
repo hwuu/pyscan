@@ -241,7 +241,7 @@ def main():
                 )
 
                 if report is None:
-                    # 改进1: 检测失败,立即退出
+                    # 检测失败,立即退出
                     error_msg = (
                         f"Bug detection failed for function '{func.name}' "
                         f"in {getattr(func, 'file_path', 'unknown')}. "
@@ -249,8 +249,10 @@ def main():
                     )
                     logger.error(error_msg)
 
-                    # 保存当前进度
+                    # 保存当前进度和报告
                     progress_manager.save_progress(completed_functions, reports)
+                    reporter = Reporter(reports)
+                    reporter.to_json(args.output)
 
                     logger.info(
                         f"Progress saved to {progress_manager.progress_dir}. "
@@ -262,18 +264,22 @@ def main():
                 reports.append(report)
                 completed_functions.add(func_id)
 
-                # 改进2: 每完成一个函数就保存进度
+                # 每完成一个函数就保存进度和更新报告
                 progress_manager.save_progress(completed_functions, reports)
+                reporter = Reporter(reports)
+                reporter.to_json(args.output)
 
             except Exception as e:
-                # 改进1: 发生异常,立即退出
+                # 发生异常,立即退出
                 error_msg = (
                     f"Error detecting bugs for function '{func.name}': {e}"
                 )
                 logger.error(error_msg, exc_info=True)
 
-                # 保存当前进度
+                # 保存当前进度和报告
                 progress_manager.save_progress(completed_functions, reports)
+                reporter = Reporter(reports)
+                reporter.to_json(args.output)
 
                 logger.info(
                     f"Progress saved to {progress_manager.progress_dir}. "
