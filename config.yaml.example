@@ -1,0 +1,21 @@
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-xxx"
+  model: "gpt-4"
+  max_tokens: 8000
+  temperature: 0.2
+
+scan:
+  exclude_patterns:
+    - "test_*.py"
+    - "*_test.py"
+    - "config.py"
+    - "settings.py"
+    - "*/site-packages/*"
+    - "*/venv/*"
+    - "*/.venv/*"
+
+detector:
+  max_retries: 3
+  concurrency: 1
+  context_token_limit: 6000
