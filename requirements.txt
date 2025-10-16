@@ -2,6 +2,5 @@ openai>=1.0.0
 PyYAML>=6.0
 tiktoken>=0.5.0
 tqdm>=4.65.0
-Jinja2>=3.1.0
 pytest>=7.0.0
 pytest-mock>=3.10.0
