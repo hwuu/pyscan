@@ -79,9 +79,14 @@ detector:
         result = detector.detect(sample_function, context)
 
         assert result is not None
-        assert result.has_bug is True
-        assert result.severity == "high"
-        assert len(result.bugs) > 0
+        assert "report" in result
+        assert "prompt" in result
+        assert "raw_response" in result
+
+        report = result["report"]
+        assert report.has_bug is True
+        assert report.severity == "high"
+        assert len(report.bugs) > 0
 
     @patch('pyscan.bug_detector.OpenAI')
     def test_detect_no_bugs(self, mock_openai, mock_config, sample_function):
@@ -108,8 +113,11 @@ detector:
 
         result = detector.detect(sample_function, context)
 
-        assert result.has_bug is False
-        assert len(result.bugs) == 0
+        assert result is not None
+        assert "report" in result
+        report = result["report"]
+        assert report.has_bug is False
+        assert len(report.bugs) == 0
 
     @patch('pyscan.bug_detector.OpenAI')
     def test_retry_on_failure(self, mock_openai, mock_config, sample_function):

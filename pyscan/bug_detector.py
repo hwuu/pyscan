@@ -27,15 +27,29 @@ class BugReport:
 class BugDetector:
     """Bug detector using LLM."""
 
-    SYSTEM_PROMPT = """你是一个 Python 代码审查专家。你的任务是分析函数代码，识别潜在的 bug。
+    SYSTEM_PROMPT = """你是一个 Python 代码审查专家。你的任务是分析函数代码，识别真正的逻辑错误和 bug。
 
-请仔细分析提供的函数代码及其上下文（调用者和被调用者），查找以下类型的问题：
-- 逻辑错误（如边界条件、空值处理）
-- 类型错误
-- 资源泄漏
-- 并发问题
-- 异常处理缺失
-- 性能问题
+**重要限制：**
+1. 不要报告 pylint、flake8、mypy 等静态检查工具能发现的问题
+2. 不要报告代码风格、命名规范等问题
+3. 不要过度建议防御性编程（如到处检查 None、验证参数类型等）
+4. 信任函数的类型注解（type hints）和调用链中的验证
+5. 只报告明确的、会导致程序错误的逻辑缺陷
+
+**应该检测的问题：**
+- 明确的逻辑错误（算法错误、条件判断错误、边界条件处理错误）
+- 资源管理问题（文件、连接未正确关闭，且不是简单的 with 语句缺失）
+- 并发安全问题（竞态条件、死锁风险）
+- 数据一致性问题
+- 安全漏洞（SQL 注入、路径遍历等）
+
+**不应该报告的问题：**
+- 缺少类型注解
+- 缺少 docstring
+- 变量命名不规范
+- 简单的参数验证建议（除非确实会导致崩溃）
+- 性能优化建议（除非有明显的性能问题）
+- 代码重复
 
 请以 JSON 格式返回分析结果，格式如下：
 {
@@ -61,7 +75,7 @@ class BugDetector:
 - start_col/end_col 是该行内的字符偏移量，从0开始
 - 如果无法精确定位列号，可以设置为 0
 
-如果没有发现问题，返回 {"has_bug": false, "severity": "low", "bugs": []}
+如果没有发现**真正的 bug**，返回 {"has_bug": false, "severity": "low", "bugs": []}
 """
 
     def __init__(self, config: Config):
@@ -83,7 +97,7 @@ class BugDetector:
         context: Dict[str, Any],
         file_path: str = "",
         function_start_line: int = 0
-    ) -> Optional[BugReport]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Detect bugs in a function.
 
@@ -93,7 +107,11 @@ class BugDetector:
             file_path: Path to the file containing the function.
 
         Returns:
-            BugReport if successful, None if failed after retries.
+            Dictionary containing:
+                - report: BugReport if successful
+                - prompt: The full prompt sent to LLM
+                - raw_response: The raw response from LLM
+            None if failed after retries.
         """
         prompt = self._build_prompt(function, context)
 
@@ -112,7 +130,7 @@ class BugDetector:
                 content = response.choices[0].message.content
                 result = self._parse_response(content)
 
-                return BugReport(
+                report = BugReport(
                     function_name=function.name,
                     file_path=file_path,
                     has_bug=result["has_bug"],
@@ -120,6 +138,12 @@ class BugDetector:
                     bugs=result["bugs"],
                     function_start_line=function_start_line
                 )
+
+                return {
+                    "report": report,
+                    "prompt": prompt,
+                    "raw_response": content
+                }
 
             except Exception as e:
                 logger.warning(

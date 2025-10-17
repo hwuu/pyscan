@@ -35,9 +35,11 @@ class ProgressManager:
         self.progress_dir = progress_dir
         self.progress_file = progress_dir / "progress.json"
         self.reports_file = progress_dir / "reports.json"
+        self.prompts_dir = progress_dir / "prompts"
 
         # 确保目录存在
         self.progress_dir.mkdir(parents=True, exist_ok=True)
+        self.prompts_dir.mkdir(parents=True, exist_ok=True)
 
     def load_progress(self):
         """
@@ -113,6 +115,49 @@ class ProgressManager:
 
         except Exception as e:
             logger.error(f"Failed to save progress: {e}")
+
+    def save_llm_interaction(self, bug_id: str, file_path: str, function_name: str, prompt: str, raw_response: str):
+        """
+        保存 LLM 交互到 .md 文件。
+
+        Args:
+            bug_id: Bug ID (如 BUG_0001)
+            file_path: 源文件路径
+            function_name: 函数名
+            prompt: 发送给 LLM 的 prompt
+            raw_response: LLM 的原始响应
+        """
+        try:
+            # 生成文件名: file.py__function_name__BUG_0001.md
+            file_basename = Path(file_path).name if file_path else "unknown"
+            md_filename = f"{file_basename}__{function_name}__{bug_id}.md"
+            md_path = self.prompts_dir / md_filename
+
+            # 构建 markdown 内容
+            content = f"""# Bug Detection: {function_name}
+
+**File:** `{file_path}`
+**Bug ID:** {bug_id}
+**Timestamp:** {__import__('datetime').datetime.now().isoformat()}
+
+---
+
+## Prompt
+
+{prompt}
+
+---
+
+## LLM Response
+
+{raw_response}
+"""
+
+            with open(md_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+        except Exception as e:
+            logger.error(f"Failed to save LLM interaction for {function_name}: {e}")
 
 
 def main():
@@ -228,19 +273,22 @@ def main():
                 f"functions already completed, {len(functions_to_detect)} remaining"
             )
 
+        # Bug ID 计数器 (从已有的 reports 开始计数)
+        bug_counter = len(reports) + 1
+
         for func in tqdm(functions_to_detect, desc="Detecting bugs"):
             func_id = get_function_id(func)
 
             try:
                 context = context_builder.build_context(func)
-                report = detector.detect(
+                result = detector.detect(
                     func,
                     context,
                     file_path=getattr(func, 'file_path', ''),
                     function_start_line=func.lineno
                 )
 
-                if report is None:
+                if result is None:
                     # 检测失败,立即退出
                     error_msg = (
                         f"Bug detection failed for function '{func.name}' "
@@ -260,7 +308,24 @@ def main():
                     )
                     sys.exit(1)
 
-                # 检测成功
+                # 检测成功，提取结果
+                report = result["report"]
+                prompt = result["prompt"]
+                raw_response = result["raw_response"]
+
+                # 生成 Bug ID
+                bug_id = f"BUG_{bug_counter:04d}"
+                bug_counter += 1
+
+                # 保存 LLM 交互
+                progress_manager.save_llm_interaction(
+                    bug_id=bug_id,
+                    file_path=getattr(func, 'file_path', ''),
+                    function_name=func.name,
+                    prompt=prompt,
+                    raw_response=raw_response
+                )
+
                 reports.append(report)
                 completed_functions.add(func_id)
 
