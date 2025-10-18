@@ -45,9 +45,9 @@ class Visualizer:
         source_files = {}
         file_paths = set()
 
-        # 收集所有文件路径
-        for func_report in report.get('reports', []):
-            file_path = func_report.get('file_path')
+        # 收集所有文件路径（新格式：从 bugs 列表）
+        for bug in report.get('bugs', []):
+            file_path = bug.get('file_path')
             if file_path:
                 file_paths.add(file_path)
 
@@ -172,19 +172,34 @@ class Visualizer:
             margin-bottom: 10px;
         }}
 
+        .filter-section {{
+            margin-bottom: 12px;
+        }}
+
+        .filter-label {{
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+        }}
+
         .filter-buttons {{
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }}
 
         .filter-btn {{
-            padding: 6px 12px;
+            padding: 5px 10px;
             border: 1px solid #ddd;
             background: white;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }}
 
         .filter-btn:hover {{
@@ -194,6 +209,63 @@ class Visualizer:
         .filter-btn.active {{
             background: #667eea;
             color: white;
+            border-color: #667eea;
+        }}
+
+        .filter-count {{
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }}
+
+        .filter-btn.active .filter-count {{
+            background: rgba(255,255,255,0.2);
+        }}
+
+        .sort-section {{
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }}
+
+        .sort-buttons {{
+            display: flex;
+            gap: 8px;
+        }}
+
+        .sort-btn {{
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }}
+
+        .sort-btn:hover {{
+            background: #f5f5f5;
+        }}
+
+        .sort-btn.active {{
+            background: #764ba2;
+            color: white;
+            border-color: #764ba2;
+        }}
+
+        select.filter-select {{
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+            cursor: pointer;
+            outline: none;
+        }}
+
+        select.filter-select:focus {{
             border-color: #667eea;
         }}
 
@@ -342,6 +414,57 @@ class Visualizer:
             font-size: 14px;
         }}
 
+        /* Caller 展示样式 */
+        .caller-section {{
+            margin-top: 20px;
+            border-top: 2px solid #3e3e3e;
+            padding-top: 15px;
+        }}
+
+        .caller-header {{
+            color: #4ec9b0;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #2d2d2d;
+            border-left: 4px solid #4ec9b0;
+        }}
+
+        .caller-item {{
+            margin-bottom: 15px;
+            background: #252526;
+            border-radius: 4px;
+            padding: 12px;
+            border-left: 3px solid #569cd6;
+        }}
+
+        .caller-label {{
+            color: #569cd6;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }}
+
+        .caller-hint {{
+            color: #ce9178;
+            font-size: 12px;
+            font-style: italic;
+            margin-bottom: 8px;
+        }}
+
+        .caller-code {{
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #d4d4d4;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre;
+        }}
+
         /* 滚动条样式 */
         ::-webkit-scrollbar {{
             width: 10px;
@@ -369,24 +492,24 @@ class Visualizer:
             <h1>🔍 PyScan Bug Report</h1>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Total Functions</div>
-                    <div class="stat-value">{report.get('total_functions', 0)}</div>
+                    <div class="stat-label">Total Bugs</div>
+                    <div class="stat-value">{report.get('summary', {}).get('total_bugs', 0)}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Functions with Bugs</div>
-                    <div class="stat-value">{report.get('functions_with_bugs', 0)}</div>
+                    <div class="stat-label">Affected Functions</div>
+                    <div class="stat-value">{report.get('summary', {}).get('affected_functions', 0)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">High Severity</div>
-                    <div class="stat-value">{self._count_bugs_by_severity(report, 'high')}</div>
+                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('high', 0)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Medium Severity</div>
-                    <div class="stat-value">{self._count_bugs_by_severity(report, 'medium')}</div>
+                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('medium', 0)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Low Severity</div>
-                    <div class="stat-value">{self._count_bugs_by_severity(report, 'low')}</div>
+                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('low', 0)}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Scan Time</div>
@@ -401,11 +524,42 @@ class Visualizer:
             <div class="bugs-pane">
                 <div class="bugs-header">
                     <h2>Detected Bugs</h2>
-                    <div class="filter-buttons">
-                        <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn" data-filter="high">High</button>
-                        <button class="filter-btn" data-filter="medium">Medium</button>
-                        <button class="filter-btn" data-filter="low">Low</button>
+
+                    <!-- Severity 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">Severity</div>
+                        <div class="filter-buttons" id="severityFilters">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- Function 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">Function</div>
+                        <select class="filter-select" id="functionFilter">
+                            <option value="all">All Functions</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- Bug Type 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">Bug Type</div>
+                        <select class="filter-select" id="typeFilter">
+                            <option value="all">All Types</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- 排序 -->
+                    <div class="sort-section">
+                        <div class="filter-label">Sort By</div>
+                        <div class="sort-buttons">
+                            <button class="sort-btn active" data-sort="severity">Severity</button>
+                            <button class="sort-btn" data-sort="function">Function</button>
+                            <button class="sort-btn" data-sort="type">Type</button>
+                            <button class="sort-btn" data-sort="line">Line Number</button>
+                        </div>
                     </div>
                 </div>
                 <div class="bugs-list" id="bugsList">
@@ -430,16 +584,115 @@ class Visualizer:
         const sourceFiles = {source_files_json};
         const embedMode = {str(embed_source).lower()};
 
-        let currentFilter = 'all';
+        let currentFilters = {{
+            severity: 'all',
+            function: 'all',
+            type: 'all'
+        }};
+        let currentSort = 'severity';
         let selectedBugIndex = -1;
 
         // 初始化
         function init() {{
+            generateFilterOptions();
+            setupFilterControls();
             renderBugsList();
-            setupFilterButtons();
 
             // 处理 URL hash，自动定位到相应的 bug
             handleUrlHash();
+        }}
+
+        // 生成筛选选项和统计
+        function generateFilterOptions() {{
+            // 统计每个维度的数量
+            const stats = {{
+                severity: {{}},
+                function: {{}},
+                type: {{}}
+            }};
+
+            bugsData.forEach(bug => {{
+                // Severity
+                stats.severity[bug.severity] = (stats.severity[bug.severity] || 0) + 1;
+
+                // Function
+                stats.function[bug.function_name] = (stats.function[bug.function_name] || 0) + 1;
+
+                // Type
+                stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
+            }});
+
+            // 生成 Severity 按钮
+            const severityContainer = document.getElementById('severityFilters');
+            const severities = [
+                {{ value: 'all', label: 'All', count: bugsData.length }},
+                {{ value: 'high', label: 'High', count: stats.severity.high || 0 }},
+                {{ value: 'medium', label: 'Medium', count: stats.severity.medium || 0 }},
+                {{ value: 'low', label: 'Low', count: stats.severity.low || 0 }}
+            ];
+
+            severityContainer.innerHTML = severities.map(s => `
+                <button class="filter-btn ${{s.value === 'all' ? 'active' : ''}}" data-filter="${{s.value}}">
+                    <span>${{s.label}}</span>
+                    <span class="filter-count">${{s.count}}</span>
+                </button>
+            `).join('');
+
+            // 生成 Function 选项
+            const functionSelect = document.getElementById('functionFilter');
+            const functions = Object.keys(stats.function).sort();
+            functionSelect.innerHTML = `
+                <option value="all">All Functions (${{bugsData.length}})</option>
+                ${{functions.map(fn => `
+                    <option value="${{fn}}">${{fn}} (${{stats.function[fn]}})</option>
+                `).join('')}}
+            `;
+
+            // 生成 Type 选项
+            const typeSelect = document.getElementById('typeFilter');
+            const types = Object.keys(stats.type).sort();
+            typeSelect.innerHTML = `
+                <option value="all">All Types (${{bugsData.length}})</option>
+                ${{types.map(t => `
+                    <option value="${{t}}">${{t}} (${{stats.type[t]}})</option>
+                `).join('')}}
+            `;
+        }}
+
+        // 设置筛选控件
+        function setupFilterControls() {{
+            // Severity 按钮
+            document.getElementById('severityFilters').addEventListener('click', (e) => {{
+                const btn = e.target.closest('.filter-btn');
+                if (!btn) return;
+
+                document.querySelectorAll('#severityFilters .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilters.severity = btn.dataset.filter;
+                renderBugsList();
+            }});
+
+            // Function 下拉框
+            document.getElementById('functionFilter').addEventListener('change', (e) => {{
+                currentFilters.function = e.target.value;
+                renderBugsList();
+            }});
+
+            // Type 下拉框
+            document.getElementById('typeFilter').addEventListener('change', (e) => {{
+                currentFilters.type = e.target.value;
+                renderBugsList();
+            }});
+
+            // Sort 按钮
+            document.querySelectorAll('.sort-btn').forEach(btn => {{
+                btn.addEventListener('click', () => {{
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentSort = btn.dataset.sort;
+                    renderBugsList();
+                }});
+            }});
         }}
 
         // 处理 URL hash
@@ -447,7 +700,7 @@ class Visualizer:
             const hash = window.location.hash.slice(1); // 移除 # 号
             if (hash) {{
                 // 查找匹配的 bug
-                const filteredBugs = filterBugs(bugsData, currentFilter);
+                const filteredBugs = filterAndSortBugs();
                 const bugIndex = filteredBugs.findIndex(bug => bug.id === hash);
 
                 if (bugIndex !== -1) {{
@@ -465,7 +718,7 @@ class Visualizer:
         // 渲染 Bug 列表
         function renderBugsList() {{
             const bugsList = document.getElementById('bugsList');
-            const filteredBugs = filterBugs(bugsData, currentFilter);
+            const filteredBugs = filterAndSortBugs();
 
             if (filteredBugs.length === 0) {{
                 bugsList.innerHTML = '<div class="empty-state">No bugs found</div>';
@@ -480,28 +733,50 @@ class Visualizer:
                     <div class="bug-location">${{bug.file_path}}:${{bug.function_name}}</div>
                 </div>
             `).join('');
+
+            // 如果有选中的 bug，清除选中状态
+            selectedBugIndex = -1;
+            document.querySelector('.code-pane').innerHTML = '<div class="empty-state">👈 Select a bug from the list to view details</div>';
         }}
 
-        // 过滤 Bug
-        function filterBugs(bugs, filter) {{
-            if (filter === 'all') return bugs;
-            return bugs.filter(bug => bug.severity === filter);
-        }}
+        // 筛选和排序 Bug
+        function filterAndSortBugs() {{
+            let filtered = bugsData;
 
-        // 设置过滤按钮
-        function setupFilterButtons() {{
-            document.querySelectorAll('.filter-btn').forEach(btn => {{
-                btn.addEventListener('click', () => {{
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentFilter = btn.dataset.filter;
-                    renderBugsList();
+            // 应用筛选
+            if (currentFilters.severity !== 'all') {{
+                filtered = filtered.filter(bug => bug.severity === currentFilters.severity);
+            }}
 
-                    // 如果有选中的 bug，清除选中状态
-                    selectedBugIndex = -1;
-                    document.querySelector('.code-pane').innerHTML = '<div class="empty-state">👈 Select a bug from the list to view details</div>';
-                }});
-            }});
+            if (currentFilters.function !== 'all') {{
+                filtered = filtered.filter(bug => bug.function_name === currentFilters.function);
+            }}
+
+            if (currentFilters.type !== 'all') {{
+                filtered = filtered.filter(bug => bug.type === currentFilters.type);
+            }}
+
+            // 应用排序
+            const sortFunctions = {{
+                severity: (a, b) => {{
+                    const order = {{ high: 0, medium: 1, low: 2 }};
+                    return (order[a.severity] || 3) - (order[b.severity] || 3);
+                }},
+                function: (a, b) => a.function_name.localeCompare(b.function_name),
+                type: (a, b) => a.type.localeCompare(b.type),
+                line: (a, b) => {{
+                    if (a.file_path !== b.file_path) {{
+                        return a.file_path.localeCompare(b.file_path);
+                    }}
+                    return a.start_line - b.start_line;
+                }}
+            }};
+
+            if (sortFunctions[currentSort]) {{
+                filtered.sort(sortFunctions[currentSort]);
+            }}
+
+            return filtered;
         }}
 
         // 选择 Bug
@@ -519,7 +794,8 @@ class Visualizer:
             }}
 
             // 显示 Bug 详情和代码
-            const bug = filterBugs(bugsData, currentFilter)[index];
+            const filteredBugs = filterAndSortBugs();
+            const bug = filteredBugs[index];
 
             // 更新 URL hash
             window.location.hash = bug.id;
@@ -596,7 +872,7 @@ class Visualizer:
                     <p><span class="label">Description:</span> ${{bug.description}}</p>
                     <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
                 </div>
-                <div class="code-header">${{bug.file_path}}</div>
+                <div class="code-header">📄 Current Function - ${{bug.file_path}}</div>
                 <div class="code-content">
             `;
 
@@ -614,6 +890,50 @@ class Visualizer:
             }}
 
             html += '</div>';
+
+            // 添加 Callers 部分
+            if (bug.callers && bug.callers.length > 0) {{
+                html += '<div class="caller-section">';
+                html += '<div class="caller-header">📞 Callers (Functions that call this function)</div>';
+
+                for (let i = 0; i < bug.callers.length; i++) {{
+                    const caller = bug.callers[i];
+                    const filePath = caller.file_path || 'Unknown';
+                    const functionName = caller.function_name || 'Unknown';
+                    const codeSnippet = caller.code_snippet || '';
+
+                    html += `
+                        <div class="caller-item">
+                            <div class="caller-label">Caller ${{i + 1}}: ${{functionName}} @ ${{filePath}}</div>
+                            <div class="caller-code">${{escapeHtml(codeSnippet)}}</div>
+                        </div>
+                    `;
+                }}
+
+                html += '</div>';
+            }}
+
+            // 添加 Inferred Callers 部分
+            if (bug.inferred_callers && bug.inferred_callers.length > 0) {{
+                html += '<div class="caller-section">';
+                html += '<div class="caller-header">🔍 Inferred Callers (Potential callers detected by analysis)</div>';
+
+                for (let i = 0; i < bug.inferred_callers.length; i++) {{
+                    const inferredCaller = bug.inferred_callers[i];
+                    const hint = inferredCaller.hint || '';
+                    const code = inferredCaller.code || '';
+
+                    html += `
+                        <div class="caller-item">
+                            <div class="caller-hint">${{escapeHtml(hint)}}</div>
+                            <div class="caller-code">${{escapeHtml(code)}}</div>
+                        </div>
+                    `;
+                }}
+
+                html += '</div>';
+            }}
+
             codePane.innerHTML = html;
 
             // 滚动到高亮行
@@ -646,50 +966,44 @@ class Visualizer:
         Prepare bugs list with sorting and absolute line numbers.
 
         Args:
-            report: Report data dictionary.
+            report: Report data dictionary (new format).
 
         Returns:
-            Sorted list of bugs.
+            Sorted list of bugs with caller information.
         """
         bugs_list = []
 
-        for func_report in report.get('reports', []):
-            if not func_report.get('has_bug'):
-                continue
+        # 新格式：直接从 bugs 列表获取
+        for bug in report.get('bugs', []):
+            function_name = bug.get('function_name', 'Unknown')
+            file_path = bug.get('file_path', '')
+            severity = bug.get('severity', 'low')
+            function_start_line = bug.get('function_start_line', 0)
 
-            function_name = func_report['function_name']
-            file_path = func_report['file_path']
-            severity = func_report['severity']
+            # 转换相对行号为绝对行号
+            relative_start = bug.get('start_line', 0)
+            relative_end = bug.get('end_line', 0)
+            absolute_start = function_start_line + relative_start - 1 if relative_start > 0 else 0
+            absolute_end = function_start_line + relative_end - 1 if relative_end > 0 else 0
 
-            # 从 file_path 中提取文件相关信息
-            # 注意：这里需要获取函数的绝对行号，但 JSON 中没有，所以我们用相对行号
-            # 实际使用时，JavaScript 会动态加载文件
-
-            # 获取函数起始行号，用于转换相对行号为绝对行号
-            function_start_line = func_report.get('function_start_line', 0)
-
-            for bug in func_report.get('bugs', []):
-                # 转换相对行号为绝对行号
-                # bug 的 start_line 是相对于函数定义行（函数定义行算作第1行）
-                # 所以绝对行号 = function_start_line + relative_line - 1
-                relative_start = bug.get('start_line', 0)
-                relative_end = bug.get('end_line', 0)
-                absolute_start = function_start_line + relative_start - 1 if relative_start > 0 else 0
-                absolute_end = function_start_line + relative_end - 1 if relative_end > 0 else 0
-
-                bugs_list.append({
-                    'type': bug.get('type', 'Unknown'),
-                    'description': bug.get('description', ''),
-                    'location': bug.get('location', ''),
-                    'suggestion': bug.get('suggestion', ''),
-                    'severity': severity,
-                    'function_name': function_name,
-                    'file_path': file_path,
-                    'start_line': absolute_start,
-                    'end_line': absolute_end,
-                    'start_col': bug.get('start_col', 0),
-                    'end_col': bug.get('end_col', 0),
-                })
+            bugs_list.append({
+                'id': bug.get('bug_id', 'BUG-000'),
+                'type': bug.get('type', 'Unknown'),
+                'description': bug.get('description', ''),
+                'location': bug.get('location', ''),
+                'suggestion': bug.get('suggestion', ''),
+                'severity': severity,
+                'function_name': function_name,
+                'file_path': file_path,
+                'function_start_line': function_start_line,
+                'start_line': absolute_start,
+                'end_line': absolute_end,
+                'start_col': bug.get('start_col', 0),
+                'end_col': bug.get('end_col', 0),
+                'callers': bug.get('callers', []),  # List[Dict] with file_path, function_name, code_snippet
+                'callees': bug.get('callees', []),
+                'inferred_callers': bug.get('inferred_callers', [])  # List[Dict] with hint, code
+            })
 
         # 排序：按照 severity > file_path > start_line
         severity_order = {'high': 0, 'medium': 1, 'low': 2}
@@ -699,16 +1013,8 @@ class Visualizer:
             x['start_line']
         ))
 
-        # 添加 bug ID
-        for i, bug in enumerate(bugs_list, 1):
-            bug['id'] = f"BUG-{i:03d}"
-
         return bugs_list
 
     def _count_bugs_by_severity(self, report: Dict[str, Any], severity: str) -> int:
         """Count bugs by severity level."""
-        count = 0
-        for func_report in report.get('reports', []):
-            if func_report.get('severity') == severity and func_report.get('has_bug'):
-                count += len(func_report.get('bugs', []))
-        return count
+        return sum(1 for bug in report.get('bugs', []) if bug.get('severity') == severity)

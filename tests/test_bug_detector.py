@@ -63,7 +63,7 @@ detector:
         mock_response.choices = [
             Mock(
                 message=Mock(
-                    content='{"has_bug": true, "severity": "high", "bugs": [{"type": "ZeroDivisionError", "description": "Division by zero", "location": "line 2", "suggestion": "Add check"}]}'
+                    content='{"has_bug": true, "severity": "high", "bugs": [{"type": "ZeroDivisionError", "description": "除零错误", "location": "line 2", "start_line": 2, "end_line": 2, "start_col": 0, "end_col": 0, "suggestion": "添加检查"}]}'
                 )
             )
         ]
@@ -73,20 +73,23 @@ detector:
         context = {
             "current_function": sample_function.code,
             "callers": [],
-            "callees": []
+            "is_public_api": False,
+            "inferred_callers": []
         }
 
-        result = detector.detect(sample_function, context)
+        result = detector.detect(sample_function, context, bug_id_start=1)
 
         assert result is not None
-        assert "report" in result
+        assert "reports" in result
         assert "prompt" in result
         assert "raw_response" in result
 
-        report = result["report"]
-        assert report.has_bug is True
+        reports = result["reports"]
+        assert len(reports) == 1
+        report = reports[0]
+        assert report.bug_id == "BUG_0001"
         assert report.severity == "high"
-        assert len(report.bugs) > 0
+        assert report.bug_type == "ZeroDivisionError"
 
     @patch('pyscan.bug_detector.OpenAI')
     def test_detect_no_bugs(self, mock_openai, mock_config, sample_function):
@@ -108,16 +111,16 @@ detector:
         context = {
             "current_function": sample_function.code,
             "callers": [],
-            "callees": []
+            "is_public_api": False,
+            "inferred_callers": []
         }
 
         result = detector.detect(sample_function, context)
 
         assert result is not None
-        assert "report" in result
-        report = result["report"]
-        assert report.has_bug is False
-        assert len(report.bugs) == 0
+        assert "reports" in result
+        reports = result["reports"]
+        assert len(reports) == 0  # 无 bug 时返回空列表
 
     @patch('pyscan.bug_detector.OpenAI')
     def test_retry_on_failure(self, mock_openai, mock_config, sample_function):
@@ -143,7 +146,8 @@ detector:
         context = {
             "current_function": sample_function.code,
             "callers": [],
-            "callees": []
+            "is_public_api": False,
+            "inferred_callers": []
         }
 
         result = detector.detect(sample_function, context)
@@ -169,7 +173,8 @@ detector:
         context = {
             "current_function": sample_function.code,
             "callers": [],
-            "callees": []
+            "is_public_api": False,
+            "inferred_callers": []
         }
 
         result = detector.detect(sample_function, context)
@@ -180,20 +185,65 @@ detector:
     def test_bug_report_dataclass(self):
         """测试 BugReport 数据类。"""
         bug_report = BugReport(
+            bug_id="BUG_0001",
             function_name="test_func",
             file_path="/path/to/file.py",
-            has_bug=True,
+            function_start_line=10,
             severity="medium",
-            bugs=[
-                {
-                    "type": "TypeError",
-                    "description": "Type mismatch",
-                    "location": "line 5",
-                    "suggestion": "Add type check"
-                }
-            ]
+            bug_type="TypeError",
+            description="类型不匹配",
+            location="line 5",
+            start_line=5,
+            end_line=5,
+            start_col=0,
+            end_col=10,
+            suggestion="添加类型检查"
         )
 
+        assert bug_report.bug_id == "BUG_0001"
         assert bug_report.function_name == "test_func"
-        assert bug_report.has_bug is True
-        assert len(bug_report.bugs) == 1
+        assert bug_report.severity == "medium"
+        assert bug_report.bug_type == "TypeError"
+
+    def test_bug_report_with_callers(self):
+        """测试包含 caller 信息的 BugReport。"""
+        callers = [
+            {
+                'file_path': '/path/to/caller.py',
+                'function_name': 'caller_func',
+                'code_snippet': 'def caller_func():\n    result = test_func(x, y)'
+            }
+        ]
+        inferred_callers = [
+            {
+                'hint': '(推断): @decorator装饰器',
+                'code': 'def decorator(func):\n    return wrapper'
+            }
+        ]
+
+        bug_report = BugReport(
+            bug_id="BUG_0002",
+            function_name="test_func",
+            file_path="/path/to/file.py",
+            function_start_line=10,
+            severity="high",
+            bug_type="ValueError",
+            description="参数验证错误",
+            location="line 12",
+            start_line=12,
+            end_line=12,
+            start_col=4,
+            end_col=20,
+            suggestion="添加参数验证",
+            callers=callers,
+            callees=["helper_func"],
+            inferred_callers=inferred_callers
+        )
+
+        assert bug_report.bug_id == "BUG_0002"
+        assert len(bug_report.callers) == 1
+        assert bug_report.callers[0]['file_path'] == '/path/to/caller.py'
+        assert bug_report.callers[0]['function_name'] == 'caller_func'
+        assert 'result = test_func' in bug_report.callers[0]['code_snippet']
+        assert len(bug_report.inferred_callers) == 1
+        assert bug_report.inferred_callers[0]['hint'] == '(推断): @decorator装饰器'

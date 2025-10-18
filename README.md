@@ -6,12 +6,17 @@ PyScan 是一个基于大语言模型(LLM)的 Python 代码静态分析工具,�
 
 - ✅ **AST 解析**: 深度解析 Python 代码结构,提取函数信息和调用关系
 - ✅ **上下文增强**: 为每个函数构建包含调用者和被调用者的完整上下文
+- ✅ **智能调用分析**: 精简的 caller 信息展示(函数签名 + 调用行 ± 5 行上下文)
+- ✅ **公共 API 识别**: 自动识别公共 API 并要求严格的参数验证
+- ✅ **高级调用推断**: 支持装饰器和 Callable 类型注解的调用关系推断
 - ✅ **LLM 驱动**: 利用大语言模型进行智能代码审查
 - ✅ **精确定位**: 提供 bug 的准确代码位置(行号、列号)
+- ✅ **Bug 级报告**: 每个 bug 独立记录,包含 caller/callee 信息
 - ✅ **断点续传**: 支持从失败点恢复扫描,避免重复检测
 - ✅ **快速失败**: 检测失败时立即退出并保存进度
 - ✅ **交互式可视化**: 通过 pyscan_viz 生成交互式 HTML 报告
 - ✅ **灵活配置**: 通过 YAML 配置文件自定义扫描规则
+- ✅ **Prompt 压缩**: 自动多级压缩策略,处理超长上下文
 
 ## 安装
 
@@ -46,6 +51,23 @@ detector:
   concurrency: 1
   context_token_limit: 6000
   use_tiktoken: false  # 可选: 使用 tiktoken 精确计算 token (需安装 tiktoken)
+  enable_advanced_analysis: true  # 启用装饰器和 Callable 类型注解的调用推断
+
+public_api:
+  # 公共 API 识别规则 (自动检测需要严格参数验证的函数)
+  decorators:
+    - "route"
+    - "api_view"
+    - "app.route"
+    - "blueprint.route"
+  file_patterns:
+    - "*/api/*"
+    - "*/views/*"
+    - "*/endpoints/*"
+  name_prefixes:
+    - "api_"
+    - "handle_"
+    - "endpoint_"
 ```
 
 ### 配置说明
@@ -137,28 +159,47 @@ python -m pyscan_viz report.json --no-embed-source
 
 ### JSON 格式 (PyScan 输出)
 
+新版本采用 **Bug 级别** 的报告格式，每个 bug 独立记录：
+
 ```json
 {
   "timestamp": "2025-01-01T12:00:00",
-  "total_functions": 100,
-  "functions_with_bugs": 15,
-  "reports": [
+  "summary": {
+    "total_bugs": 15,
+    "affected_functions": 12,
+    "severity_breakdown": {
+      "high": 3,
+      "medium": 7,
+      "low": 5
+    }
+  },
+  "bugs": [
     {
+      "bug_id": "BUG_0001",
       "function_name": "divide",
       "file_path": "/path/to/file.py",
-      "has_bug": true,
-      "severity": "high",
       "function_start_line": 10,
-      "bugs": [
+      "severity": "high",
+      "type": "ZeroDivisionError",
+      "description": "除数可能为零（中文描述）",
+      "location": "第3行",
+      "start_line": 3,
+      "end_line": 3,
+      "start_col": 11,
+      "end_col": 18,
+      "suggestion": "添加除数检查",
+      "callers": [
         {
-          "type": "ZeroDivisionError",
-          "description": "除数可能为零",
-          "location": "第3行",
-          "start_line": 3,
-          "end_line": 3,
-          "start_col": 11,
-          "end_col": 18,
-          "suggestion": "添加除数检查"
+          "file_path": "/path/to/caller.py",
+          "function_name": "calculate",
+          "code_snippet": "def calculate(a, b):\n    ...\n    result = divide(a, b)\n    ..."
+        }
+      ],
+      "callees": ["helper_func"],
+      "inferred_callers": [
+        {
+          "hint": "(推断): @decorator装饰器",
+          "code": "def decorator(func):\n    return wrapper"
         }
       ]
     }
@@ -166,14 +207,25 @@ python -m pyscan_viz report.json --no-embed-source
 }
 ```
 
+**关键字段说明**：
+- `callers`: 调用者列表，每个包含文件路径、函数名和精简代码片段（签名 + 调用行 ± 5 行）
+- `callees`: 被调用函数名列表
+- `inferred_callers`: 推断的调用者（如装饰器、Callable 类型注解）
+
 ### 交互式 HTML (PyScan Viz 输出)
 
 通过 `pyscan_viz` 生成的交互式网页报告,包含:
 
-- **顶部统计面板**: 显示总函数数、bug 数量、按严重程度分类统计
-- **左侧 Bug 列表**: 按严重程度排序,支持过滤(All/High/Medium/Low)
-- **右侧代码查看器**: 点击 bug 后显示源码并高亮问题位置
-- **URL 导航**: 支持通过 `#BUG-001` 等 hash 直接定位到特定 bug
+- **顶部统计面板**: 显示总 bug 数、影响函数数、按严重程度分类统计
+- **左侧 Bug 列表**:
+  - 按严重程度/函数/类型/行号排序
+  - 支持多维度过滤（严重程度、函数、Bug 类型）
+  - 显示 Bug ID、严重程度、类型和位置
+- **右侧代码查看器**:
+  - 点击 bug 后显示源码并高亮问题位置
+  - **Callers 区域**：显示调用当前函数的函数信息（文件路径 + 函数名 + 代码片段）
+  - **Inferred Callers 区域**：显示推断的调用者（装饰器、Callable 等）
+- **URL 导航**: 支持通过 `#BUG_0001` 等 hash 直接定位到特定 bug
 
 ## 项目结构
 

@@ -14,14 +14,24 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BugReport:
-    """Bug detection report for a function."""
+    """Bug detection report for a single bug."""
 
+    bug_id: str  # Bug ID (e.g., BUG_0001)
     function_name: str
     file_path: str
-    has_bug: bool
+    function_start_line: int  # 函数在文件中的起始行号
     severity: str  # high, medium, low
-    bugs: List[Dict[str, str]] = field(default_factory=list)
-    function_start_line: int = 0  # 函数在文件中的起始行号
+    bug_type: str  # Bug 类型
+    description: str  # Bug 描述（中文）
+    location: str  # 位置描述
+    start_line: int  # Bug 起始行（相对于函数）
+    end_line: int  # Bug 结束行（相对于函数）
+    start_col: int  # Bug 起始列
+    end_col: int  # Bug 结束列
+    suggestion: str  # 修复建议
+    callers: List[Dict[str, Any]] = field(default_factory=list)  # 调用者信息列表（包含文件路径、函数名、代码片段）
+    callees: List[str] = field(default_factory=list)  # 被调用函数名列表
+    inferred_callers: List[Dict[str, str]] = field(default_factory=list)  # 推断的调用者（包含 hint 和代码）
 
 
 class BugDetector:
@@ -35,6 +45,21 @@ class BugDetector:
 3. 不要过度建议防御性编程（如到处检查 None、验证参数类型等）
 4. 信任函数的类型注解（type hints）和调用链中的验证
 5. 只报告明确的、会导致程序错误的逻辑缺陷
+6. **假定所有调用者（callers）和被调用函数（callees）都是正确的、无 bug 的**
+7. **尽量少标记为 high 严重程度，只有在确实会导致严重后果时才使用 high**
+8. **bug 的 description 字段必须用中文描述**
+
+**参数验证要求（根据函数类型）：**
+- 如果函数是**公共 API/接口**（会被外部或不可信代码调用），必须检查是否缺少以下验证：
+  * 参数类型验证（是否检查了参数类型是否符合预期）
+  * 空值检查（None 值的处理）
+  * 必需字段存在性检查（对于字典/对象参数）
+  * 边界值检查（数值范围、字符串长度等）
+  * 如果缺少这些验证，应报告为 bug
+- 如果函数是**内部函数**（仅被项目内部代码调用），则：
+  * 信任调用者已做必要的验证
+  * 不要报告缺少参数验证的问题
+  * 除非存在明确的逻辑错误会导致崩溃
 
 **应该检测的问题：**
 - 明确的逻辑错误（算法错误、条件判断错误、边界条件处理错误）
@@ -42,12 +67,13 @@ class BugDetector:
 - 并发安全问题（竞态条件、死锁风险）
 - 数据一致性问题
 - 安全漏洞（SQL 注入、路径遍历等）
+- 公共 API 缺少必要的参数验证（仅当函数类型为"公共 API"时）
 
 **不应该报告的问题：**
 - 缺少类型注解
 - 缺少 docstring
 - 变量命名不规范
-- 简单的参数验证建议（除非确实会导致崩溃）
+- 内部函数缺少参数验证（调用者已验证）
 - 性能优化建议（除非有明显的性能问题）
 - 代码重复
 
@@ -96,7 +122,11 @@ class BugDetector:
         function: FunctionInfo,
         context: Dict[str, Any],
         file_path: str = "",
-        function_start_line: int = 0
+        function_start_line: int = 0,
+        callers: List[Dict[str, Any]] = None,
+        callees: List[str] = None,
+        inferred_callers: List[Dict[str, str]] = None,
+        bug_id_start: int = 1
     ) -> Optional[Dict[str, Any]]:
         """
         Detect bugs in a function.
@@ -105,10 +135,15 @@ class BugDetector:
             function: Function to analyze.
             context: Function context (callers, callees).
             file_path: Path to the file containing the function.
+            function_start_line: Starting line number of function.
+            callers: List of caller info dicts (file_path, function_name, code_snippet).
+            callees: List of callee function names.
+            inferred_callers: List of inferred caller dicts with hints and code.
+            bug_id_start: Starting bug ID number.
 
         Returns:
             Dictionary containing:
-                - report: BugReport if successful
+                - reports: List of BugReport (one per bug found, empty if no bugs)
                 - prompt: The full prompt sent to LLM
                 - raw_response: The raw response from LLM
             None if failed after retries.
@@ -130,17 +165,33 @@ class BugDetector:
                 content = response.choices[0].message.content
                 result = self._parse_response(content)
 
-                report = BugReport(
-                    function_name=function.name,
-                    file_path=file_path,
-                    has_bug=result["has_bug"],
-                    severity=result["severity"],
-                    bugs=result["bugs"],
-                    function_start_line=function_start_line
-                )
+                # 将每个 bug 转换为独立的 BugReport
+                reports = []
+                if result["has_bug"] and result["bugs"]:
+                    for idx, bug in enumerate(result["bugs"]):
+                        bug_id = f"BUG_{bug_id_start + idx:04d}"
+                        report = BugReport(
+                            bug_id=bug_id,
+                            function_name=function.name,
+                            file_path=file_path,
+                            function_start_line=function_start_line,
+                            severity=bug.get("severity", result.get("severity", "low")),
+                            bug_type=bug.get("type", "Unknown"),
+                            description=bug.get("description", ""),
+                            location=bug.get("location", ""),
+                            start_line=bug.get("start_line", 0),
+                            end_line=bug.get("end_line", 0),
+                            start_col=bug.get("start_col", 0),
+                            end_col=bug.get("end_col", 0),
+                            suggestion=bug.get("suggestion", ""),
+                            callers=callers or [],
+                            callees=callees or [],
+                            inferred_callers=inferred_callers or []
+                        )
+                        reports.append(report)
 
                 return {
-                    "report": report,
+                    "reports": reports,
                     "prompt": prompt,
                     "raw_response": content
                 }
@@ -180,6 +231,15 @@ class BugDetector:
 
         parts.append("请分析以下函数是否存在潜在 bug：\n\n")
 
+        # 添加函数类型说明
+        is_public_api = context.get("is_public_api", False)
+        function_type = "公共 API/接口" if is_public_api else "内部函数"
+        parts.append(f"**当前函数类型:** {function_type}\n")
+        if is_public_api:
+            parts.append("（此函数会被外部或不可信代码调用，需要严格的参数验证）\n\n")
+        else:
+            parts.append("（此函数仅被项目内部代码调用，可以信任调用者已做验证）\n\n")
+
         parts.append("### 当前函数\n")
         parts.append("```python\n")
         # 添加行号以帮助 LLM 定位
@@ -195,12 +255,17 @@ class BugDetector:
                 parts.append(caller)
                 parts.append("\n```\n\n")
 
-        if context.get("callees"):
-            parts.append("### 被调用函数\n")
-            for i, callee in enumerate(context["callees"], 1):
-                parts.append(f"被调用函数 {i}:\n```python\n")
-                parts.append(callee)
+        # callees 已移除 - 假定被调用函数无 bug，不需要在 prompt 中展示
+
+        # 添加推断的调用者
+        if context.get("inferred_callers"):
+            parts.append("### 调用者函数(推断)\n")
+            for i, inferred in enumerate(context["inferred_callers"], 1):
+                parts.append(f"调用者 {i} {inferred['hint']}:\n```python\n")
+                parts.append(inferred['code'])
                 parts.append("\n```\n\n")
+
+        # 推断的 callees 已移除 - 不需要在 prompt 中展示
 
         parts.append(
             "请返回 JSON 格式的分析结果，只返回 JSON，不要其他说明文字。"

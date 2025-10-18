@@ -20,6 +20,7 @@ class FunctionInfo:
     is_async: bool = False
     calls: Set[str] = field(default_factory=set)
     docstring: str = ""
+    arg_types: Dict[str, str] = field(default_factory=dict)  # 参数名 -> 类型注解字符串
 
 
 class ASTParser:
@@ -89,10 +90,14 @@ class FunctionVisitor(ast.NodeVisitor):
 
     def _process_function(self, node, is_async: bool):
         """Process function node and extract information."""
-        # 提取参数
+        # 提取参数和类型注解
         args = []
+        arg_types = {}
         for arg in node.args.args:
             args.append(arg.arg)
+            # 提取类型注解
+            if arg.annotation:
+                arg_types[arg.arg] = self._extract_annotation(arg.annotation)
 
         # 提取装饰器
         decorators = []
@@ -127,9 +132,46 @@ class FunctionVisitor(ast.NodeVisitor):
             is_async=is_async,
             calls=call_visitor.calls,
             docstring=docstring,
+            arg_types=arg_types,
         )
 
         self.functions.append(func_info)
+
+    def _extract_annotation(self, annotation) -> str:
+        """
+        Extract type annotation as string.
+
+        Args:
+            annotation: AST annotation node.
+
+        Returns:
+            String representation of the annotation.
+        """
+        if isinstance(annotation, ast.Name):
+            # 简单类型: int, str, etc.
+            return annotation.id
+        elif isinstance(annotation, ast.Constant):
+            # 常量类型
+            return str(annotation.value)
+        elif isinstance(annotation, ast.Subscript):
+            # 泛型类型: List[int], Callable[[int], str], etc.
+            value = self._extract_annotation(annotation.value)
+            slice_val = self._extract_annotation(annotation.slice)
+            return f"{value}[{slice_val}]"
+        elif isinstance(annotation, ast.Tuple):
+            # 元组类型: (int, str)
+            elements = [self._extract_annotation(elt) for elt in annotation.elts]
+            return ", ".join(elements)
+        elif isinstance(annotation, ast.List):
+            # 列表类型
+            elements = [self._extract_annotation(elt) for elt in annotation.elts]
+            return f"[{', '.join(elements)}]"
+        elif isinstance(annotation, ast.Attribute):
+            # 属性访问: typing.Callable
+            return f"{self._extract_annotation(annotation.value)}.{annotation.attr}"
+        else:
+            # 其他类型，尝试返回基本信息
+            return ast.unparse(annotation) if hasattr(ast, 'unparse') else str(type(annotation).__name__)
 
 
 class CallVisitor(ast.NodeVisitor):

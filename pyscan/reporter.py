@@ -13,7 +13,7 @@ class Reporter:
         Initialize reporter.
 
         Args:
-            reports: List of bug reports.
+            reports: List of bug reports (one per bug).
         """
         self.reports = reports
 
@@ -24,18 +24,40 @@ class Reporter:
         Args:
             output_path: Path to output JSON file.
         """
+        # 统计信息
+        total_bugs = len(self.reports)
+        unique_functions = len(set(r.function_name for r in self.reports))
+        severity_counts = {
+            "high": sum(1 for r in self.reports if r.severity == "high"),
+            "medium": sum(1 for r in self.reports if r.severity == "medium"),
+            "low": sum(1 for r in self.reports if r.severity == "low")
+        }
+
         data = {
             "timestamp": datetime.now().isoformat(),
-            "total_functions": len(self.reports),
-            "functions_with_bugs": sum(1 for r in self.reports if r.has_bug),
-            "reports": [
+            "summary": {
+                "total_bugs": total_bugs,
+                "affected_functions": unique_functions,
+                "severity_breakdown": severity_counts
+            },
+            "bugs": [
                 {
+                    "bug_id": r.bug_id,
                     "function_name": r.function_name,
                     "file_path": r.file_path,
-                    "has_bug": r.has_bug,
+                    "function_start_line": r.function_start_line,
                     "severity": r.severity,
-                    "bugs": r.bugs,
-                    "function_start_line": r.function_start_line
+                    "type": r.bug_type,
+                    "description": r.description,
+                    "location": r.location,
+                    "start_line": r.start_line,
+                    "end_line": r.end_line,
+                    "start_col": r.start_col,
+                    "end_col": r.end_col,
+                    "suggestion": r.suggestion,
+                    "callers": r.callers,
+                    "callees": r.callees,
+                    "inferred_callers": r.inferred_callers
                 }
                 for r in self.reports
             ]

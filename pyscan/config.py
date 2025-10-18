@@ -20,6 +20,12 @@ class Config:
     DEFAULT_CONCURRENCY = 1
     DEFAULT_CONTEXT_TOKEN_LIMIT = 6000
     DEFAULT_USE_TIKTOKEN = False
+    DEFAULT_ENABLE_ADVANCED_ANALYSIS = True
+    DEFAULT_PUBLIC_API_DECORATORS = ["route", "get", "post", "put", "delete", "patch", "api_view", "endpoint"]
+    DEFAULT_PUBLIC_API_FILE_PATTERNS = ["*/api/*", "*/endpoints/*", "*/handlers/*", "*/controllers/*", "*/views/*"]
+    DEFAULT_PUBLIC_API_NAME_PREFIXES = ["api_", "handle_", "endpoint_"]
+    DEFAULT_MAX_CALLERS = 3
+    DEFAULT_MAX_INFERRED = 2
     DEFAULT_EXCLUDE_PATTERNS = [
         "test_*.py",
         "*_test.py",
@@ -86,6 +92,30 @@ class Config:
         )
         self.detector_use_tiktoken = detector_config.get(
             "use_tiktoken", self.DEFAULT_USE_TIKTOKEN
+        )
+        self.detector_enable_advanced_analysis = detector_config.get(
+            "enable_advanced_analysis", self.DEFAULT_ENABLE_ADVANCED_ANALYSIS
+        )
+
+        # 公共 API 识别配置
+        public_api_config = detector_config.get("public_api_indicators", {})
+        self.detector_public_api_decorators = public_api_config.get(
+            "decorators", self.DEFAULT_PUBLIC_API_DECORATORS
+        )
+        self.detector_public_api_file_patterns = public_api_config.get(
+            "file_patterns", self.DEFAULT_PUBLIC_API_FILE_PATTERNS
+        )
+        self.detector_public_api_name_prefixes = public_api_config.get(
+            "name_prefixes", self.DEFAULT_PUBLIC_API_NAME_PREFIXES
+        )
+
+        # 压缩配置
+        compression_config = detector_config.get("compression", {})
+        self.detector_max_callers = compression_config.get(
+            "max_callers", self.DEFAULT_MAX_CALLERS
+        )
+        self.detector_max_inferred = compression_config.get(
+            "max_inferred", self.DEFAULT_MAX_INFERRED
         )
 
     def _validate_values(self) -> None:

@@ -102,3 +102,33 @@ def prop_func(self):
         parser = ASTParser()
         with pytest.raises(FileNotFoundError):
             parser.parse_file("non_existent_file.py")
+
+    def test_type_annotations(self, tmp_path):
+        """测试类型注解提取。"""
+        code_file = tmp_path / "annotated.py"
+        code_file.write_text("""
+from typing import Callable, List
+
+def simple_annotated(x: int, y: str) -> str:
+    return str(x) + y
+
+def callable_param(callback: Callable[[int, str], None], data: List[int]):
+    pass
+""")
+
+        parser = ASTParser()
+        functions = parser.parse_file(str(code_file))
+
+        # 测试简单类型注解
+        simple_func = next(f for f in functions if f.name == "simple_annotated")
+        assert "x" in simple_func.arg_types
+        assert simple_func.arg_types["x"] == "int"
+        assert "y" in simple_func.arg_types
+        assert simple_func.arg_types["y"] == "str"
+
+        # 测试 Callable 类型注解
+        callable_func = next(f for f in functions if f.name == "callable_param")
+        assert "callback" in callable_func.arg_types
+        assert "Callable" in callable_func.arg_types["callback"]
+        assert "data" in callable_func.arg_types
+        assert "List" in callable_func.arg_types["data"]

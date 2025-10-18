@@ -46,7 +46,7 @@ class ProgressManager:
         加载上次的进度。
 
         Returns:
-            (completed_functions, reports): 已完成的函数列表和报告列表
+            (completed_functions, reports): 已完成的函数列表和 bug 报告列表
         """
         if not self.progress_file.exists():
             return set(), []
@@ -59,23 +59,33 @@ class ProgressManager:
             if self.reports_file.exists():
                 with open(self.reports_file, 'r', encoding='utf-8') as f:
                     reports_data = json.load(f)
-                # 重构报告对象
+                # 重构报告对象（新格式：每个 bug 一个 report）
                 from pyscan.bug_detector import BugReport
                 reports = [
                     BugReport(
+                        bug_id=r['bug_id'],
                         function_name=r['function_name'],
                         file_path=r['file_path'],
-                        has_bug=r['has_bug'],
+                        function_start_line=r['function_start_line'],
                         severity=r['severity'],
-                        bugs=r['bugs'],
-                        function_start_line=r.get('function_start_line', 0)
+                        bug_type=r['type'],
+                        description=r['description'],
+                        location=r['location'],
+                        start_line=r['start_line'],
+                        end_line=r['end_line'],
+                        start_col=r['start_col'],
+                        end_col=r['end_col'],
+                        suggestion=r['suggestion'],
+                        callers=r.get('callers', []),
+                        callees=r.get('callees', []),
+                        inferred_callers=r.get('inferred_callers', [])
                     )
                     for r in reports_data
                 ]
             else:
                 reports = []
 
-            logger.info(f"Loaded progress: {len(completed)} functions completed")
+            logger.info(f"Loaded progress: {len(completed)} functions completed, {len(reports)} bugs found")
             return completed, reports
 
         except Exception as e:
@@ -88,7 +98,7 @@ class ProgressManager:
 
         Args:
             completed_functions: 已完成的函数集合
-            reports: 报告列表
+            reports: Bug 报告列表（每个 bug 一个 report）
         """
         try:
             # 保存已完成函数列表
@@ -97,15 +107,25 @@ class ProgressManager:
                     'completed_functions': list(completed_functions)
                 }, f, indent=2)
 
-            # 保存报告
+            # 保存报告（新格式：每个 bug 一个 report）
             reports_data = [
                 {
+                    'bug_id': r.bug_id,
                     'function_name': r.function_name,
                     'file_path': r.file_path,
-                    'has_bug': r.has_bug,
+                    'function_start_line': r.function_start_line,
                     'severity': r.severity,
-                    'bugs': r.bugs,
-                    'function_start_line': r.function_start_line
+                    'type': r.bug_type,
+                    'description': r.description,
+                    'location': r.location,
+                    'start_line': r.start_line,
+                    'end_line': r.end_line,
+                    'start_col': r.start_col,
+                    'end_col': r.end_col,
+                    'suggestion': r.suggestion,
+                    'callers': r.callers,
+                    'callees': r.callees,
+                    'inferred_callers': r.inferred_callers
                 }
                 for r in reports
             ]
@@ -158,6 +178,50 @@ class ProgressManager:
 
         except Exception as e:
             logger.error(f"Failed to save LLM interaction for {function_name}: {e}")
+
+
+def extract_caller_snippet(caller_code: str, target_func_name: str, context_lines: int = 5) -> str:
+    """
+    提取调用者函数的签名和调用目标函数的代码片段。
+
+    Args:
+        caller_code: 调用者函数的完整代码
+        target_func_name: 目标函数名（被调用的函数）
+        context_lines: 调用行上下文行数（±N行）
+
+    Returns:
+        包含签名和调用上下文的代码片段
+    """
+    lines = caller_code.split('\n')
+    if not lines:
+        return caller_code
+
+    # 提取函数签名（第一行，通常是 def xxx(...): ）
+    signature = lines[0] if lines else ""
+
+    # 查找包含目标函数调用的所有行号
+    call_lines = []
+    for i, line in enumerate(lines):
+        # 简单检查：行中是否包含 target_func_name(
+        if f"{target_func_name}(" in line:
+            call_lines.append(i)
+
+    if not call_lines:
+        # 如果没找到调用行，返回签名
+        return signature
+
+    # 对于每个调用点，提取 ±context_lines 的代码
+    snippets = [signature]
+
+    for call_line_idx in call_lines:
+        start = max(1, call_line_idx - context_lines)  # 跳过签名行
+        end = min(len(lines), call_line_idx + context_lines + 1)
+
+        # 添加上下文标记
+        snippets.append(f"\n    # ... (call at line {call_line_idx + 1})")
+        snippets.extend(lines[start:end])
+
+    return '\n'.join(snippets)
 
 
 def main():
@@ -252,8 +316,10 @@ def main():
         logger.info("Building context and detecting bugs...")
         context_builder = ContextBuilder(
             all_functions,
+            config=config,
             max_tokens=config.detector_context_token_limit,
-            use_tiktoken=config.detector_use_tiktoken
+            use_tiktoken=config.detector_use_tiktoken,
+            enable_advanced_analysis=config.detector_enable_advanced_analysis
         )
         detector = BugDetector(config)
 
@@ -281,11 +347,43 @@ def main():
 
             try:
                 context = context_builder.build_context(func)
+
+                # 提取 callers 信息：文件路径 + 函数名 + 调用点周围代码
+                callers = []
+                callees = []
+
+                # 从context中提取实际的函数调用关系
+                for func_obj in all_functions:
+                    if func.name in func_obj.calls:
+                        # 提取调用点周围的代码（签名 + 调用行 ± 5）
+                        caller_snippet = extract_caller_snippet(
+                            func_obj.code,
+                            func.name,
+                            context_lines=5
+                        )
+
+                        callers.append({
+                            'file_path': getattr(func_obj, 'file_path', ''),
+                            'function_name': func_obj.name,
+                            'code_snippet': caller_snippet
+                        })
+
+                for call_name in func.calls:
+                    if call_name in [f.name for f in all_functions]:
+                        callees.append(call_name)
+
+                # 提取 inferred_callers（格式已经是 dict，包含 hint 和 code）
+                inferred_callers = context.get("inferred_callers", [])
+
                 result = detector.detect(
                     func,
                     context,
                     file_path=getattr(func, 'file_path', ''),
-                    function_start_line=func.lineno
+                    function_start_line=func.lineno,
+                    callers=callers,
+                    callees=callees,
+                    inferred_callers=inferred_callers,
+                    bug_id_start=bug_counter
                 )
 
                 if result is None:
@@ -308,25 +406,25 @@ def main():
                     )
                     sys.exit(1)
 
-                # 检测成功，提取结果
-                report = result["report"]
+                # 检测成功，提取结果（现在是 bug 列表）
+                bug_reports = result["reports"]
                 prompt = result["prompt"]
                 raw_response = result["raw_response"]
 
-                # 生成 Bug ID
-                bug_id = f"BUG_{bug_counter:04d}"
-                bug_counter += 1
+                # 如果有 bug，保存 LLM 交互并添加到 reports
+                if bug_reports:
+                    # 为每个 bug 保存 LLM 交互
+                    for bug_report in bug_reports:
+                        progress_manager.save_llm_interaction(
+                            bug_id=bug_report.bug_id,
+                            file_path=getattr(func, 'file_path', ''),
+                            function_name=func.name,
+                            prompt=prompt,
+                            raw_response=raw_response
+                        )
+                        reports.append(bug_report)
+                        bug_counter += 1
 
-                # 保存 LLM 交互
-                progress_manager.save_llm_interaction(
-                    bug_id=bug_id,
-                    file_path=getattr(func, 'file_path', ''),
-                    function_name=func.name,
-                    prompt=prompt,
-                    raw_response=raw_response
-                )
-
-                reports.append(report)
                 completed_functions.add(func_id)
 
                 # 每完成一个函数就保存进度和更新报告
@@ -359,12 +457,16 @@ def main():
         logger.info(f"Report generated: {args.output}")
 
         # 统计信息
-        total = len(reports)
-        with_bugs = sum(1 for r in reports if r.has_bug)
+        total_bugs = len(reports)
+        affected_functions = len(set(r.function_name for r in reports))
+        high_severity = sum(1 for r in reports if r.severity == "high")
+        medium_severity = sum(1 for r in reports if r.severity == "medium")
+        low_severity = sum(1 for r in reports if r.severity == "low")
 
         logger.info(f"\nScan completed!")
-        logger.info(f"Total functions: {total}")
-        logger.info(f"Functions with bugs: {with_bugs}")
+        logger.info(f"Total bugs found: {total_bugs}")
+        logger.info(f"Affected functions: {affected_functions}")
+        logger.info(f"Severity breakdown - High: {high_severity}, Medium: {medium_severity}, Low: {low_severity}")
 
     except ConfigError as e:
         logger.error(f"Configuration error: {e}")
