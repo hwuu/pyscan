@@ -154,32 +154,16 @@ class Visualizer:
             background: white;
             border-right: 1px solid #e0e0e0;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }}
-
-        .bugs-header {{
-            padding: 15px 20px;
-            background: #f9f9f9;
-            border-bottom: 1px solid #e0e0e0;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }}
-
-        .bugs-header h2 {{
-            font-size: 18px;
-            margin-bottom: 10px;
         }}
 
         .filter-section {{
-            margin-bottom: 12px;
+            margin-bottom: 0;
         }}
 
         .filter-label {{
             font-size: 12px;
             font-weight: 600;
-            color: #666;
+            color: rgba(255,255,255,0.9);
             margin-bottom: 6px;
         }}
 
@@ -191,8 +175,9 @@ class Visualizer:
 
         .filter-btn {{
             padding: 5px 10px;
-            border: 1px solid #ddd;
-            background: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
@@ -203,17 +188,17 @@ class Visualizer:
         }}
 
         .filter-btn:hover {{
-            background: #f5f5f5;
+            background: rgba(255,255,255,0.2);
         }}
 
         .filter-btn.active {{
-            background: #667eea;
+            background: rgba(255,255,255,0.3);
             color: white;
-            border-color: #667eea;
+            border-color: rgba(255,255,255,0.5);
         }}
 
         .filter-count {{
-            background: rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.2);
             padding: 2px 6px;
             border-radius: 10px;
             font-size: 11px;
@@ -221,13 +206,7 @@ class Visualizer:
         }}
 
         .filter-btn.active .filter-count {{
-            background: rgba(255,255,255,0.2);
-        }}
-
-        .sort-section {{
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e0e0;
+            background: rgba(0,0,0,0.3);
         }}
 
         .sort-buttons {{
@@ -237,8 +216,9 @@ class Visualizer:
 
         .sort-btn {{
             padding: 5px 10px;
-            border: 1px solid #ddd;
-            background: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
@@ -246,27 +226,33 @@ class Visualizer:
         }}
 
         .sort-btn:hover {{
-            background: #f5f5f5;
+            background: rgba(255,255,255,0.2);
         }}
 
         .sort-btn.active {{
-            background: #764ba2;
+            background: rgba(255,255,255,0.3);
             color: white;
-            border-color: #764ba2;
+            border-color: rgba(255,255,255,0.5);
         }}
 
         select.filter-select {{
             padding: 5px 10px;
-            border: 1px solid #ddd;
+            border: 1px solid rgba(255,255,255,0.3);
             border-radius: 4px;
             font-size: 12px;
-            background: white;
+            background: rgba(255,255,255,0.1);
+            color: white;
             cursor: pointer;
             outline: none;
         }}
 
+        select.filter-select option {{
+            background: #667eea;
+            color: white;
+        }}
+
         select.filter-select:focus {{
-            border-color: #667eea;
+            border-color: rgba(255,255,255,0.5);
         }}
 
         .bugs-list {{
@@ -456,13 +442,21 @@ class Visualizer:
         .caller-code {{
             font-family: 'Courier New', Consolas, Monaco, monospace;
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.6;
             color: #d4d4d4;
             background: #1e1e1e;
             padding: 10px;
             border-radius: 3px;
             overflow-x: auto;
-            white-space: pre;
+            white-space: pre-wrap;
+        }}
+
+        .caller-code .call-line {{
+            background: rgba(255, 215, 0, 0.15);
+            border-left: 3px solid #ffd700;
+            padding-left: 8px;
+            margin-left: -8px;
+            display: block;
         }}
 
         /* 滚动条样式 */
@@ -487,33 +481,46 @@ class Visualizer:
 </head>
 <body>
     <div class="container">
-        <!-- 顶部统计面板 -->
+        <!-- 顶部过滤/排序面板 -->
         <div class="stats-pane">
             <h1>🔍 PyScan Bug Report</h1>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Total Bugs</div>
-                    <div class="stat-value">{report.get('summary', {}).get('total_bugs', 0)}</div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <!-- Severity 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">Severity</div>
+                    <div class="filter-buttons" id="severityFilters">
+                        <!-- 动态生成 -->
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Affected Functions</div>
-                    <div class="stat-value">{report.get('summary', {}).get('affected_functions', 0)}</div>
+
+                <!-- Function 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">Function</div>
+                    <select class="filter-select" id="functionFilter">
+                        <option value="all">All Functions</option>
+                        <!-- 动态生成 -->
+                    </select>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">High Severity</div>
-                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('high', 0)}</div>
+
+                <!-- Bug Type 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">Bug Type</div>
+                    <select class="filter-select" id="typeFilter">
+                        <option value="all">All Types</option>
+                        <!-- 动态生成 -->
+                    </select>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Medium Severity</div>
-                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('medium', 0)}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Low Severity</div>
-                    <div class="stat-value">{report.get('summary', {}).get('severity_breakdown', {}).get('low', 0)}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Scan Time</div>
-                    <div class="stat-value" style="font-size: 12px; padding-top: 4px;">{report.get('timestamp', 'N/A')}</div>
+
+                <!-- 排序 -->
+                <div class="filter-section">
+                    <div class="filter-label">Sort By</div>
+                    <div class="sort-buttons">
+                        <button class="sort-btn active" data-sort="severity">Severity</button>
+                        <button class="sort-btn" data-sort="function">Function</button>
+                        <button class="sort-btn" data-sort="type">Type</button>
+                        <button class="sort-btn" data-sort="line">Line</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -522,46 +529,6 @@ class Visualizer:
         <div class="main-content">
             <!-- 左侧 Bug 列表 -->
             <div class="bugs-pane">
-                <div class="bugs-header">
-                    <h2>Detected Bugs</h2>
-
-                    <!-- Severity 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">Severity</div>
-                        <div class="filter-buttons" id="severityFilters">
-                            <!-- 动态生成 -->
-                        </div>
-                    </div>
-
-                    <!-- Function 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">Function</div>
-                        <select class="filter-select" id="functionFilter">
-                            <option value="all">All Functions</option>
-                            <!-- 动态生成 -->
-                        </select>
-                    </div>
-
-                    <!-- Bug Type 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">Bug Type</div>
-                        <select class="filter-select" id="typeFilter">
-                            <option value="all">All Types</option>
-                            <!-- 动态生成 -->
-                        </select>
-                    </div>
-
-                    <!-- 排序 -->
-                    <div class="sort-section">
-                        <div class="filter-label">Sort By</div>
-                        <div class="sort-buttons">
-                            <button class="sort-btn active" data-sort="severity">Severity</button>
-                            <button class="sort-btn" data-sort="function">Function</button>
-                            <button class="sort-btn" data-sort="type">Type</button>
-                            <button class="sort-btn" data-sort="line">Line Number</button>
-                        </div>
-                    </div>
-                </div>
                 <div class="bugs-list" id="bugsList">
                     <!-- Bug items will be inserted here by JavaScript -->
                 </div>
@@ -905,7 +872,7 @@ class Visualizer:
                     html += `
                         <div class="caller-item">
                             <div class="caller-label">Caller ${{i + 1}}: ${{functionName}} @ ${{filePath}}</div>
-                            <div class="caller-code">${{escapeHtml(codeSnippet)}}</div>
+                            <div class="caller-code">${{formatCallerCode(codeSnippet)}}</div>
                         </div>
                     `;
                 }}
@@ -951,6 +918,21 @@ class Visualizer:
             div.textContent = text;
             // 将空格替换为 &nbsp; 以保留缩进
             return div.innerHTML.replace(/ /g, '&nbsp;');
+        }}
+
+        // 格式化 caller code，高亮调用行（以 ">>> " 开头）
+        function formatCallerCode(code) {{
+            const lines = code.split('\\n');
+            const formattedLines = lines.map(line => {{
+                if (line.startsWith('>>> ')) {{
+                    // 移除 ">>> " 标记，并添加高亮类
+                    const cleanLine = line.substring(4);
+                    return `<span class="call-line">${{escapeHtml(cleanLine)}}</span>`;
+                }} else {{
+                    return escapeHtml(line);
+                }}
+            }});
+            return formattedLines.join('\\n');
         }}
 
         // 启动应用

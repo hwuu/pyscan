@@ -190,7 +190,7 @@ def extract_caller_snippet(caller_code: str, target_func_name: str, context_line
         context_lines: 调用行上下文行数（±N行）
 
     Returns:
-        包含签名和调用上下文的代码片段
+        包含签名和调用上下文的代码片段，调用行用 >>>  标记
     """
     lines = caller_code.split('\n')
     if not lines:
@@ -219,7 +219,13 @@ def extract_caller_snippet(caller_code: str, target_func_name: str, context_line
 
         # 添加上下文标记
         snippets.append(f"\n    # ... (call at line {call_line_idx + 1})")
-        snippets.extend(lines[start:end])
+
+        # 添加代码行，调用行前面加上 ">>> " 标记
+        for i in range(start, end):
+            if i == call_line_idx:
+                snippets.append(f">>> {lines[i]}")
+            else:
+                snippets.append(lines[i])
 
     return '\n'.join(snippets)
 
