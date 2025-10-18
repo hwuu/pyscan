@@ -170,6 +170,8 @@ class ContextBuilder:
                 decorator_func = self.function_map[decorator]
                 hint = f"(推断): @{decorator}装饰器"
                 context["inferred_callers"].append({
+                    "file_path": getattr(decorator_func, 'file_path', ''),
+                    "function_name": decorator_func.name,
                     "code": decorator_func.code,
                     "hint": hint
                 })
@@ -209,6 +211,8 @@ class ContextBuilder:
                         if expected_arg_count is None or current_arg_count == expected_arg_count:
                             hint = f"(推断): 可能被作为参数 '{arg_name}: {arg_type}' 传入 {func.name}"
                             context["inferred_callers"].append({
+                                "file_path": getattr(func, 'file_path', ''),
+                                "function_name": func.name,
                                 "code": func.code,
                                 "hint": hint
                             })

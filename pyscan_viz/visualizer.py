@@ -888,12 +888,15 @@ class Visualizer:
                 for (let i = 0; i < bug.inferred_callers.length; i++) {{
                     const inferredCaller = bug.inferred_callers[i];
                     const hint = inferredCaller.hint || '';
+                    const filePath = inferredCaller.file_path || 'Unknown';
+                    const functionName = inferredCaller.function_name || 'Unknown';
                     const code = inferredCaller.code || '';
 
                     html += `
                         <div class="caller-item">
                             <div class="caller-hint">${{escapeHtml(hint)}}</div>
-                            <div class="caller-code">${{escapeHtml(code)}}</div>
+                            <div class="caller-label">${{functionName}} @ ${{filePath}}</div>
+                            <div class="caller-code">${{formatCallerCode(code)}}</div>
                         </div>
                     `;
                 }}

@@ -378,8 +378,21 @@ def main():
                     if call_name in [f.name for f in all_functions]:
                         callees.append(call_name)
 
-                # 提取 inferred_callers（格式已经是 dict，包含 hint 和 code）
-                inferred_callers = context.get("inferred_callers", [])
+                # 提取 inferred_callers 并处理代码片段（添加调用行标记）
+                inferred_callers = []
+                for inferred in context.get("inferred_callers", []):
+                    # 为 inferred caller 的代码也添加调用行标记
+                    code_snippet = extract_caller_snippet(
+                        inferred.get("code", ""),
+                        func.name,
+                        context_lines=5
+                    )
+                    inferred_callers.append({
+                        'file_path': inferred.get('file_path', ''),
+                        'function_name': inferred.get('function_name', ''),
+                        'code': code_snippet,
+                        'hint': inferred.get('hint', '')
+                    })
 
                 result = detector.detect(
                     func,
