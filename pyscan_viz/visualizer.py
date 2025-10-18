@@ -903,13 +903,8 @@ class Visualizer:
 
             codePane.innerHTML = html;
 
-            // 滚动到高亮行
-            setTimeout(() => {{
-                const highlightedLine = codePane.querySelector('.code-line.highlighted');
-                if (highlightedLine) {{
-                    highlightedLine.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-                }}
-            }}, 100);
+            // 滚动到顶部
+            codePane.scrollTop = 0;
         }}
 
         // HTML 转义（保留空格和缩进）
