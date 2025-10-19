@@ -36,6 +36,8 @@ class BugReport:
     callers: List[Dict[str, Any]] = field(default_factory=list)  # Caller POIs
     callees: List[str] = field(default_factory=list)  # 被调用函数名列表
     inferred_callers: List[Dict[str, Any]] = field(default_factory=list)  # Inferred Caller POIs
+    confidence: float = 1.0  # 置信度 (0.0-1.0)，默认为 1.0
+    evidence: Dict[str, Any] = field(default_factory=dict)  # 证据链（用于 Layer 4 交叉验证）
 
 
 class BugDetector:
