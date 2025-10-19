@@ -16,7 +16,7 @@ bugs:
     description: "条件分支中变量未初始化，else 分支中 transaction_id 未定义"
     root_cause: "部分分支未初始化变量，导致后续使用时 UnboundLocalError"
     cwe_id: "CWE-457"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2"
 
@@ -54,7 +54,7 @@ bugs:
     description: "异常分支未初始化变量，except 块后 config 未定义"
     root_cause: "try 块初始化但 except 未初始化，异常后使用引发错误"
     cwe_id: "CWE-457"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2"
 
@@ -73,7 +73,7 @@ bugs:
     description: "变量在定义前引用，discount_rate 在赋值前使用"
     root_cause: "变量使用先于定义，直接引发 UnboundLocalError"
     cwe_id: "CWE-457"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 1"
 

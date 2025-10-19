@@ -16,7 +16,7 @@ bugs:
     description: "return 后的代码不可达，清理和日志代码永远不会执行"
     root_cause: "return 语句后的代码无法到达"
     cwe_id: "CWE-561"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1"
 
@@ -35,7 +35,7 @@ bugs:
     description: "恒假条件 (1 == 2)，分支代码永远不会执行"
     root_cause: "条件表达式恒为 False，可能是逻辑错误"
     cwe_id: "CWE-570"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1/2"
 
@@ -73,6 +73,6 @@ bugs:
     description: "递归函数缺少终止条件，导致 RecursionError"
     root_cause: "递归调用缺少基本情况 (base case)"
     cwe_id: "CWE-674"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2/3"

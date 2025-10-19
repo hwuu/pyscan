@@ -122,7 +122,7 @@ bugs:
     description: "单例模式双重检查锁定不正确，多线程下可能创建多个实例"
     root_cause: "检查和实例化之间没有同步保护，存在竞态窗口"
     cwe_id: "CWE-362"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2"
 

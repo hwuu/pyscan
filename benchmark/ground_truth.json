@@ -20,11 +20,9 @@
       "critical": 14
     },
     "by_difficulty": {
-      "easy": 30,
+      "easy": 36,
       "medium": 43,
-      "hard": 4,
-      "low": 6,
-      "high": 22
+      "hard": 26
     }
   },
   "bugs": [
@@ -45,7 +43,7 @@
       "description": "pickle.loads() 反序列化不可信数据，可执行任意代码",
       "root_cause": "pickle 反序列化可触发 __reduce__ 方法执行任意代码",
       "cwe_id": "CWE-502",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
@@ -67,7 +65,7 @@
       "description": "yaml.load() 使用 FullLoader 可执行 Python 代码",
       "root_cause": "yaml.load 默认 Loader 不安全，应使用 safe_load",
       "cwe_id": "CWE-502",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
@@ -133,7 +131,7 @@
       "description": "使用已废弃的 platform.dist()，Python 3.8+ 已移除",
       "root_cause": "应使用 distro 库或 platform.freedesktop_os_release()",
       "cwe_id": "CWE-477",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [
         "BUG_0006"
       ],
@@ -157,7 +155,7 @@
       "description": "使用已废弃的 imp 模块，Python 3.4+ 废弃，3.12+ 移除",
       "root_cause": "应使用 importlib 替代",
       "cwe_id": "CWE-477",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [
         "BUG_0006"
       ],
@@ -269,7 +267,7 @@
       "description": "参数类型不匹配，声明 List[int] 但可能传入 str",
       "root_cause": "类型注解与实际调用不匹配，缺少运行时验证",
       "cwe_id": "CWE-704",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
@@ -291,7 +289,7 @@
       "description": "返回类型不匹配，声明返回 str 实际返回 dict",
       "root_cause": "函数签名与实现不一致",
       "cwe_id": "CWE-704",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
@@ -313,7 +311,7 @@
       "description": "容器类型错误，List[int] 注解但包含 str 元素",
       "root_cause": "列表元素类型与注解不符",
       "cwe_id": "CWE-704",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
@@ -335,7 +333,7 @@
       "description": "return 后的代码不可达，清理和日志代码永远不会执行",
       "root_cause": "return 语句后的代码无法到达",
       "cwe_id": "CWE-561",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
@@ -357,7 +355,7 @@
       "description": "恒假条件 (1 == 2)，分支代码永远不会执行",
       "root_cause": "条件表达式恒为 False，可能是逻辑错误",
       "cwe_id": "CWE-570",
-      "difficulty": "low",
+      "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1/2",
       "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
@@ -401,7 +399,7 @@
       "description": "递归函数缺少终止条件，导致 RecursionError",
       "root_cause": "递归调用缺少基本情况 (base case)",
       "cwe_id": "CWE-674",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2/3",
       "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
@@ -423,7 +421,7 @@
       "description": "Optional 类型未检查直接访问属性，user 可能是 None",
       "root_cause": "函数返回 Optional[dict]，未检查 None 就访问键",
       "cwe_id": "CWE-476",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1/2",
       "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
@@ -445,7 +443,7 @@
       "description": "dict.get() 返回 None 未检查，直接调用方法引发 AttributeError",
       "root_cause": "get() 返回值可能是 None，未检查就调用 .upper()",
       "cwe_id": "CWE-476",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2/3",
       "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
@@ -467,7 +465,7 @@
       "description": "未检查列表是否为空直接索引，空列表引发 IndexError",
       "root_cause": "未验证列表长度就访问 items[0]",
       "cwe_id": "CWE-476",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
@@ -489,7 +487,7 @@
       "description": "使用 [] 访问可能不存在的字典键，引发 KeyError",
       "root_cause": "应使用 .get() 或 in 检查，而不是直接 []",
       "cwe_id": "CWE-476",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
@@ -533,7 +531,7 @@
       "description": "条件分支中变量未初始化，else 分支中 transaction_id 未定义",
       "root_cause": "部分分支未初始化变量，导致后续使用时 UnboundLocalError",
       "cwe_id": "CWE-457",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
@@ -577,7 +575,7 @@
       "description": "异常分支未初始化变量，except 块后 config 未定义",
       "root_cause": "try 块初始化但 except 未初始化，异常后使用引发错误",
       "cwe_id": "CWE-457",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
@@ -599,7 +597,7 @@
       "description": "变量在定义前引用，discount_rate 在赋值前使用",
       "root_cause": "变量使用先于定义，直接引发 UnboundLocalError",
       "cwe_id": "CWE-457",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
       "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
@@ -797,7 +795,7 @@
       "description": "用户输入直接拼接路径，可通过 '../' 访问任意文件",
       "root_cause": "路径拼接未验证，缺少路径规范化",
       "cwe_id": "CWE-22",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0014"
       ],
@@ -820,7 +818,7 @@
       "description": "file_id 直接拼接到路径，可能包含 '../' 导致路径遍历",
       "root_cause": "用户输入未验证直接用于文件路径",
       "cwe_id": "CWE-22",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0014"
       ],
@@ -843,7 +841,7 @@
       "description": "路径检查不足，可能被符号链接或特殊字符绕过",
       "root_cause": "使用 startswith 检查不够严格，应该使用 resolve()",
       "cwe_id": "CWE-22",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0014"
       ],
@@ -889,7 +887,7 @@
       "description": "模板名称未验证，可能导致任意文件读取",
       "root_cause": "用户输入直接用于模板路径",
       "cwe_id": "CWE-22",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0014"
       ],
@@ -1090,7 +1088,7 @@
       "description": "缺少配置键白名单，可能覆盖敏感配置",
       "root_cause": "允许任意 key，应该使用白名单限制",
       "cwe_id": "CWE-20",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0012"
       ],
@@ -1113,7 +1111,7 @@
       "description": "缺少角色白名单验证，可能导致权限提升",
       "root_cause": "允许任意角色字符串",
       "cwe_id": "CWE-20",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0012",
         "BUG_0013"
@@ -1160,7 +1158,7 @@
       "description": "公共 API 允许删除任意路径文件",
       "root_cause": "缺少路径验证，应该限制在特定目录内",
       "cwe_id": "CWE-22",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0012"
       ],
@@ -1750,7 +1748,7 @@
       "description": "嵌套锁顺序不一致,可能导致死锁",
       "root_cause": "两个线程以不同顺序获取相同的锁,形成循环等待",
       "cwe_id": "CWE-833",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [
         "BUG_0003"
       ],
@@ -1774,7 +1772,7 @@
       "description": "持有锁时调用用户回调函数，回调可能尝试获取同一个锁导致死锁",
       "root_cause": "锁内调用不受控制的外部代码",
       "cwe_id": "CWE-833",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
@@ -1796,7 +1794,7 @@
       "description": "持有锁时等待 Future.result()，异步任务如需同一锁则死锁",
       "root_cause": "锁内等待可能需要该锁的异步操作",
       "cwe_id": "CWE-833",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
@@ -1941,7 +1939,7 @@
       "description": "单例模式双重检查锁定不正确，多线程下可能创建多个实例",
       "root_cause": "检查和实例化之间没有同步保护，存在竞态窗口",
       "cwe_id": "CWE-362",
-      "difficulty": "high",
+      "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"

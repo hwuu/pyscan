@@ -35,7 +35,7 @@ bugs:
     description: "缺少配置键白名单，可能覆盖敏感配置"
     root_cause: "允许任意 key，应该使用白名单限制"
     cwe_id: "CWE-20"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0012"]
 
   - id: "VAL-INPUT-003"
@@ -53,7 +53,7 @@ bugs:
     description: "缺少角色白名单验证，可能导致权限提升"
     root_cause: "允许任意角色字符串"
     cwe_id: "CWE-20"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0012", "BUG_0013"]
 
   - id: "VAL-INPUT-004"
@@ -89,7 +89,7 @@ bugs:
     description: "公共 API 允许删除任意路径文件"
     root_cause: "缺少路径验证，应该限制在特定目录内"
     cwe_id: "CWE-22"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0012"]
 
   # Example 2: Inconsistent return types

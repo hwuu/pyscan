@@ -16,7 +16,7 @@ bugs:
     description: "pickle.loads() 反序列化不可信数据，可执行任意代码"
     root_cause: "pickle 反序列化可触发 __reduce__ 方法执行任意代码"
     cwe_id: "CWE-502"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1"
 
@@ -35,7 +35,7 @@ bugs:
     description: "yaml.load() 使用 FullLoader 可执行 Python 代码"
     root_cause: "yaml.load 默认 Loader 不安全，应使用 safe_load"
     cwe_id: "CWE-502"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1"
   - id: "API-DANGER-003"

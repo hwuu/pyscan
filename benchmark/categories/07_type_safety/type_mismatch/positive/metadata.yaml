@@ -16,7 +16,7 @@ bugs:
     description: "参数类型不匹配，声明 List[int] 但可能传入 str"
     root_cause: "类型注解与实际调用不匹配，缺少运行时验证"
     cwe_id: "CWE-704"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 1"
 
@@ -35,7 +35,7 @@ bugs:
     description: "返回类型不匹配，声明返回 str 实际返回 dict"
     root_cause: "函数签名与实现不一致"
     cwe_id: "CWE-704"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 1"
 
@@ -54,6 +54,6 @@ bugs:
     description: "容器类型错误，List[int] 注解但包含 str 元素"
     root_cause: "列表元素类型与注解不符"
     cwe_id: "CWE-704"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 1"

@@ -17,7 +17,7 @@ bugs:
     description: "用户输入直接拼接路径，可通过 '../' 访问任意文件"
     root_cause: "路径拼接未验证，缺少路径规范化"
     cwe_id: "CWE-22"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
   - id: "INJ-PATH-002"
@@ -35,7 +35,7 @@ bugs:
     description: "file_id 直接拼接到路径，可能包含 '../' 导致路径遍历"
     root_cause: "用户输入未验证直接用于文件路径"
     cwe_id: "CWE-22"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
   - id: "INJ-PATH-003"
@@ -53,7 +53,7 @@ bugs:
     description: "路径检查不足，可能被符号链接或特殊字符绕过"
     root_cause: "使用 startswith 检查不够严格，应该使用 resolve()"
     cwe_id: "CWE-22"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
   - id: "INJ-PATH-004"
@@ -89,7 +89,7 @@ bugs:
     description: "模板名称未验证，可能导致任意文件读取"
     root_cause: "用户输入直接用于模板路径"
     cwe_id: "CWE-22"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
   # Example 2: Symlink and TOCTOU

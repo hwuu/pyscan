@@ -17,7 +17,7 @@ bugs:
     description: "嵌套锁顺序不一致,可能导致死锁"
     root_cause: "两个线程以不同顺序获取相同的锁,形成循环等待"
     cwe_id: "CWE-833"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: ["BUG_0003"]
     detection_layer: "Layer 3"
 
@@ -36,7 +36,7 @@ bugs:
     description: "持有锁时调用用户回调函数，回调可能尝试获取同一个锁导致死锁"
     root_cause: "锁内调用不受控制的外部代码"
     cwe_id: "CWE-833"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2"
 
@@ -55,6 +55,6 @@ bugs:
     description: "持有锁时等待 Future.result()，异步任务如需同一锁则死锁"
     root_cause: "锁内等待可能需要该锁的异步操作"
     cwe_id: "CWE-833"
-    difficulty: "high"
+    difficulty: "hard"
     related_bugs: []
     detection_layer: "Layer 2"

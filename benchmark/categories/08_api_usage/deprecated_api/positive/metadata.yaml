@@ -16,7 +16,7 @@ bugs:
     description: "使用已废弃的 platform.dist()，Python 3.8+ 已移除"
     root_cause: "应使用 distro 库或 platform.freedesktop_os_release()"
     cwe_id: "CWE-477"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: ["BUG_0006"]
     detection_layer: "Layer 1"
 
@@ -35,6 +35,6 @@ bugs:
     description: "使用已废弃的 imp 模块，Python 3.4+ 废弃，3.12+ 移除"
     root_cause: "应使用 importlib 替代"
     cwe_id: "CWE-477"
-    difficulty: "low"
+    difficulty: "easy"
     related_bugs: ["BUG_0006"]
     detection_layer: "Layer 1"
