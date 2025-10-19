@@ -161,3 +161,130 @@ async def main():
 if __name__ == "__main__":
     # 运行异步 main 函数
     asyncio.run(main())
+
+# Bug CONC-ASYNC-002: 同步函数中使用 await
+def sync_function_with_await():
+    """
+    Bug: 在同步函数中使用 await 关键字
+    
+    问题:
+    1. await 只能在 async 函数中使用
+    2. 会导致 SyntaxError
+    3. 混淆异步和同步函数的使用
+    
+    影响: High - 语法错误,代码无法运行
+    CWE: CWE-662 (Improper Synchronization)
+    """
+    async def fetch_api():
+        await asyncio.sleep(1)
+        return "data"
+    
+    # Bug: 在非 async 函数中使用 await
+    # result = await fetch_api()  # SyntaxError: 'await' outside async function
+    # return result
+    
+    # 错误的解决方案: 使用 asyncio.run (会创建新的 event loop)
+    result = asyncio.run(fetch_api())  # Bug: 可能导致嵌套 event loop 问题
+    return result
+
+
+# Bug CONC-ASYNC-003: 异步函数中调用阻塞函数
+async def async_with_blocking_call():
+    """
+    Bug: 在异步函数中调用阻塞的同步函数
+    
+    问题:
+    1. time.sleep() 会阻塞整个事件循环
+    2. 其他协程无法运行
+    3. 降低异步程序性能
+    
+    影响: High - 破坏异步执行模型
+    CWE: CWE-662 (Improper Synchronization)
+    """
+    import time
+    import requests  # 同步库
+    
+    print("Starting async task...")
+    
+    # Bug: 使用阻塞的 time.sleep 而不是 asyncio.sleep
+    time.sleep(2)  # Bug: 阻塞整个 event loop
+    
+    # Bug: 使用同步的 requests 而不是异步 HTTP 库 (如 aiohttp)
+    response = requests.get("http://api.example.com/data")  # Bug: 阻塞 I/O
+    
+    return response.text
+
+
+# Bug CONC-ASYNC-004: Event loop 嵌套运行
+async def nested_event_loop():
+    """
+    Bug: 在已有 event loop 中嵌套运行新的 loop
+    
+    问题:
+    1. asyncio.run() 会创建新的 event loop
+    2. 在异步函数中调用会导致 RuntimeError
+    3. 混淆 event loop 管理
+    
+    影响: Critical - 运行时错误
+    CWE: CWE-662 (Improper Synchronization)
+    """
+    async def inner_task():
+        await asyncio.sleep(0.5)
+        return "inner result"
+    
+    # Bug: 在异步函数中使用 asyncio.run() 创建嵌套 event loop
+    try:
+        result = asyncio.run(inner_task())  # RuntimeError: asyncio.run() cannot be called from a running event loop
+        return result
+    except RuntimeError as e:
+        print(f"Error: {e}")
+        return None
+
+
+# Bug CONC-ASYNC-005: Task 创建后未 await
+async def task_not_awaited():
+    """
+    Bug: 使用 asyncio.create_task() 创建任务但未等待完成
+    
+    问题:
+    1. 任务被创建但可能未执行完成
+    2. 可能导致资源泄露
+    3. 结果丢失或数据不一致
+    
+    影响: Medium - 资源泄露,逻辑错误
+    CWE: CWE-772 (Missing Release of Resource after Effective Lifetime)
+    """
+    async def long_running_task(task_id):
+        await asyncio.sleep(2)
+        print(f"Task {task_id} completed")
+        return f"Result of task {task_id}"
+    
+    # Bug: 创建任务但未保存引用或 await
+    asyncio.create_task(long_running_task(1))  # Bug: 任务可能未完成就被垃圾回收
+    asyncio.create_task(long_running_task(2))  # Bug: 未等待
+    
+    # 函数立即返回,任务可能还在运行
+    print("Function returned, but tasks may still be running")
+    # 正确做法: task = asyncio.create_task(...); await task
+    
+    # 或使用 asyncio.gather
+    # await asyncio.gather(
+    #     long_running_task(1),
+    #     long_running_task(2)
+    # )
+
+
+if __name__ == "__main__":
+    print("\n=== Bug CONC-ASYNC-002: Sync function with await ===")
+    # sync_function_with_await()  # 会在某些情况下出错
+    
+    print("\n=== Bug CONC-ASYNC-003: Blocking call in async ===")
+    # asyncio.run(async_with_blocking_call())  # 会阻塞
+    
+    print("\n=== Bug CONC-ASYNC-004: Nested event loop ===")
+    # asyncio.run(nested_event_loop())  # RuntimeError
+    
+    print("\n=== Bug CONC-ASYNC-005: Task not awaited ===")
+    asyncio.run(task_not_awaited())
+    print("Main thread continues...")
+    # 任务可能未完成

@@ -111,3 +111,60 @@ bugs:
     difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1"
+
+  - id: "EXC-CATCH-007"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "critical"
+    type: "CatchingBaseException"
+    file: "example2_exception_type.py"
+    function: "critical_operation"
+    location:
+      start_line: 125
+      end_line: 125
+      start_col: 4
+      end_col: 26
+    description: "捕获 BaseException，会拦截 SystemExit 和 KeyboardInterrupt"
+    root_cause: "使用 BaseException 而不是 Exception，导致程序无法正常退出"
+    cwe_id: "CWE-396"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "EXC-CATCH-008"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "low"
+    type: "RedundantExceptBranch"
+    file: "example2_exception_type.py"
+    function: "redundant_exception_handling"
+    location:
+      start_line: 148
+      end_line: 148
+      start_col: 4
+      end_col: 25
+    description: "多余的 except 分支（死代码），ValueError 已被 Exception 捕获"
+    root_cause: "except 顺序错误，子类异常永远不会被执行"
+    cwe_id: "CWE-561"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "EXC-CATCH-009"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "medium"
+    type: "WrongExceptionOrder"
+    file: "example2_exception_type.py"
+    function: "wrong_exception_order"
+    location:
+      start_line: 171
+      end_line: 171
+      start_col: 4
+      end_col: 23
+    description: "except 顺序错误，父类 OSError 先于子类 FileNotFoundError"
+    root_cause: "应该先捕获具体异常（子类），再捕获一般异常（父类）"
+    cwe_id: "CWE-484"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"

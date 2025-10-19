@@ -107,3 +107,81 @@ def fetch_critical_config(url):
 
 if __name__ == "__main__":
     print("Exception catching bugs (continued)")
+
+
+# Bug EXC-CATCH-007: 捕获 BaseException
+def critical_operation():
+    """
+    Bug: 捕获 BaseException，包括 SystemExit 和 KeyboardInterrupt
+
+    风险:
+    - 会捕获 KeyboardInterrupt (Ctrl+C)
+    - 会捕获 SystemExit (sys.exit())
+    - 程序无法正常退出
+    - 难以调试和中断
+
+    CWE: CWE-396 (Incorrect Exception Handling)
+    """
+    try:
+        # 某些关键操作
+        import sys
+        # 假设某处调用 sys.exit(1)
+        sys.exit(1)
+    except BaseException:  # Bug: 捕获了 SystemExit
+        # 程序应该退出，但被捕获了
+        print("捕获了异常，继续运行")
+        pass
+
+
+# Bug EXC-CATCH-008: 多余的 except 分支
+def redundant_exception_handling(data):
+    """
+    Bug: 多余的 except 分支（死代码）
+
+    问题:
+    - ValueError 是 Exception 的子类
+    - 先捕获 Exception 会覆盖 ValueError
+    - ValueError 分支永远不会执行
+
+    CWE: CWE-561 (Dead Code)
+    """
+    try:
+        value = int(data)
+        return value * 2
+    except Exception as e:  # Bug: 先捕获父类
+        print(f"Exception: {e}")
+        return 0
+    except ValueError as e:  # Bug: 死代码 - 永远不会执行
+        # ValueError 已经被上面的 Exception 捕获
+        print(f"ValueError: {e}")
+        return -1
+
+
+# Bug EXC-CATCH-009: except 顺序错误
+def wrong_exception_order(filename):
+    """
+    Bug: except 子句顺序错误
+
+    问题:
+    - IOError 是 OSError 的别名（Python 3.3+）
+    - FileNotFoundError 是 OSError 的子类
+    - 正确顺序应该是从具体到一般
+
+    CWE: CWE-484 (Omitted Break Statement in Switch)
+    """
+    try:
+        with open(filename, 'r') as f:
+            return f.read()
+    except OSError as e:  # Bug: 先捕获父类
+        print(f"OS Error: {e}")
+        return None
+    except FileNotFoundError as e:  # Bug: 死代码 - FileNotFoundError 是 OSError 子类
+        print(f"File not found: {e}")
+        return ""
+    except PermissionError as e:  # Bug: 死代码 - PermissionError 也是 OSError 子类
+        print(f"Permission denied: {e}")
+        return ""
+
+
+if __name__ == "__main__":
+    print("Exception catching bugs - extended examples")

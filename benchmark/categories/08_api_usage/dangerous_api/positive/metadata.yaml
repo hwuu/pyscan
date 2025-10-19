@@ -38,3 +38,40 @@ bugs:
     difficulty: "low"
     related_bugs: []
     detection_layer: "Layer 1"
+  - id: "API-DANGER-003"
+    category: "api_usage"
+    subcategory: "dangerous_api"
+    severity: "critical"
+    type: "InsecureRandomness"
+    file: "example2_security_api.py"
+    function: "generate_session_token"
+    location:
+      start_line: 26
+      end_line: 26
+      start_col: 4
+      end_col: 66
+    description: "使用 random 模块生成安全令牌，不是密码学安全的，可预测"
+    root_cause: "random 是伪随机数生成器，应使用 secrets 模块"
+    cwe_id: "CWE-330"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "API-DANGER-004"
+    category: "api_usage"
+    subcategory: "dangerous_api"
+    severity: "high"
+    type: "AssertForValidation"
+    file: "example2_security_api.py"
+    function: "process_payment"
+    location:
+      start_line: 71
+      end_line: 72
+      start_col: 4
+      end_col: 54
+    description: "使用 assert 进行数据验证，在优化模式（-O）下会被忽略"
+    root_cause: "assert 不应用于安全验证，应使用 if + raise"
+    cwe_id: "CWE-617"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"

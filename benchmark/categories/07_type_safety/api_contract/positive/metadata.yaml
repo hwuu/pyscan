@@ -1,0 +1,78 @@
+# Type Safety - API Contract Violations
+
+bugs:
+  - id: "TYPE-API-001"
+    category: "type_safety"
+    subcategory: "api_contract"
+    severity: "high"
+    type: "MutableDefaultArgument"
+    file: "example1_api_contract.py"
+    function: "append_to_list"
+    location:
+      start_line: 11
+      end_line: 11
+      start_col: 0
+      end_col: 36
+    description: "使用可变对象（列表）作为默认参数，所有调用共享同一个对象"
+    root_cause: "默认参数在函数定义时创建，多次调用会累积修改"
+    cwe_id: "CWE-1174"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "TYPE-API-002"
+    category: "type_safety"
+    subcategory: "api_contract"
+    severity: "high"
+    type: "InheritanceSignatureMismatch"
+    file: "example1_api_contract.py"
+    function: "SpecialHandler.handle"
+    location:
+      start_line: 70
+      end_line: 70
+      start_col: 4
+      end_col: 43
+    description: "子类方法签名与父类不一致，违反里氏替换原则 (LSP)"
+    root_cause: "子类修改了参数类型从 dict 到 str"
+    cwe_id: "CWE-685"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "TYPE-API-003"
+    category: "type_safety"
+    subcategory: "api_contract"
+    severity: "critical"
+    type: "AbstractMethodNotImplemented"
+    file: "example1_api_contract.py"
+    function: "IncompleteProcessor"
+    location:
+      start_line: 104
+      end_line: 104
+      start_col: 0
+      end_col: 35
+    description: "抽象类的子类未实现所有抽象方法"
+    root_cause: "IncompleteProcessor 缺少 validate 方法实现"
+    cwe_id: "CWE-477"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "TYPE-API-004"
+    category: "type_safety"
+    subcategory: "api_contract"
+    severity: "high"
+    type: "ReturnTypeInconsistent"
+    file: "example1_api_contract.py"
+    function: "get_user_age"
+    location:
+      start_line: 133
+      end_line: 133
+      start_col: 4
+      end_col: 16
+    description: "函数声明返回 int，但实际可能返回 None"
+    root_cause: "返回类型注解与实际返回值不一致"
+    cwe_id: "CWE-704"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"

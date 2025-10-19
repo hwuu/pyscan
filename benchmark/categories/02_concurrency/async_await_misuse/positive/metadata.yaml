@@ -20,3 +20,79 @@ bugs:
     difficulty: "easy"
     related_bugs: ["BUG_0004"]
     detection_layer: "Layer 1/2"
+
+  - id: "CONC-ASYNC-002"
+    category: "concurrency"
+    subcategory: "async_await_misuse"
+    severity: "high"
+    type: "AwaitInSyncFunction"
+    file: "example1_missing_await.py"
+    function: "sync_function_with_await"
+    location:
+      start_line: 183
+      end_line: 183
+      start_col: 4
+      end_col: 37
+    description: "在同步函数中使用 asyncio.run 创建新的 event loop，可能导致嵌套问题"
+    root_cause: "混淆异步和同步函数，在同步上下文中不当使用异步调用"
+    cwe_id: "CWE-662"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "CONC-ASYNC-003"
+    category: "concurrency"
+    subcategory: "async_await_misuse"
+    severity: "high"
+    type: "BlockingCallInAsync"
+    file: "example1_missing_await.py"
+    function: "async_with_blocking_call"
+    location:
+      start_line: 206
+      end_line: 206
+      start_col: 4
+      end_col: 19
+    description: "在异步函数中调用阻塞函数 time.sleep，阻塞整个事件循环"
+    root_cause: "使用同步阻塞调用而不是异步版本（asyncio.sleep）"
+    cwe_id: "CWE-662"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "CONC-ASYNC-004"
+    category: "concurrency"
+    subcategory: "async_await_misuse"
+    severity: "critical"
+    type: "NestedEventLoop"
+    file: "example1_missing_await.py"
+    function: "nested_event_loop"
+    location:
+      start_line: 232
+      end_line: 232
+      start_col: 8
+      end_col: 43
+    description: "在异步函数中使用 asyncio.run 创建嵌套 event loop，导致 RuntimeError"
+    root_cause: "在已有事件循环中尝试创建新的事件循环"
+    cwe_id: "CWE-662"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "CONC-ASYNC-005"
+    category: "concurrency"
+    subcategory: "async_await_misuse"
+    severity: "medium"
+    type: "TaskNotAwaited"
+    file: "example1_missing_await.py"
+    function: "task_not_awaited"
+    location:
+      start_line: 256
+      end_line: 257
+      start_col: 4
+      end_col: 51
+    description: "使用 asyncio.create_task 创建任务但未 await，可能导致资源泄露"
+    root_cause: "任务创建后未保存引用或等待完成"
+    cwe_id: "CWE-772"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
