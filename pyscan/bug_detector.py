@@ -21,18 +21,21 @@ class BugReport:
     function_name: str
     file_path: str
     function_start_line: int  # 函数在文件中的起始行号
-    severity: str  # high, medium, low
-    bug_type: str  # Bug 类型
-    description: str  # Bug 描述（中文）
-    location: str  # 位置描述
-    start_line: int  # Bug 起始行（相对于函数）
-    end_line: int  # Bug 结束行（相对于函数）
-    start_col: int  # Bug 起始列
-    end_col: int  # Bug 结束列
-    suggestion: str  # 修复建议
-    callers: List[Dict[str, Any]] = field(default_factory=list)  # 调用者信息列表（包含文件路径、函数名、代码片段）
+    function_end_line: int  # 函数在文件中的结束行号
+    function_start_col: int = 0  # 函数起始列
+    function_end_col: int = 0  # 函数结束列
+    severity: str = ""  # high, medium, low
+    bug_type: str = ""  # Bug 类型
+    description: str = ""  # Bug 描述（中文）
+    location: str = ""  # 位置描述
+    start_line: int = 0  # Bug 起始行（相对于函数）
+    end_line: int = 0  # Bug 结束行（相对于函数）
+    start_col: int = 0  # Bug 起始列
+    end_col: int = 0  # Bug 结束列
+    suggestion: str = ""  # 修复建议
+    callers: List[Dict[str, Any]] = field(default_factory=list)  # Caller POIs
     callees: List[str] = field(default_factory=list)  # 被调用函数名列表
-    inferred_callers: List[Dict[str, str]] = field(default_factory=list)  # 推断的调用者（包含 hint 和代码）
+    inferred_callers: List[Dict[str, Any]] = field(default_factory=list)  # Inferred Caller POIs
 
 
 class BugDetector:
@@ -234,6 +237,9 @@ class BugDetector:
                             function_name=function.name,
                             file_path=file_path,
                             function_start_line=function_start_line,
+                            function_end_line=function.end_lineno,
+                            function_start_col=function.col_offset,
+                            function_end_col=function.end_col_offset,
                             severity=bug.get("severity", result.get("severity", "low")),
                             bug_type=bug.get("type", "Unknown"),
                             description=bug.get("description", ""),

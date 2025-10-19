@@ -49,17 +49,39 @@ class Visualizer:
         source_files = {}
         file_paths = set()
 
-        # 收集所有文件路径（新格式：从 bugs 列表）
+        # 收集所有文件路径（新格式：从 bugs 列表 + callers + inferred_callers）
         for bug in report.get('bugs', []):
+            # Bug所在文件
             file_path = bug.get('file_path')
             if file_path:
                 file_paths.add(file_path)
 
+            # Callers 的文件
+            for caller in bug.get('callers', []):
+                caller_file = caller.get('file_path')
+                if caller_file:
+                    file_paths.add(caller_file)
+
+            # Inferred callers 的文件
+            for inferred in bug.get('inferred_callers', []):
+                inferred_file = inferred.get('file_path')
+                if inferred_file:
+                    file_paths.add(inferred_file)
+
+        # 获取扫描目录（如果report中有的话）
+        scan_directory = report.get('scan_directory', '')
+        if scan_directory:
+            # 使用 scan_directory 作为基准目录
+            base_dir = Path(scan_directory)
+        else:
+            # 兼容旧格式：使用 report.json 所在目录
+            base_dir = report_dir
+
         # 读取文件内容
         for file_path in file_paths:
             try:
-                # 将相对路径转换为绝对路径（基于 report_dir）
-                absolute_path = report_dir / file_path
+                # 将相对路径转换为绝对路径（基于 base_dir）
+                absolute_path = base_dir / file_path
                 with open(absolute_path, 'r', encoding='utf-8') as f:
                     source_files[file_path] = f.read()
             except Exception as e:
@@ -67,6 +89,51 @@ class Visualizer:
                 source_files[file_path] = f"// Error loading file: {e}"
 
         return source_files
+
+    def _extract_snippet_from_poi(
+        self,
+        file_content: str,
+        start_line: int,
+        end_line: int,
+        context_lines: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Extract code snippet from POI with context lines.
+
+        Args:
+            file_content: Full file content as string.
+            start_line: POI start line (1-based, absolute).
+            end_line: POI end line (1-based, absolute).
+            context_lines: Number of context lines before and after POI (default: 5).
+
+        Returns:
+            Dictionary with:
+                - snippet: Code snippet as string
+                - snippet_start_line: Absolute line number where snippet starts (1-based)
+                - poi_start_line: Relative line number of POI start within snippet (1-based)
+                - poi_end_line: Relative line number of POI end within snippet (1-based)
+        """
+        lines = file_content.split('\n')
+        total_lines = len(lines)
+
+        # 计算 snippet 的范围 (1-based to 0-based conversion)
+        snippet_start = max(1, start_line - context_lines)
+        snippet_end = min(total_lines, end_line + context_lines)
+
+        # 提取 snippet (转换为 0-based index)
+        snippet_lines = lines[snippet_start - 1:snippet_end]
+        snippet = '\n'.join(snippet_lines)
+
+        # 计算 POI 在 snippet 中的相对位置 (1-based)
+        poi_start_relative = start_line - snippet_start + 1
+        poi_end_relative = end_line - snippet_start + 1
+
+        return {
+            'snippet': snippet,
+            'snippet_start_line': snippet_start,
+            'poi_start_line': poi_start_relative,
+            'poi_end_line': poi_end_relative
+        }
 
     def _build_html(self, report: Dict[str, Any], source_files: Dict[str, str], embed_source: bool) -> str:
         """
@@ -81,7 +148,7 @@ class Visualizer:
             Complete HTML content.
         """
         # 准备数据
-        bugs_list = self._prepare_bugs_list(report)
+        bugs_list = self._prepare_bugs_list(report, source_files, embed_source)
         bugs_json = json.dumps(bugs_list, ensure_ascii=False)
         source_files_json = json.dumps(source_files, ensure_ascii=False) if embed_source else "{}"
 
@@ -830,10 +897,9 @@ class Visualizer:
             }}
         }}
 
-        // 显示带有 Bug 标记的代码
+        // 显示带有 Bug 标记的代码（使用 POI）
         function displayCodeWithBug(bug, sourceCode) {{
             const codePane = document.querySelector('.code-pane');
-            const lines = sourceCode.split('\\n');
 
             // 构建 HTML
             let html = `
@@ -849,22 +915,66 @@ class Visualizer:
                 <div class="code-content">
             `;
 
-            // 计算要高亮的行范围（考虑上下文）
-            const contextLines = 5;
-            const startLine = Math.max(0, bug.start_line - contextLines);
-            const endLine = Math.min(lines.length, bug.end_line + contextLines);
+            // embedMode: 使用预先提取的 snippet
+            if (bug.function_snippet) {{
+                const snippet = bug.function_snippet;
+                const snippetLines = snippet.snippet.split('\\n');
+                const snippetStartLine = snippet.snippet_start_line;
+                const bugPoiStart = snippet.poi_start_line;
+                const bugPoiEnd = snippet.poi_end_line;
 
-            for (let i = startLine; i < endLine; i++) {{
-                const lineNum = i + 1;
-                const isHighlighted = lineNum >= bug.start_line && lineNum <= bug.end_line;
-                const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                // 计算 bug 在 snippet 中的绝对位置（用于高亮 bug POI）
+                const bugRelativeStart = bug.bug_poi.start_line;
+                const bugRelativeEnd = bug.bug_poi.end_line;
 
-                html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[i])}}</div></div>`;
+                // bug 在整个文件中的绝对行号
+                const bugAbsoluteStart = bug.function_poi.start_line + bugRelativeStart - 1;
+                const bugAbsoluteEnd = bug.function_poi.start_line + bugRelativeEnd - 1;
+
+                for (let i = 0; i < snippetLines.length; i++) {{
+                    const lineNum = snippetStartLine + i;
+                    // 高亮 bug POI 行
+                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
+
+                    html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[i])}}</div></div>`;
+                }}
+            }} else {{
+                // 非 embedMode: 从 sourceCode 动态提取 bug POI snippet
+                const lines = sourceCode.split('\\n');
+                const functionStartLine = bug.function_poi.start_line;
+
+                // 计算 bug 在整个文件中的绝对行号
+                const bugRelativeStart = bug.bug_poi.start_line;
+                const bugRelativeEnd = bug.bug_poi.end_line;
+
+                let bugAbsoluteStart, bugAbsoluteEnd;
+                if (bugRelativeStart > 0) {{
+                    bugAbsoluteStart = functionStartLine + bugRelativeStart - 1;
+                    bugAbsoluteEnd = functionStartLine + bugRelativeEnd - 1;
+                }} else {{
+                    // 如果没有 bug POI，使用函数起始行
+                    bugAbsoluteStart = functionStartLine;
+                    bugAbsoluteEnd = functionStartLine;
+                }}
+
+                // 提取 bug POI ± 5 行
+                const contextLines = 5;
+                const snippetStart = Math.max(1, bugAbsoluteStart - contextLines);
+                const snippetEnd = Math.min(lines.length, bugAbsoluteEnd + contextLines);
+
+                for (let i = snippetStart - 1; i < snippetEnd; i++) {{
+                    const lineNum = i + 1;
+                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
+
+                    html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[i])}}</div></div>`;
+                }}
             }}
 
             html += '</div>';
 
-            // 添加 Callers 部分
+            // 添加 Callers 部分（使用 POI）
             if (bug.callers && bug.callers.length > 0) {{
                 html += '<div class="caller-section">';
                 html += '<div class="caller-header">📞 Callers (Functions that call this function)</div>';
@@ -873,9 +983,7 @@ class Visualizer:
                     const caller = bug.callers[i];
                     const filePath = caller.file_path || 'Unknown';
                     const functionName = caller.function_name || 'Unknown';
-                    const code = caller.code || '';
-                    const startLine = caller.start_line || 1;
-                    const highlightLines = caller.highlight_lines || [];
+                    const callLines = caller.call_lines || [];
 
                     html += `
                         <div class="caller-item">
@@ -883,27 +991,47 @@ class Visualizer:
                             <div class="code-content">
                     `;
 
-                    // 只显示调用点上下 5 行
-                    const callerLines = code.split('\\n');
-                    if (highlightLines.length > 0) {{
-                        const contextLines = 5;
-                        const firstHighlightLine = highlightLines[0];
-                        const firstHighlightIdx = firstHighlightLine - startLine;
+                    // embedMode: 使用预先提取的 snippet
+                    if (caller.snippet) {{
+                        const snippet = caller.snippet;
+                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetStartLine = snippet.snippet_start_line;
 
-                        const snippetStart = Math.max(0, firstHighlightIdx - contextLines);
-                        const snippetEnd = Math.min(callerLines.length, firstHighlightIdx + contextLines + 1);
-
-                        for (let j = snippetStart; j < snippetEnd; j++) {{
-                            const lineNum = startLine + j;
-                            const isHighlighted = highlightLines.includes(lineNum);
+                        for (let j = 0; j < snippetLines.length; j++) {{
+                            const lineNum = snippetStartLine + j;
+                            const isHighlighted = callLines.includes(lineNum);
                             const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
-                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(callerLines[j])}}</div></div>`;
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[j])}}</div></div>`;
                         }}
                     }} else {{
-                        // 如果没有高亮行，显示全部代码
-                        for (let j = 0; j < callerLines.length; j++) {{
-                            const lineNum = startLine + j;
-                            html += `<div class="code-line"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(callerLines[j])}}</div></div>`;
+                        // 非 embedMode: 从 sourceFiles 动态提取 caller POI snippet
+                        const callerSourceCode = sourceFiles[filePath];
+                        if (callerSourceCode) {{
+                            const lines = callerSourceCode.split('\\n');
+
+                            // 使用 callLines 来确定 snippet 范围（而不是整个函数）
+                            let poiStart, poiEnd;
+                            if (callLines && callLines.length > 0) {{
+                                poiStart = Math.min(...callLines);
+                                poiEnd = Math.max(...callLines);
+                            }} else {{
+                                poiStart = caller.start_line || 1;
+                                poiEnd = poiStart;
+                            }}
+
+                            // 提取 POI ± 5 行
+                            const contextLines = 5;
+                            const snippetStart = Math.max(1, poiStart - contextLines);
+                            const snippetEnd = Math.min(lines.length, poiEnd + contextLines);
+
+                            for (let j = snippetStart - 1; j < snippetEnd; j++) {{
+                                const lineNum = j + 1;
+                                const isHighlighted = callLines.includes(lineNum);
+                                const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                                html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[j])}}</div></div>`;
+                            }}
+                        }} else {{
+                            html += `<div class="code-line"><div class="line-content">Source file not available</div></div>`;
                         }}
                     }}
 
@@ -916,7 +1044,7 @@ class Visualizer:
                 html += '</div>';
             }}
 
-            // 添加 Inferred Callers 部分
+            // 添加 Inferred Callers 部分（使用 POI）
             if (bug.inferred_callers && bug.inferred_callers.length > 0) {{
                 html += '<div class="caller-section">';
                 html += '<div class="caller-header">🔍 Inferred Callers (Potential callers detected by analysis)</div>';
@@ -926,9 +1054,7 @@ class Visualizer:
                     const hint = inferredCaller.hint || '';
                     const filePath = inferredCaller.file_path || 'Unknown';
                     const functionName = inferredCaller.function_name || 'Unknown';
-                    const code = inferredCaller.code || '';
-                    const startLine = inferredCaller.start_line || 1;
-                    const highlightLines = inferredCaller.highlight_lines || [];
+                    const inferenceLines = inferredCaller.inference_lines || [];
 
                     html += `
                         <div class="caller-item">
@@ -937,27 +1063,47 @@ class Visualizer:
                             <div class="code-content">
                     `;
 
-                    // 只显示类型注解点上下 5 行
-                    const inferredLines = code.split('\\n');
-                    if (highlightLines.length > 0) {{
-                        const contextLines = 5;
-                        const firstHighlightLine = highlightLines[0];
-                        const firstHighlightIdx = firstHighlightLine - startLine;
+                    // embedMode: 使用预先提取的 snippet
+                    if (inferredCaller.snippet) {{
+                        const snippet = inferredCaller.snippet;
+                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetStartLine = snippet.snippet_start_line;
 
-                        const snippetStart = Math.max(0, firstHighlightIdx - contextLines);
-                        const snippetEnd = Math.min(inferredLines.length, firstHighlightIdx + contextLines + 1);
-
-                        for (let j = snippetStart; j < snippetEnd; j++) {{
-                            const lineNum = startLine + j;
-                            const isHighlighted = highlightLines.includes(lineNum);
+                        for (let j = 0; j < snippetLines.length; j++) {{
+                            const lineNum = snippetStartLine + j;
+                            const isHighlighted = inferenceLines.includes(lineNum);
                             const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
-                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(inferredLines[j])}}</div></div>`;
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[j])}}</div></div>`;
                         }}
                     }} else {{
-                        // 如果没有高亮行，显示全部代码
-                        for (let j = 0; j < inferredLines.length; j++) {{
-                            const lineNum = startLine + j;
-                            html += `<div class="code-line"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(inferredLines[j])}}</div></div>`;
+                        // 非 embedMode: 从 sourceFiles 动态提取 inferred caller POI snippet
+                        const inferredSourceCode = sourceFiles[filePath];
+                        if (inferredSourceCode) {{
+                            const lines = inferredSourceCode.split('\\n');
+
+                            // 使用 inferenceLines 来确定 snippet 范围（而不是整个函数）
+                            let poiStart, poiEnd;
+                            if (inferenceLines && inferenceLines.length > 0) {{
+                                poiStart = Math.min(...inferenceLines);
+                                poiEnd = Math.max(...inferenceLines);
+                            }} else {{
+                                poiStart = inferredCaller.start_line || 1;
+                                poiEnd = poiStart;
+                            }}
+
+                            // 提取 POI ± 5 行
+                            const contextLines = 5;
+                            const snippetStart = Math.max(1, poiStart - contextLines);
+                            const snippetEnd = Math.min(lines.length, poiEnd + contextLines);
+
+                            for (let j = snippetStart - 1; j < snippetEnd; j++) {{
+                                const lineNum = j + 1;
+                                const isHighlighted = inferenceLines.includes(lineNum);
+                                const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                                html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[j])}}</div></div>`;
+                            }}
+                        }} else {{
+                            html += `<div class="code-line"><div class="line-content">Source file not available</div></div>`;
                         }}
                     }}
 
@@ -1007,15 +1153,22 @@ class Visualizer:
 """
         return html
 
-    def _prepare_bugs_list(self, report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _prepare_bugs_list(
+        self,
+        report: Dict[str, Any],
+        source_files: Dict[str, str],
+        embed_source: bool
+    ) -> List[Dict[str, Any]]:
         """
-        Prepare bugs list with sorting and absolute line numbers.
+        Prepare bugs list with POI data and optional code snippets.
 
         Args:
             report: Report data dictionary (new format).
+            source_files: Dictionary of source file contents (for embedMode).
+            embed_source: If True, extract and embed code snippets.
 
         Returns:
-            Sorted list of bugs with caller information.
+            Sorted list of bugs with POI information and optional snippets.
         """
         bugs_list = []
 
@@ -1024,15 +1177,21 @@ class Visualizer:
             function_name = bug.get('function_name', 'Unknown')
             file_path = bug.get('file_path', '')
             severity = bug.get('severity', 'low')
+
+            # Function POI (从扁平结构读取)
             function_start_line = bug.get('function_start_line', 0)
+            function_end_line = bug.get('function_end_line', function_start_line)
+            function_start_col = bug.get('function_start_col', 0)
+            function_end_col = bug.get('function_end_col', 0)
 
-            # 转换相对行号为绝对行号
-            relative_start = bug.get('start_line', 0)
-            relative_end = bug.get('end_line', 0)
-            absolute_start = function_start_line + relative_start - 1 if relative_start > 0 else 0
-            absolute_end = function_start_line + relative_end - 1 if relative_end > 0 else 0
+            # Bug POI (相对于函数)
+            bug_relative_start = bug.get('start_line', 0)
+            bug_relative_end = bug.get('end_line', 0)
+            bug_start_col = bug.get('start_col', 0)
+            bug_end_col = bug.get('end_col', 0)
 
-            bugs_list.append({
+            # 准备 bug 数据（转换为嵌套 POI 结构供 JS 使用）
+            bug_data = {
                 'id': bug.get('bug_id', 'BUG-000'),
                 'type': bug.get('type', 'Unknown'),
                 'description': bug.get('description', ''),
@@ -1041,22 +1200,105 @@ class Visualizer:
                 'severity': severity,
                 'function_name': function_name,
                 'file_path': file_path,
-                'function_start_line': function_start_line,
-                'start_line': absolute_start,
-                'end_line': absolute_end,
-                'start_col': bug.get('start_col', 0),
-                'end_col': bug.get('end_col', 0),
-                'callers': bug.get('callers', []),  # List[Dict] with file_path, function_name, code_snippet
+                # Function POI
+                'function_poi': {
+                    'start_line': function_start_line,
+                    'end_line': function_end_line,
+                    'start_col': function_start_col,
+                    'end_col': function_end_col
+                },
+                # Bug POI (relative to function)
+                'bug_poi': {
+                    'start_line': bug_relative_start,
+                    'end_line': bug_relative_end,
+                    'start_col': bug_start_col,
+                    'end_col': bug_end_col
+                },
+                'callers': bug.get('callers', []),
                 'callees': bug.get('callees', []),
-                'inferred_callers': bug.get('inferred_callers', [])  # List[Dict] with hint, code
-            })
+                'inferred_callers': bug.get('inferred_callers', [])
+            }
 
-        # 排序：按照 severity > file_path > start_line
+            # 如果 embedMode，提取 code snippets
+            if embed_source and file_path in source_files:
+                file_content = source_files[file_path]
+
+                # 提取 function snippet（基于 bug POI 而不是整个 function）
+                # 计算 bug 在整个文件中的绝对行号
+                if bug_relative_start > 0:
+                    bug_absolute_start = function_start_line + bug_relative_start - 1
+                    bug_absolute_end = function_start_line + bug_relative_end - 1
+                else:
+                    # 如果没有 bug POI，使用函数起始行
+                    bug_absolute_start = function_start_line
+                    bug_absolute_end = function_start_line
+
+                function_snippet_data = self._extract_snippet_from_poi(
+                    file_content,
+                    bug_absolute_start,
+                    bug_absolute_end,
+                    context_lines=5
+                )
+                bug_data['function_snippet'] = function_snippet_data
+
+                # 提取 callers snippets (基于 call_lines 而不是整个函数)
+                for caller in bug_data['callers']:
+                    caller_file = caller.get('file_path', '')
+                    if caller_file in source_files:
+                        caller_content = source_files[caller_file]
+                        call_lines = caller.get('call_lines', [])
+
+                        # 使用 call_lines 来确定 snippet 范围
+                        if call_lines:
+                            # 使用第一个和最后一个调用行作为 POI
+                            poi_start = min(call_lines)
+                            poi_end = max(call_lines)
+                        else:
+                            # 如果没有 call_lines，使用函数的 start_line
+                            poi_start = caller.get('start_line', 1)
+                            poi_end = poi_start
+
+                        caller_snippet = self._extract_snippet_from_poi(
+                            caller_content,
+                            poi_start,
+                            poi_end,
+                            context_lines=5
+                        )
+                        caller['snippet'] = caller_snippet
+
+                # 提取 inferred callers snippets (基于 inference_lines 而不是整个函数)
+                for inferred in bug_data['inferred_callers']:
+                    inferred_file = inferred.get('file_path', '')
+                    if inferred_file in source_files:
+                        inferred_content = source_files[inferred_file]
+                        inference_lines = inferred.get('inference_lines', [])
+
+                        # 使用 inference_lines 来确定 snippet 范围
+                        if inference_lines:
+                            # 使用第一个和最后一个推断行作为 POI
+                            poi_start = min(inference_lines)
+                            poi_end = max(inference_lines)
+                        else:
+                            # 如果没有 inference_lines，使用函数的 start_line
+                            poi_start = inferred.get('start_line', 1)
+                            poi_end = poi_start
+
+                        inferred_snippet = self._extract_snippet_from_poi(
+                            inferred_content,
+                            poi_start,
+                            poi_end,
+                            context_lines=5
+                        )
+                        inferred['snippet'] = inferred_snippet
+
+            bugs_list.append(bug_data)
+
+        # 排序：按照 severity > file_path > function_start_line
         severity_order = {'high': 0, 'medium': 1, 'low': 2}
         bugs_list.sort(key=lambda x: (
             severity_order.get(x['severity'], 3),
             x['file_path'],
-            x['start_line']
+            x['function_poi']['start_line']
         ))
 
         return bugs_list

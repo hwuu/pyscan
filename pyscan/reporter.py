@@ -8,14 +8,16 @@ from pyscan.bug_detector import BugReport
 class Reporter:
     """Reporter for bug detection results."""
 
-    def __init__(self, reports: List[BugReport]):
+    def __init__(self, reports: List[BugReport], scan_directory: str = ""):
         """
         Initialize reporter.
 
         Args:
             reports: List of bug reports (one per bug).
+            scan_directory: Absolute path to scanned directory.
         """
         self.reports = reports
+        self.scan_directory = scan_directory
 
     def to_json(self, output_path: str) -> None:
         """
@@ -35,6 +37,7 @@ class Reporter:
 
         data = {
             "timestamp": datetime.now().isoformat(),
+            "scan_directory": self.scan_directory,
             "summary": {
                 "total_bugs": total_bugs,
                 "affected_functions": unique_functions,
@@ -46,6 +49,9 @@ class Reporter:
                     "function_name": r.function_name,
                     "file_path": r.file_path,
                     "function_start_line": r.function_start_line,
+                    "function_end_line": r.function_end_line,
+                    "function_start_col": r.function_start_col,
+                    "function_end_col": r.function_end_col,
                     "severity": r.severity,
                     "type": r.bug_type,
                     "description": r.description,
@@ -55,9 +61,32 @@ class Reporter:
                     "start_col": r.start_col,
                     "end_col": r.end_col,
                     "suggestion": r.suggestion,
-                    "callers": r.callers,
+                    "callers": [
+                        {
+                            "file_path": c.get("file_path", ""),
+                            "function_name": c.get("function_name", ""),
+                            "start_line": c.get("start_line", 0),
+                            "end_line": c.get("end_line", 0),
+                            "start_col": c.get("start_col", 0),
+                            "end_col": c.get("end_col", 0),
+                            "call_lines": c.get("highlight_lines", [])
+                        }
+                        for c in r.callers
+                    ],
                     "callees": r.callees,
-                    "inferred_callers": r.inferred_callers
+                    "inferred_callers": [
+                        {
+                            "hint": ic.get("hint", ""),
+                            "file_path": ic.get("file_path", ""),
+                            "function_name": ic.get("function_name", ""),
+                            "start_line": ic.get("start_line", 0),
+                            "end_line": ic.get("end_line", 0),
+                            "start_col": ic.get("start_col", 0),
+                            "end_col": ic.get("end_col", 0),
+                            "inference_lines": ic.get("highlight_lines", [])
+                        }
+                        for ic in r.inferred_callers
+                    ]
                 }
                 for r in self.reports
             ]

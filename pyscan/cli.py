@@ -72,6 +72,9 @@ class ProgressManager:
                         function_name=r['function_name'],
                         file_path=r['file_path'],
                         function_start_line=r['function_start_line'],
+                        function_end_line=r.get('function_end_line', r['function_start_line']),
+                        function_start_col=r.get('function_start_col', 0),
+                        function_end_col=r.get('function_end_col', 0),
                         severity=r['severity'],
                         bug_type=r['type'],
                         description=r['description'],
@@ -335,7 +338,7 @@ def main():
         # 如果有之前的进度，先生成一次报告
         if reports:
             logger.info("Found previous progress, generating report from existing data...")
-            reporter = Reporter(reports)
+            reporter = Reporter(reports, scan_dir)
             reporter.to_json(args.output)
             logger.info(f"Existing report generated: {args.output}")
 
@@ -493,7 +496,7 @@ def main():
 
                     # 保存当前进度和报告
                     progress_manager.save_progress(completed_functions, reports)
-                    reporter = Reporter(reports)
+                    reporter = Reporter(reports, scan_dir)
                     reporter.to_json(args.output)
 
                     logger.info(
@@ -525,7 +528,7 @@ def main():
 
                 # 每完成一个函数就保存进度和更新报告
                 progress_manager.save_progress(completed_functions, reports)
-                reporter = Reporter(reports)
+                reporter = Reporter(reports, scan_dir)
                 reporter.to_json(args.output)
 
             except Exception as e:
@@ -537,7 +540,7 @@ def main():
 
                 # 保存当前进度和报告
                 progress_manager.save_progress(completed_functions, reports)
-                reporter = Reporter(reports)
+                reporter = Reporter(reports, scan_dir)
                 reporter.to_json(args.output)
 
                 logger.info(
@@ -548,7 +551,7 @@ def main():
 
         # 5. 生成报告
         logger.info("Generating report...")
-        reporter = Reporter(reports)
+        reporter = Reporter(reports, scan_dir)
         reporter.to_json(args.output)
         logger.info(f"Report generated: {args.output}")
 
