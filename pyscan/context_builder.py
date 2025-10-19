@@ -173,6 +173,10 @@ class ContextBuilder:
                     "file_path": getattr(decorator_func, 'file_path', ''),
                     "function_name": decorator_func.name,
                     "code": decorator_func.code,
+                    "start_line": decorator_func.lineno,
+                    "end_line": decorator_func.end_lineno,
+                    "start_col": decorator_func.col_offset,
+                    "end_col": decorator_func.end_col_offset,
                     "hint": hint
                 })
 
@@ -214,6 +218,12 @@ class ContextBuilder:
                                 "file_path": getattr(func, 'file_path', ''),
                                 "function_name": func.name,
                                 "code": func.code,
+                                "start_line": func.lineno,
+                                "end_line": func.end_lineno,
+                                "start_col": func.col_offset,
+                                "end_col": func.end_col_offset,
+                                "arg_name": arg_name,  # 保存参数名用于高亮
+                                "arg_type": arg_type,  # 保存参数类型用于高亮
                                 "hint": hint
                             })
                             break  # 每个函数只添加一个推断

@@ -2,6 +2,7 @@
 import argparse
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from tqdm import tqdm
@@ -20,6 +21,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# 屏蔽 httpx 的 INFO 级别日志
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class ProgressManager:
@@ -262,6 +266,12 @@ def main():
         help='Enable verbose logging'
     )
 
+    parser.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help='Force scan from scratch (delete existing .pyscan directory and restart)'
+    )
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -288,12 +298,15 @@ def main():
         parser_ast = ASTParser()
         all_functions = []
 
+        # 获取扫描目录的绝对路径，用于计算相对路径
+        scan_dir = os.path.abspath(args.directory)
+
         for file_path in tqdm(files, desc="Parsing files"):
             try:
                 functions = parser_ast.parse_file(file_path)
-                # 为每个函数记录文件路径
+                # 为每个函数记录相对于扫描目录的相对路径
                 for func in functions:
-                    func.file_path = file_path
+                    func.file_path = os.path.relpath(file_path, scan_dir)
                 all_functions.extend(functions)
             except Exception as e:
                 logger.error(f"Failed to parse {file_path}: {e}")
@@ -306,6 +319,13 @@ def main():
 
         # 4. 初始化进度管理器
         progress_dir = Path(args.directory) / ".pyscan"
+
+        # 如果使用 --force 参数，删除现有的 .pyscan 目录
+        if args.force and progress_dir.exists():
+            logger.info(f"Force mode enabled, removing existing progress directory: {progress_dir}")
+            import shutil
+            shutil.rmtree(progress_dir)
+
         progress_manager = ProgressManager(progress_dir)
 
         # 加载之前的进度
@@ -361,36 +381,55 @@ def main():
                 # 从context中提取实际的函数调用关系
                 for func_obj in all_functions:
                     if func.name in func_obj.calls:
-                        # 提取调用点周围的代码（签名 + 调用行 ± 5）
-                        caller_snippet = extract_caller_snippet(
-                            func_obj.code,
-                            func.name,
-                            context_lines=5
-                        )
+                        # 找出调用目标函数的行号
+                        highlight_lines = []
+                        lines = func_obj.code.split('\n')
+
+                        for i, line in enumerate(lines):
+                            if f"{func.name}(" in line:
+                                absolute_line = func_obj.lineno + i
+                                highlight_lines.append(absolute_line)
 
                         callers.append({
                             'file_path': getattr(func_obj, 'file_path', ''),
                             'function_name': func_obj.name,
-                            'code_snippet': caller_snippet
+                            'start_line': func_obj.lineno,
+                            'end_line': func_obj.end_lineno,
+                            'start_col': func_obj.col_offset,
+                            'end_col': func_obj.end_col_offset,
+                            'code': func_obj.code,
+                            'highlight_lines': highlight_lines
                         })
 
                 for call_name in func.calls:
                     if call_name in [f.name for f in all_functions]:
                         callees.append(call_name)
 
-                # 提取 inferred_callers 并处理代码片段（添加调用行标记）
+                # 提取 inferred_callers 并处理代码片段
                 inferred_callers = []
                 for inferred in context.get("inferred_callers", []):
-                    # 为 inferred caller 的代码也添加调用行标记
-                    code_snippet = extract_caller_snippet(
-                        inferred.get("code", ""),
-                        func.name,
-                        context_lines=5
-                    )
+                    # 找出需要高亮的行（包含类型注解的行）
+                    highlight_lines = []
+                    if 'arg_name' in inferred:
+                        # 查找包含 Callable 类型注解的行
+                        arg_name = inferred.get('arg_name', '')
+                        lines = inferred.get("code", "").split('\n')
+                        start_line = inferred.get('start_line', 1)
+                        for i, line in enumerate(lines, start=start_line):
+                            # 查找函数签名中包含该参数的行
+                            if arg_name in line and 'Callable' in line:
+                                highlight_lines.append(i)
+                                break
+
                     inferred_callers.append({
                         'file_path': inferred.get('file_path', ''),
                         'function_name': inferred.get('function_name', ''),
-                        'code': code_snippet,
+                        'start_line': inferred.get('start_line', 1),
+                        'end_line': inferred.get('end_line', 1),
+                        'start_col': inferred.get('start_col', 0),
+                        'end_col': inferred.get('end_col', 0),
+                        'code': inferred.get('code', ''),
+                        'highlight_lines': highlight_lines,
                         'hint': inferred.get('hint', '')
                     })
 

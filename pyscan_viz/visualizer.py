@@ -20,10 +20,13 @@ class Visualizer:
         with open(report_json_path, 'r', encoding='utf-8') as f:
             report = json.load(f)
 
+        # 获取 report.json 所在的目录，用于解析相对路径
+        report_dir = Path(report_json_path).parent.absolute()
+
         # 如果需要嵌入源码，读取所有源文件
         source_files = {}
         if embed_source:
-            source_files = self._load_source_files(report)
+            source_files = self._load_source_files(report, report_dir)
 
         # 生成 HTML
         html_content = self._build_html(report, source_files, embed_source)
@@ -32,12 +35,13 @@ class Visualizer:
         with open(output_html_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-    def _load_source_files(self, report: Dict[str, Any]) -> Dict[str, str]:
+    def _load_source_files(self, report: Dict[str, Any], report_dir: Path) -> Dict[str, str]:
         """
         Load all source files mentioned in the report.
 
         Args:
             report: Report data dictionary.
+            report_dir: Directory where the report.json is located (used to resolve relative paths).
 
         Returns:
             Dictionary mapping file paths to their contents.
@@ -54,7 +58,9 @@ class Visualizer:
         # 读取文件内容
         for file_path in file_paths:
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                # 将相对路径转换为绝对路径（基于 report_dir）
+                absolute_path = report_dir / file_path
+                with open(absolute_path, 'r', encoding='utf-8') as f:
                     source_files[file_path] = f.read()
             except Exception as e:
                 # 如果无法读取文件，存储错误信息
@@ -867,12 +873,42 @@ class Visualizer:
                     const caller = bug.callers[i];
                     const filePath = caller.file_path || 'Unknown';
                     const functionName = caller.function_name || 'Unknown';
-                    const codeSnippet = caller.code_snippet || '';
+                    const code = caller.code || '';
+                    const startLine = caller.start_line || 1;
+                    const highlightLines = caller.highlight_lines || [];
 
                     html += `
                         <div class="caller-item">
                             <div class="caller-label">Caller ${{i + 1}}: ${{functionName}} @ ${{filePath}}</div>
-                            <div class="caller-code">${{formatCallerCode(codeSnippet)}}</div>
+                            <div class="code-content">
+                    `;
+
+                    // 只显示调用点上下 5 行
+                    const callerLines = code.split('\\n');
+                    if (highlightLines.length > 0) {{
+                        const contextLines = 5;
+                        const firstHighlightLine = highlightLines[0];
+                        const firstHighlightIdx = firstHighlightLine - startLine;
+
+                        const snippetStart = Math.max(0, firstHighlightIdx - contextLines);
+                        const snippetEnd = Math.min(callerLines.length, firstHighlightIdx + contextLines + 1);
+
+                        for (let j = snippetStart; j < snippetEnd; j++) {{
+                            const lineNum = startLine + j;
+                            const isHighlighted = highlightLines.includes(lineNum);
+                            const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(callerLines[j])}}</div></div>`;
+                        }}
+                    }} else {{
+                        // 如果没有高亮行，显示全部代码
+                        for (let j = 0; j < callerLines.length; j++) {{
+                            const lineNum = startLine + j;
+                            html += `<div class="code-line"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(callerLines[j])}}</div></div>`;
+                        }}
+                    }}
+
+                    html += `
+                            </div>
                         </div>
                     `;
                 }}
@@ -891,12 +927,42 @@ class Visualizer:
                     const filePath = inferredCaller.file_path || 'Unknown';
                     const functionName = inferredCaller.function_name || 'Unknown';
                     const code = inferredCaller.code || '';
+                    const startLine = inferredCaller.start_line || 1;
+                    const highlightLines = inferredCaller.highlight_lines || [];
 
                     html += `
                         <div class="caller-item">
                             <div class="caller-hint">${{escapeHtml(hint)}}</div>
                             <div class="caller-label">${{functionName}} @ ${{filePath}}</div>
-                            <div class="caller-code">${{formatCallerCode(code)}}</div>
+                            <div class="code-content">
+                    `;
+
+                    // 只显示类型注解点上下 5 行
+                    const inferredLines = code.split('\\n');
+                    if (highlightLines.length > 0) {{
+                        const contextLines = 5;
+                        const firstHighlightLine = highlightLines[0];
+                        const firstHighlightIdx = firstHighlightLine - startLine;
+
+                        const snippetStart = Math.max(0, firstHighlightIdx - contextLines);
+                        const snippetEnd = Math.min(inferredLines.length, firstHighlightIdx + contextLines + 1);
+
+                        for (let j = snippetStart; j < snippetEnd; j++) {{
+                            const lineNum = startLine + j;
+                            const isHighlighted = highlightLines.includes(lineNum);
+                            const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(inferredLines[j])}}</div></div>`;
+                        }}
+                    }} else {{
+                        // 如果没有高亮行，显示全部代码
+                        for (let j = 0; j < inferredLines.length; j++) {{
+                            const lineNum = startLine + j;
+                            html += `<div class="code-line"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(inferredLines[j])}}</div></div>`;
+                        }}
+                    }}
+
+                    html += `
+                            </div>
                         </div>
                     `;
                 }}
