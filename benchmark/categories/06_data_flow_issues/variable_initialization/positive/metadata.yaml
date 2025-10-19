@@ -1,0 +1,116 @@
+# Variable Initialization - Bug 标注
+
+bugs:
+  - id: "DATA-INIT-001"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "high"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "process_payment"
+    location:
+      start_line: 18
+      end_line: 18
+      start_col: 4
+      end_col: 41
+    description: "条件分支中变量未初始化，else 分支中 transaction_id 未定义"
+    root_cause: "部分分支未初始化变量，导致后续使用时 UnboundLocalError"
+    cwe_id: "CWE-457"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-INIT-002"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "medium"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "find_max_value"
+    location:
+      start_line: 33
+      end_line: 33
+      start_col: 4
+      end_col: 18
+    description: "循环内初始化变量，空列表时变量未定义"
+    root_cause: "未在循环外初始化，空迭代时引发 UnboundLocalError"
+    cwe_id: "CWE-457"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-INIT-003"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "high"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "load_config"
+    location:
+      start_line: 50
+      end_line: 50
+      start_col: 4
+      end_col: 34
+    description: "异常分支未初始化变量，except 块后 config 未定义"
+    root_cause: "try 块初始化但 except 未初始化，异常后使用引发错误"
+    cwe_id: "CWE-457"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-INIT-004"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "high"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "calculate_discount"
+    location:
+      start_line: 60
+      end_line: 60
+      start_col: 8
+      end_col: 41
+    description: "变量在定义前引用，discount_rate 在赋值前使用"
+    root_cause: "变量使用先于定义，直接引发 UnboundLocalError"
+    cwe_id: "CWE-457"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "DATA-INIT-005"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "medium"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "increment_counter"
+    location:
+      start_line: 77
+      end_line: 77
+      start_col: 4
+      end_col: 18
+    description: "global 声明但未验证全局变量是否存在"
+    root_cause: "假设全局变量已定义，可能在运行时被删除"
+    cwe_id: "CWE-457"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-INIT-006"
+    category: "data_flow_issues"
+    subcategory: "variable_initialization"
+    severity: "medium"
+    type: "UninitializedVariable"
+    file: "example1_uninitialized.py"
+    function: "add_item"
+    location:
+      start_line: 92
+      end_line: 92
+      start_col: 8
+      end_col: 29
+    description: "类实例变量未在 __init__ 中初始化，直接使用引发 AttributeError"
+    root_cause: "__init__ 未初始化 self.total，add_item 直接使用"
+    cwe_id: "CWE-457"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"

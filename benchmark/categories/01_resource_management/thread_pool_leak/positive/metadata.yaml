@@ -1,7 +1,7 @@
 # Thread Pool Leak Positive Examples
 
 bugs:
-  - id: "M-TPL-001"
+  - id: "RM-POOL-001"
     category: "resource_management"
     subcategory: "thread_pool_leak"
     severity: "high"
@@ -18,7 +18,7 @@ bugs:
     cwe_id: "CWE-404"
     difficulty: "easy"
 
-  - id: "M-TPL-002"
+  - id: "RM-POOL-002"
     category: "resource_management"
     subcategory: "thread_pool_leak"
     severity: "high"
@@ -35,7 +35,7 @@ bugs:
     cwe_id: "CWE-404"
     difficulty: "easy"
 
-  - id: "M-TPL-003"
+  - id: "RM-POOL-003"
     category: "resource_management"
     subcategory: "thread_pool_leak"
     severity: "high"

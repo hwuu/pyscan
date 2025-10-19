@@ -1,0 +1,40 @@
+# Deprecated API - Bug 标注
+
+bugs:
+  - id: "API-DEP-001"
+    category: "api_usage"
+    subcategory: "deprecated_api"
+    severity: "low"
+    type: "DeprecatedAPI"
+    file: "example1_deprecated.py"
+    function: "get_linux_distribution"
+    location:
+      start_line: 18
+      end_line: 18
+      start_col: 8
+      end_col: 36
+    description: "使用已废弃的 platform.dist()，Python 3.8+ 已移除"
+    root_cause: "应使用 distro 库或 platform.freedesktop_os_release()"
+    cwe_id: "CWE-477"
+    difficulty: "low"
+    related_bugs: ["BUG_0006"]
+    detection_layer: "Layer 1"
+
+  - id: "API-DEP-002"
+    category: "api_usage"
+    subcategory: "deprecated_api"
+    severity: "low"
+    type: "DeprecatedAPI"
+    file: "example1_deprecated.py"
+    function: "load_module_dynamically"
+    location:
+      start_line: 35
+      end_line: 35
+      start_col: 8
+      end_col: 18
+    description: "使用已废弃的 imp 模块，Python 3.4+ 废弃，3.12+ 移除"
+    root_cause: "应使用 importlib 替代"
+    cwe_id: "CWE-477"
+    difficulty: "low"
+    related_bugs: ["BUG_0006"]
+    detection_layer: "Layer 1"

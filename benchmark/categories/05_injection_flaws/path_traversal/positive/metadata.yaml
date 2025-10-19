@@ -2,7 +2,7 @@
 
 bugs:
   # Example 1: Basic path traversal
-  - id: "EC-PT-001"
+  - id: "INJ-PATH-001"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -20,7 +20,7 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-002"
+  - id: "INJ-PATH-002"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -38,7 +38,7 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-003"
+  - id: "INJ-PATH-003"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -56,7 +56,7 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-004"
+  - id: "INJ-PATH-004"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -74,7 +74,7 @@ bugs:
     difficulty: "medium"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-005"
+  - id: "INJ-PATH-005"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -93,7 +93,7 @@ bugs:
     related_bugs: ["BUG_0014"]
 
   # Example 2: Symlink and TOCTOU
-  - id: "EC-PT-006"
+  - id: "INJ-PATH-006"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -111,7 +111,7 @@ bugs:
     difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-007"
+  - id: "INJ-PATH-007"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -129,7 +129,7 @@ bugs:
     difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-008"
+  - id: "INJ-PATH-008"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "high"
@@ -147,7 +147,7 @@ bugs:
     difficulty: "hard"
     related_bugs: ["BUG_0014"]
 
-  - id: "EC-PT-009"
+  - id: "INJ-PATH-009"
     category: "injection_flaws"
     subcategory: "path_traversal"
     severity: "medium"

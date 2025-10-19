@@ -1,9 +1,12 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 59,
+  "total_bugs": 79,
   "statistics": {
     "by_category": {
+      "api_usage": 2,
+      "type_safety": 3,
+      "data_flow_issues": 15,
       "injection_flaws": 15,
       "input_validation": 10,
       "error_handling": 10,
@@ -11,19 +14,464 @@
       "resource_management": 17
     },
     "by_severity": {
-      "high": 35,
-      "medium": 17,
-      "low": 1,
+      "high": 46,
+      "medium": 22,
+      "low": 5,
       "critical": 6
     },
     "by_difficulty": {
       "easy": 16,
-      "medium": 28,
+      "medium": 33,
       "hard": 4,
-      "high": 11
+      "low": 4,
+      "high": 22
     }
   },
   "bugs": [
+    {
+      "id": "API-DEP-001",
+      "category": "api_usage",
+      "subcategory": "deprecated_api",
+      "severity": "low",
+      "type": "DeprecatedAPI",
+      "file": "example1_deprecated.py",
+      "function": "get_linux_distribution",
+      "location": {
+        "start_line": 18,
+        "end_line": 18,
+        "start_col": 8,
+        "end_col": 36
+      },
+      "description": "使用已废弃的 platform.dist()，Python 3.8+ 已移除",
+      "root_cause": "应使用 distro 库或 platform.freedesktop_os_release()",
+      "cwe_id": "CWE-477",
+      "difficulty": "low",
+      "related_bugs": [
+        "BUG_0006"
+      ],
+      "detection_layer": "Layer 1",
+      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py"
+    },
+    {
+      "id": "API-DEP-002",
+      "category": "api_usage",
+      "subcategory": "deprecated_api",
+      "severity": "low",
+      "type": "DeprecatedAPI",
+      "file": "example1_deprecated.py",
+      "function": "load_module_dynamically",
+      "location": {
+        "start_line": 35,
+        "end_line": 35,
+        "start_col": 8,
+        "end_col": 18
+      },
+      "description": "使用已废弃的 imp 模块，Python 3.4+ 废弃，3.12+ 移除",
+      "root_cause": "应使用 importlib 替代",
+      "cwe_id": "CWE-477",
+      "difficulty": "low",
+      "related_bugs": [
+        "BUG_0006"
+      ],
+      "detection_layer": "Layer 1",
+      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py"
+    },
+    {
+      "id": "TYPE-MIS-001",
+      "category": "type_safety",
+      "subcategory": "type_mismatch",
+      "severity": "high",
+      "type": "ParameterTypeMismatch",
+      "file": "example1_type_errors.py",
+      "function": "calculate_total",
+      "location": {
+        "start_line": 16,
+        "end_line": 16,
+        "start_col": 4,
+        "end_col": 21
+      },
+      "description": "参数类型不匹配，声明 List[int] 但可能传入 str",
+      "root_cause": "类型注解与实际调用不匹配，缺少运行时验证",
+      "cwe_id": "CWE-704",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+    },
+    {
+      "id": "TYPE-MIS-002",
+      "category": "type_safety",
+      "subcategory": "type_mismatch",
+      "severity": "high",
+      "type": "ReturnTypeMismatch",
+      "file": "example1_type_errors.py",
+      "function": "get_user_name",
+      "location": {
+        "start_line": 30,
+        "end_line": 30,
+        "start_col": 8,
+        "end_col": 19
+      },
+      "description": "返回类型不匹配，声明返回 str 实际返回 dict",
+      "root_cause": "函数签名与实现不一致",
+      "cwe_id": "CWE-704",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+    },
+    {
+      "id": "TYPE-MIS-003",
+      "category": "type_safety",
+      "subcategory": "type_mismatch",
+      "severity": "high",
+      "type": "ContainerTypeMismatch",
+      "file": "example1_type_errors.py",
+      "function": "process_numbers",
+      "location": {
+        "start_line": 44,
+        "end_line": 44,
+        "start_col": 4,
+        "end_col": 49
+      },
+      "description": "容器类型错误，List[int] 注解但包含 str 元素",
+      "root_cause": "列表元素类型与注解不符",
+      "cwe_id": "CWE-704",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+    },
+    {
+      "id": "DATA-FLOW-001",
+      "category": "data_flow_issues",
+      "subcategory": "control_flow",
+      "severity": "low",
+      "type": "UnreachableCode",
+      "file": "example1_dead_code.py",
+      "function": "process_data",
+      "location": {
+        "start_line": 22,
+        "end_line": 23,
+        "start_col": 4,
+        "end_col": 26
+      },
+      "description": "return 后的代码不可达，清理和日志代码永远不会执行",
+      "root_cause": "return 语句后的代码无法到达",
+      "cwe_id": "CWE-561",
+      "difficulty": "low",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+    },
+    {
+      "id": "DATA-FLOW-002",
+      "category": "data_flow_issues",
+      "subcategory": "control_flow",
+      "severity": "low",
+      "type": "ConstantCondition",
+      "file": "example1_dead_code.py",
+      "function": "validate_age",
+      "location": {
+        "start_line": 38,
+        "end_line": 39,
+        "start_col": 4,
+        "end_col": 21
+      },
+      "description": "恒假条件 (1 == 2)，分支代码永远不会执行",
+      "root_cause": "条件表达式恒为 False，可能是逻辑错误",
+      "cwe_id": "CWE-570",
+      "difficulty": "low",
+      "related_bugs": [],
+      "detection_layer": "Layer 1/2",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+    },
+    {
+      "id": "DATA-FLOW-003",
+      "category": "data_flow_issues",
+      "subcategory": "control_flow",
+      "severity": "medium",
+      "type": "InfiniteLoop",
+      "file": "example1_dead_code.py",
+      "function": "wait_for_signal",
+      "location": {
+        "start_line": 56,
+        "end_line": 60,
+        "start_col": 4,
+        "end_col": 35
+      },
+      "description": "while True 无 break 语句，导致无限循环",
+      "root_cause": "循环缺少退出条件",
+      "cwe_id": "CWE-835",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 3",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+    },
+    {
+      "id": "DATA-FLOW-004",
+      "category": "data_flow_issues",
+      "subcategory": "control_flow",
+      "severity": "high",
+      "type": "InfiniteRecursion",
+      "file": "example1_dead_code.py",
+      "function": "process_recursive",
+      "location": {
+        "start_line": 75,
+        "end_line": 75,
+        "start_col": 4,
+        "end_col": 47
+      },
+      "description": "递归函数缺少终止条件，导致 RecursionError",
+      "root_cause": "递归调用缺少基本情况 (base case)",
+      "cwe_id": "CWE-674",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2/3",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+    },
+    {
+      "id": "DATA-NULL-001",
+      "category": "data_flow_issues",
+      "subcategory": "none_dereference",
+      "severity": "high",
+      "type": "NullPointerDereference",
+      "file": "example1_none_access.py",
+      "function": "get_user_email",
+      "location": {
+        "start_line": 16,
+        "end_line": 16,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "Optional 类型未检查直接访问属性，user 可能是 None",
+      "root_cause": "函数返回 Optional[dict]，未检查 None 就访问键",
+      "cwe_id": "CWE-476",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 1/2",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+    },
+    {
+      "id": "DATA-NULL-002",
+      "category": "data_flow_issues",
+      "subcategory": "none_dereference",
+      "severity": "high",
+      "type": "NullPointerDereference",
+      "file": "example1_none_access.py",
+      "function": "get_config_value",
+      "location": {
+        "start_line": 29,
+        "end_line": 29,
+        "start_col": 4,
+        "end_col": 22
+      },
+      "description": "dict.get() 返回 None 未检查，直接调用方法引发 AttributeError",
+      "root_cause": "get() 返回值可能是 None，未检查就调用 .upper()",
+      "cwe_id": "CWE-476",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2/3",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+    },
+    {
+      "id": "DATA-NULL-003",
+      "category": "data_flow_issues",
+      "subcategory": "none_dereference",
+      "severity": "high",
+      "type": "IndexOutOfBounds",
+      "file": "example1_none_access.py",
+      "function": "unsafe_get_first",
+      "location": {
+        "start_line": 48,
+        "end_line": 48,
+        "start_col": 4,
+        "end_col": 21
+      },
+      "description": "未检查列表是否为空直接索引，空列表引发 IndexError",
+      "root_cause": "未验证列表长度就访问 items[0]",
+      "cwe_id": "CWE-476",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+    },
+    {
+      "id": "DATA-NULL-004",
+      "category": "data_flow_issues",
+      "subcategory": "none_dereference",
+      "severity": "high",
+      "type": "KeyError",
+      "file": "example1_none_access.py",
+      "function": "get_required_field",
+      "location": {
+        "start_line": 59,
+        "end_line": 59,
+        "start_col": 4,
+        "end_col": 22
+      },
+      "description": "使用 [] 访问可能不存在的字典键，引发 KeyError",
+      "root_cause": "应使用 .get() 或 in 检查，而不是直接 []",
+      "cwe_id": "CWE-476",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+    },
+    {
+      "id": "DATA-NULL-005",
+      "category": "data_flow_issues",
+      "subcategory": "none_dereference",
+      "severity": "medium",
+      "type": "InvalidIndex",
+      "file": "example1_none_access.py",
+      "function": "extract_domain",
+      "location": {
+        "start_line": 70,
+        "end_line": 70,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "str.find() 返回 -1 未检查，导致切片结果错误",
+      "root_cause": "find() 未找到时返回 -1，未检查就用于索引",
+      "cwe_id": "CWE-476",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2/3",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+    },
+    {
+      "id": "DATA-INIT-001",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "high",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "process_payment",
+      "location": {
+        "start_line": 18,
+        "end_line": 18,
+        "start_col": 4,
+        "end_col": 41
+      },
+      "description": "条件分支中变量未初始化，else 分支中 transaction_id 未定义",
+      "root_cause": "部分分支未初始化变量，导致后续使用时 UnboundLocalError",
+      "cwe_id": "CWE-457",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
+    {
+      "id": "DATA-INIT-002",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "medium",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "find_max_value",
+      "location": {
+        "start_line": 33,
+        "end_line": 33,
+        "start_col": 4,
+        "end_col": 18
+      },
+      "description": "循环内初始化变量，空列表时变量未定义",
+      "root_cause": "未在循环外初始化，空迭代时引发 UnboundLocalError",
+      "cwe_id": "CWE-457",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
+    {
+      "id": "DATA-INIT-003",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "high",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "load_config",
+      "location": {
+        "start_line": 50,
+        "end_line": 50,
+        "start_col": 4,
+        "end_col": 34
+      },
+      "description": "异常分支未初始化变量，except 块后 config 未定义",
+      "root_cause": "try 块初始化但 except 未初始化，异常后使用引发错误",
+      "cwe_id": "CWE-457",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
+    {
+      "id": "DATA-INIT-004",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "high",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "calculate_discount",
+      "location": {
+        "start_line": 60,
+        "end_line": 60,
+        "start_col": 8,
+        "end_col": 41
+      },
+      "description": "变量在定义前引用，discount_rate 在赋值前使用",
+      "root_cause": "变量使用先于定义，直接引发 UnboundLocalError",
+      "cwe_id": "CWE-457",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
+    {
+      "id": "DATA-INIT-005",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "medium",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "increment_counter",
+      "location": {
+        "start_line": 77,
+        "end_line": 77,
+        "start_col": 4,
+        "end_col": 18
+      },
+      "description": "global 声明但未验证全局变量是否存在",
+      "root_cause": "假设全局变量已定义，可能在运行时被删除",
+      "cwe_id": "CWE-457",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
+    {
+      "id": "DATA-INIT-006",
+      "category": "data_flow_issues",
+      "subcategory": "variable_initialization",
+      "severity": "medium",
+      "type": "UninitializedVariable",
+      "file": "example1_uninitialized.py",
+      "function": "add_item",
+      "location": {
+        "start_line": 92,
+        "end_line": 92,
+        "start_col": 8,
+        "end_col": 29
+      },
+      "description": "类实例变量未在 __init__ 中初始化，直接使用引发 AttributeError",
+      "root_cause": "__init__ 未初始化 self.total，add_item 直接使用",
+      "cwe_id": "CWE-457",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+    },
     {
       "id": "INJ-CMD-001",
       "category": "injection_flaws",
@@ -91,7 +539,7 @@
       "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
     },
     {
-      "id": "EC-PT-001",
+      "id": "INJ-PATH-001",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -114,7 +562,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
     },
     {
-      "id": "EC-PT-002",
+      "id": "INJ-PATH-002",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -137,7 +585,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
     },
     {
-      "id": "EC-PT-003",
+      "id": "INJ-PATH-003",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -160,7 +608,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
     },
     {
-      "id": "EC-PT-004",
+      "id": "INJ-PATH-004",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -183,7 +631,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
     },
     {
-      "id": "EC-PT-005",
+      "id": "INJ-PATH-005",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -206,7 +654,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
     },
     {
-      "id": "EC-PT-006",
+      "id": "INJ-PATH-006",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -229,7 +677,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
     },
     {
-      "id": "EC-PT-007",
+      "id": "INJ-PATH-007",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -252,7 +700,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
     },
     {
-      "id": "EC-PT-008",
+      "id": "INJ-PATH-008",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "high",
@@ -275,7 +723,7 @@
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
     },
     {
-      "id": "EC-PT-009",
+      "id": "INJ-PATH-009",
       "category": "injection_flaws",
       "subcategory": "path_traversal",
       "severity": "medium",
@@ -361,7 +809,7 @@
       "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py"
     },
     {
-      "id": "PI-VAL-001",
+      "id": "VAL-INPUT-001",
       "category": "input_validation",
       "subcategory": "api_input_validation",
       "severity": "high",
@@ -384,7 +832,7 @@
       "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
     },
     {
-      "id": "PI-VAL-002",
+      "id": "VAL-INPUT-002",
       "category": "input_validation",
       "subcategory": "api_input_validation",
       "severity": "high",
@@ -407,7 +855,7 @@
       "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
     },
     {
-      "id": "PI-VAL-003",
+      "id": "VAL-INPUT-003",
       "category": "input_validation",
       "subcategory": "api_input_validation",
       "severity": "high",
@@ -431,7 +879,7 @@
       "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
     },
     {
-      "id": "PI-VAL-004",
+      "id": "VAL-INPUT-004",
       "category": "input_validation",
       "subcategory": "api_input_validation",
       "severity": "medium",
@@ -454,7 +902,7 @@
       "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
     },
     {
-      "id": "PI-VAL-005",
+      "id": "VAL-INPUT-005",
       "category": "input_validation",
       "subcategory": "api_input_validation",
       "severity": "high",
@@ -1278,7 +1726,7 @@
       "relative_path": "01_resource_management\\network_leak\\positive\\example3_smtp_leak.py"
     },
     {
-      "id": "M-TPL-001",
+      "id": "RM-POOL-001",
       "category": "resource_management",
       "subcategory": "thread_pool_leak",
       "severity": "high",
@@ -1298,7 +1746,7 @@
       "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
     },
     {
-      "id": "M-TPL-002",
+      "id": "RM-POOL-002",
       "category": "resource_management",
       "subcategory": "thread_pool_leak",
       "severity": "high",
@@ -1318,7 +1766,7 @@
       "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
     },
     {
-      "id": "M-TPL-003",
+      "id": "RM-POOL-003",
       "category": "resource_management",
       "subcategory": "thread_pool_leak",
       "severity": "high",

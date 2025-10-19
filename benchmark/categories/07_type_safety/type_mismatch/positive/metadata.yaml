@@ -1,0 +1,59 @@
+# Type Mismatch - Bug 标注
+
+bugs:
+  - id: "TYPE-MIS-001"
+    category: "type_safety"
+    subcategory: "type_mismatch"
+    severity: "high"
+    type: "ParameterTypeMismatch"
+    file: "example1_type_errors.py"
+    function: "calculate_total"
+    location:
+      start_line: 16
+      end_line: 16
+      start_col: 4
+      end_col: 21
+    description: "参数类型不匹配，声明 List[int] 但可能传入 str"
+    root_cause: "类型注解与实际调用不匹配，缺少运行时验证"
+    cwe_id: "CWE-704"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "TYPE-MIS-002"
+    category: "type_safety"
+    subcategory: "type_mismatch"
+    severity: "high"
+    type: "ReturnTypeMismatch"
+    file: "example1_type_errors.py"
+    function: "get_user_name"
+    location:
+      start_line: 30
+      end_line: 30
+      start_col: 8
+      end_col: 19
+    description: "返回类型不匹配，声明返回 str 实际返回 dict"
+    root_cause: "函数签名与实现不一致"
+    cwe_id: "CWE-704"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "TYPE-MIS-003"
+    category: "type_safety"
+    subcategory: "type_mismatch"
+    severity: "high"
+    type: "ContainerTypeMismatch"
+    file: "example1_type_errors.py"
+    function: "process_numbers"
+    location:
+      start_line: 44
+      end_line: 44
+      start_col: 4
+      end_col: 49
+    description: "容器类型错误，List[int] 注解但包含 str 元素"
+    root_cause: "列表元素类型与注解不符"
+    cwe_id: "CWE-704"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 1"

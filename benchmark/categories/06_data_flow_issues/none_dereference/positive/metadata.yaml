@@ -1,0 +1,97 @@
+# None Dereference - Bug 标注
+
+bugs:
+  - id: "DATA-NULL-001"
+    category: "data_flow_issues"
+    subcategory: "none_dereference"
+    severity: "high"
+    type: "NullPointerDereference"
+    file: "example1_none_access.py"
+    function: "get_user_email"
+    location:
+      start_line: 16
+      end_line: 16
+      start_col: 4
+      end_col: 24
+    description: "Optional 类型未检查直接访问属性，user 可能是 None"
+    root_cause: "函数返回 Optional[dict]，未检查 None 就访问键"
+    cwe_id: "CWE-476"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 1/2"
+
+  - id: "DATA-NULL-002"
+    category: "data_flow_issues"
+    subcategory: "none_dereference"
+    severity: "high"
+    type: "NullPointerDereference"
+    file: "example1_none_access.py"
+    function: "get_config_value"
+    location:
+      start_line: 29
+      end_line: 29
+      start_col: 4
+      end_col: 22
+    description: "dict.get() 返回 None 未检查，直接调用方法引发 AttributeError"
+    root_cause: "get() 返回值可能是 None，未检查就调用 .upper()"
+    cwe_id: "CWE-476"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2/3"
+
+  - id: "DATA-NULL-003"
+    category: "data_flow_issues"
+    subcategory: "none_dereference"
+    severity: "high"
+    type: "IndexOutOfBounds"
+    file: "example1_none_access.py"
+    function: "unsafe_get_first"
+    location:
+      start_line: 48
+      end_line: 48
+      start_col: 4
+      end_col: 21
+    description: "未检查列表是否为空直接索引，空列表引发 IndexError"
+    root_cause: "未验证列表长度就访问 items[0]"
+    cwe_id: "CWE-476"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-NULL-004"
+    category: "data_flow_issues"
+    subcategory: "none_dereference"
+    severity: "high"
+    type: "KeyError"
+    file: "example1_none_access.py"
+    function: "get_required_field"
+    location:
+      start_line: 59
+      end_line: 59
+      start_col: 4
+      end_col: 22
+    description: "使用 [] 访问可能不存在的字典键，引发 KeyError"
+    root_cause: "应使用 .get() 或 in 检查，而不是直接 []"
+    cwe_id: "CWE-476"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "DATA-NULL-005"
+    category: "data_flow_issues"
+    subcategory: "none_dereference"
+    severity: "medium"
+    type: "InvalidIndex"
+    file: "example1_none_access.py"
+    function: "extract_domain"
+    location:
+      start_line: 70
+      end_line: 70
+      start_col: 4
+      end_col: 24
+    description: "str.find() 返回 -1 未检查，导致切片结果错误"
+    root_cause: "find() 未找到时返回 -1，未检查就用于索引"
+    cwe_id: "CWE-476"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2/3"

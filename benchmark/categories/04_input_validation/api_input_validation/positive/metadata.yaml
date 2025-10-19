@@ -2,7 +2,7 @@
 
 bugs:
   # Example 1: Missing validation
-  - id: "PI-VAL-001"
+  - id: "VAL-INPUT-001"
     category: "input_validation"
     subcategory: "api_input_validation"
     severity: "high"
@@ -20,7 +20,7 @@ bugs:
     difficulty: "medium"
     related_bugs: ["BUG_0012"]
 
-  - id: "PI-VAL-002"
+  - id: "VAL-INPUT-002"
     category: "input_validation"
     subcategory: "api_input_validation"
     severity: "high"
@@ -38,7 +38,7 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0012"]
 
-  - id: "PI-VAL-003"
+  - id: "VAL-INPUT-003"
     category: "input_validation"
     subcategory: "api_input_validation"
     severity: "high"
@@ -56,7 +56,7 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0012", "BUG_0013"]
 
-  - id: "PI-VAL-004"
+  - id: "VAL-INPUT-004"
     category: "input_validation"
     subcategory: "api_input_validation"
     severity: "medium"
@@ -74,7 +74,7 @@ bugs:
     difficulty: "medium"
     related_bugs: ["BUG_0012"]
 
-  - id: "PI-VAL-005"
+  - id: "VAL-INPUT-005"
     category: "input_validation"
     subcategory: "api_input_validation"
     severity: "high"

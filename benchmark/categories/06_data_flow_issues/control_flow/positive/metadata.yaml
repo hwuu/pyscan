@@ -1,0 +1,78 @@
+# Control Flow - Bug 标注
+
+bugs:
+  - id: "DATA-FLOW-001"
+    category: "data_flow_issues"
+    subcategory: "control_flow"
+    severity: "low"
+    type: "UnreachableCode"
+    file: "example1_dead_code.py"
+    function: "process_data"
+    location:
+      start_line: 22
+      end_line: 23
+      start_col: 4
+      end_col: 26
+    description: "return 后的代码不可达，清理和日志代码永远不会执行"
+    root_cause: "return 语句后的代码无法到达"
+    cwe_id: "CWE-561"
+    difficulty: "low"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "DATA-FLOW-002"
+    category: "data_flow_issues"
+    subcategory: "control_flow"
+    severity: "low"
+    type: "ConstantCondition"
+    file: "example1_dead_code.py"
+    function: "validate_age"
+    location:
+      start_line: 38
+      end_line: 39
+      start_col: 4
+      end_col: 21
+    description: "恒假条件 (1 == 2)，分支代码永远不会执行"
+    root_cause: "条件表达式恒为 False，可能是逻辑错误"
+    cwe_id: "CWE-570"
+    difficulty: "low"
+    related_bugs: []
+    detection_layer: "Layer 1/2"
+
+  - id: "DATA-FLOW-003"
+    category: "data_flow_issues"
+    subcategory: "control_flow"
+    severity: "medium"
+    type: "InfiniteLoop"
+    file: "example1_dead_code.py"
+    function: "wait_for_signal"
+    location:
+      start_line: 56
+      end_line: 60
+      start_col: 4
+      end_col: 35
+    description: "while True 无 break 语句，导致无限循环"
+    root_cause: "循环缺少退出条件"
+    cwe_id: "CWE-835"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 3"
+
+  - id: "DATA-FLOW-004"
+    category: "data_flow_issues"
+    subcategory: "control_flow"
+    severity: "high"
+    type: "InfiniteRecursion"
+    file: "example1_dead_code.py"
+    function: "process_recursive"
+    location:
+      start_line: 75
+      end_line: 75
+      start_col: 4
+      end_col: 47
+    description: "递归函数缺少终止条件，导致 RecursionError"
+    root_cause: "递归调用缺少基本情况 (base case)"
+    cwe_id: "CWE-674"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2/3"
