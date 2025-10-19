@@ -1,28 +1,51 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 45,
+  "total_bugs": 50,
   "statistics": {
     "by_category": {
-      "injection_flaws": 9,
+      "injection_flaws": 10,
       "input_validation": 10,
       "error_handling": 10,
-      "concurrency": 6,
-      "resource_management": 10
+      "concurrency": 8,
+      "resource_management": 12
     },
     "by_severity": {
-      "high": 31,
+      "high": 34,
       "medium": 13,
-      "low": 1
+      "low": 1,
+      "critical": 2
     },
     "by_difficulty": {
-      "easy": 11,
-      "medium": 23,
+      "easy": 13,
+      "medium": 25,
       "hard": 4,
-      "high": 7
+      "high": 8
     }
   },
   "bugs": [
+    {
+      "id": "INJ-CMD-001",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CommandInjection",
+      "file": "example1_os_system.py",
+      "function": "backup_file",
+      "location": {
+        "start_line": 35,
+        "end_line": 35,
+        "start_col": 4,
+        "end_col": 23
+      },
+      "description": "使用 os.system 拼接用户输入,可执行任意系统命令",
+      "root_cause": "未验证用户输入,直接拼接到 shell 命令中",
+      "cwe_id": "CWE-78",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1/2",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
     {
       "id": "EC-PT-001",
       "category": "injection_flaws",
@@ -689,6 +712,54 @@
       "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
     },
     {
+      "id": "CONC-ASYNC-001",
+      "category": "concurrency",
+      "subcategory": "async_await_misuse",
+      "severity": "high",
+      "type": "MissingAwait",
+      "file": "example1_missing_await.py",
+      "function": "process_items",
+      "location": {
+        "start_line": 47,
+        "end_line": 47,
+        "start_col": 14,
+        "end_col": 66
+      },
+      "description": "异步函数调用缺少 await,返回 coroutine 对象而不是实际结果",
+      "root_cause": "忘记在异步函数调用前添加 await 关键字",
+      "cwe_id": "CWE-1088",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0004"
+      ],
+      "detection_layer": "Layer 1/2",
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+    },
+    {
+      "id": "CONC-DEAD-001",
+      "category": "concurrency",
+      "subcategory": "deadlock_risk",
+      "severity": "critical",
+      "type": "DeadlockRisk",
+      "file": "example1_nested_locks.py",
+      "function": "transfer_funds",
+      "location": {
+        "start_line": 46,
+        "end_line": 46,
+        "start_col": 4,
+        "end_col": 25
+      },
+      "description": "嵌套锁顺序不一致,可能导致死锁",
+      "root_cause": "两个线程以不同顺序获取相同的锁,形成循环等待",
+      "cwe_id": "CWE-833",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0003"
+      ],
+      "detection_layer": "Layer 3",
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example1_nested_locks.py"
+    },
+    {
       "id": "ONC-RC-001",
       "category": "concurrency",
       "subcategory": "race_condition",
@@ -950,6 +1021,54 @@
       "cwe_id": "CWE-404",
       "difficulty": "medium",
       "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+    },
+    {
+      "id": "RM-NET-001",
+      "category": "resource_management",
+      "subcategory": "network_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_socket_leak.py",
+      "function": "connect_to_server",
+      "location": {
+        "start_line": 24,
+        "end_line": 24,
+        "start_col": 4,
+        "end_col": 56
+      },
+      "description": "Socket 连接后未关闭,导致文件描述符泄露",
+      "root_cause": "未使用 with 语句或 finally 块关闭 socket",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0015"
+      ],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py"
+    },
+    {
+      "id": "RM-NET-002",
+      "category": "resource_management",
+      "subcategory": "network_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_socket_leak.py",
+      "function": "fetch_data",
+      "location": {
+        "start_line": 51,
+        "end_line": 51,
+        "start_col": 4,
+        "end_col": 48
+      },
+      "description": "HTTP 连接未关闭,导致连接池耗尽",
+      "root_cause": "HTTPConnection 对象未调用 close() 方法",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0015"
+      ],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py"
     },
     {
       "id": "M-TPL-001",

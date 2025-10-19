@@ -1,0 +1,22 @@
+# Async/Await Misuse Positive Examples - Bug 标注
+
+bugs:
+  # Example 1: Missing await
+  - id: "CONC-ASYNC-001"
+    category: "concurrency"
+    subcategory: "async_await_misuse"
+    severity: "high"
+    type: "MissingAwait"
+    file: "example1_missing_await.py"
+    function: "process_items"
+    location:
+      start_line: 47
+      end_line: 47
+      start_col: 14
+      end_col: 66
+    description: "异步函数调用缺少 await,返回 coroutine 对象而不是实际结果"
+    root_cause: "忘记在异步函数调用前添加 await 关键字"
+    cwe_id: "CWE-1088"
+    difficulty: "easy"
+    related_bugs: ["BUG_0004"]
+    detection_layer: "Layer 1/2"

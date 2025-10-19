@@ -1,0 +1,41 @@
+# Network Leak Positive Examples - Bug 标注
+
+bugs:
+  # Example 1: Socket leak
+  - id: "RM-NET-001"
+    category: "resource_management"
+    subcategory: "network_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_socket_leak.py"
+    function: "connect_to_server"
+    location:
+      start_line: 24
+      end_line: 24
+      start_col: 4
+      end_col: 56
+    description: "Socket 连接后未关闭,导致文件描述符泄露"
+    root_cause: "未使用 with 语句或 finally 块关闭 socket"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+    related_bugs: ["BUG_0015"]
+    detection_layer: "Layer 2"
+
+  - id: "RM-NET-002"
+    category: "resource_management"
+    subcategory: "network_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_socket_leak.py"
+    function: "fetch_data"
+    location:
+      start_line: 51
+      end_line: 51
+      start_col: 4
+      end_col: 48
+    description: "HTTP 连接未关闭,导致连接池耗尽"
+    root_cause: "HTTPConnection 对象未调用 close() 方法"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+    related_bugs: ["BUG_0015"]
+    detection_layer: "Layer 2"

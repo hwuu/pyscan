@@ -1,0 +1,22 @@
+# Deadlock Risk Positive Examples - Bug 标注
+
+bugs:
+  # Example 1: Nested locks with inconsistent ordering
+  - id: "CONC-DEAD-001"
+    category: "concurrency"
+    subcategory: "deadlock_risk"
+    severity: "critical"
+    type: "DeadlockRisk"
+    file: "example1_nested_locks.py"
+    function: "transfer_funds"
+    location:
+      start_line: 46
+      end_line: 46
+      start_col: 4
+      end_col: 25
+    description: "嵌套锁顺序不一致,可能导致死锁"
+    root_cause: "两个线程以不同顺序获取相同的锁,形成循环等待"
+    cwe_id: "CWE-833"
+    difficulty: "high"
+    related_bugs: ["BUG_0003"]
+    detection_layer: "Layer 3"

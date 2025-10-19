@@ -1,0 +1,22 @@
+# Command Injection Positive Examples - Bug 标注
+
+bugs:
+  # Example 1: os.system with user input
+  - id: "INJ-CMD-001"
+    category: "injection_flaws"
+    subcategory: "command_injection"
+    severity: "critical"
+    type: "CommandInjection"
+    file: "example1_os_system.py"
+    function: "backup_file"
+    location:
+      start_line: 35
+      end_line: 35
+      start_col: 4
+      end_col: 23
+    description: "使用 os.system 拼接用户输入,可执行任意系统命令"
+    root_cause: "未验证用户输入,直接拼接到 shell 命令中"
+    cwe_id: "CWE-78"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1/2"
