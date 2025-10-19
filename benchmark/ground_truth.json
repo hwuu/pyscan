@@ -1,7 +1,7 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 79,
+  "total_bugs": 85,
   "statistics": {
     "by_category": {
       "api_usage": 2,
@@ -10,18 +10,18 @@
       "injection_flaws": 15,
       "input_validation": 10,
       "error_handling": 10,
-      "concurrency": 7,
+      "concurrency": 13,
       "resource_management": 17
     },
     "by_severity": {
-      "high": 46,
-      "medium": 22,
+      "high": 51,
+      "medium": 23,
       "low": 5,
       "critical": 6
     },
     "by_difficulty": {
-      "easy": 16,
-      "medium": 33,
+      "easy": 18,
+      "medium": 37,
       "hard": 4,
       "low": 4,
       "high": 22
@@ -1360,6 +1360,129 @@
       "related_bugs": [],
       "detection_layer": "Layer 2",
       "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
+    },
+    {
+      "id": "CONC-RACE-001",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "increment_counter",
+      "location": {
+        "start_line": 15,
+        "end_line": 15,
+        "start_col": 4,
+        "end_col": 16
+      },
+      "description": "全局变量 counter 的读-修改-写操作在多线程环境未加锁",
+      "root_cause": "全局变量写入未使用锁保护",
+      "cwe_id": "CWE-362",
+      "difficulty": "easy",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "CONC-RACE-002",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "update_cache",
+      "location": {
+        "start_line": 21,
+        "end_line": 21,
+        "start_col": 4,
+        "end_col": 29
+      },
+      "description": "全局字典 cache_data 的修改未加锁",
+      "root_cause": "字典操作在多线程环境未同步",
+      "cwe_id": "CWE-362",
+      "difficulty": "easy",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "CONC-RACE-003",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "get_and_increment",
+      "location": {
+        "start_line": 26,
+        "end_line": 27,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "复合操作：读取和修改全局变量之间存在竞态窗口",
+      "root_cause": "非原子复合操作",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "CONC-RACE-004",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "initialize_detector",
+      "location": {
+        "start_line": 26,
+        "end_line": 26,
+        "start_col": 4,
+        "end_col": 50
+      },
+      "description": "全局对象成员 global_vars.detector 赋值存在竞态（BUG_0005 类型）",
+      "root_cause": "类成员变量写入未同步",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0005"
+      ],
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+    },
+    {
+      "id": "CONC-RACE-005",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "update_config",
+      "location": {
+        "start_line": 37,
+        "end_line": 37,
+        "start_col": 4,
+        "end_col": 37
+      },
+      "description": "全局对象的字典成员修改未同步",
+      "root_cause": "嵌套属性访问的字典操作未加锁",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+    },
+    {
+      "id": "CONC-RACE-006",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "medium",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "handle_request",
+      "location": {
+        "start_line": 47,
+        "end_line": 47,
+        "start_col": 8,
+        "end_col": 30
+      },
+      "description": "实例变量 request_count 在共享实例时存在竞态",
+      "root_cause": "实例变量修改未考虑多线程共享场景",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
     },
     {
       "id": "CONC-RACE-007",

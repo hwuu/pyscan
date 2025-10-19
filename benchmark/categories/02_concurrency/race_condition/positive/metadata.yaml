@@ -2,7 +2,7 @@
 
 bugs:
   # Example 1: Global variable
-  - id: "ONC-RC-001"
+  - id: "CONC-RACE-001"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "high"
@@ -19,7 +19,7 @@ bugs:
     cwe_id: "CWE-362"
     difficulty: "easy"
 
-  - id: "ONC-RC-002"
+  - id: "CONC-RACE-002"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "high"
@@ -36,7 +36,7 @@ bugs:
     cwe_id: "CWE-362"
     difficulty: "easy"
 
-  - id: "ONC-RC-003"
+  - id: "CONC-RACE-003"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "high"
@@ -54,7 +54,7 @@ bugs:
     difficulty: "medium"
 
   # Example 2: Class member
-  - id: "ONC-RC-004"
+  - id: "CONC-RACE-004"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "high"
@@ -72,7 +72,7 @@ bugs:
     difficulty: "medium"
     related_bugs: ["BUG_0005"]
 
-  - id: "ONC-RC-005"
+  - id: "CONC-RACE-005"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "high"
@@ -89,7 +89,7 @@ bugs:
     cwe_id: "CWE-362"
     difficulty: "medium"
 
-  - id: "ONC-RC-006"
+  - id: "CONC-RACE-006"
     category: "concurrency"
     subcategory: "race_condition"
     severity: "medium"
@@ -105,9 +105,8 @@ bugs:
     root_cause: "实例变量修改未考虑多线程共享场景"
     cwe_id: "CWE-362"
     difficulty: "medium"
-# Extended Race Condition - Bug 标注
 
-bugs:
+  # Example 4: Extended Race Condition
   - id: "CONC-RACE-007"
     category: "concurrency"
     subcategory: "race_condition"
