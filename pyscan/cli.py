@@ -13,6 +13,7 @@ from pyscan.ast_parser import ASTParser
 from pyscan.context_builder import ContextBuilder
 from pyscan.bug_detector import BugDetector
 from pyscan.reporter import Reporter
+from pyscan.layer1.analyzer import Layer1Analyzer
 
 
 # 设置日志
@@ -349,6 +350,26 @@ def main():
         )
         detector = BugDetector(config)
 
+        # 初始化 Layer 1 分析器
+        layer1_config = getattr(config, 'layer1', {})
+        if isinstance(layer1_config, dict):
+            enable_mypy = layer1_config.get('enable_mypy', True)
+            enable_bandit = layer1_config.get('enable_bandit', True)
+        else:
+            # 如果 layer1 是对象而不是字典
+            enable_mypy = getattr(layer1_config, 'enable_mypy', True)
+            enable_bandit = getattr(layer1_config, 'enable_bandit', True)
+
+        layer1_analyzer = Layer1Analyzer(
+            enable_mypy=enable_mypy,
+            enable_bandit=enable_bandit
+        )
+
+        if layer1_analyzer.is_enabled():
+            logger.info(f"Layer 1 static analysis enabled: {layer1_analyzer.get_enabled_tools()}")
+        else:
+            logger.warning("Layer 1 static analysis disabled (no tools available)")
+
         # 生成函数唯一ID
         def get_function_id(func):
             return f"{getattr(func, 'file_path', '')}::{func.name}"
@@ -433,6 +454,22 @@ def main():
                         'hint': inferred.get('hint', '')
                     })
 
+                # Layer 1 静态分析
+                static_facts = None
+                if layer1_analyzer.is_enabled():
+                    try:
+                        # 获取文件的绝对路径（Layer1 需要真实文件路径）
+                        absolute_file_path = os.path.join(scan_dir, getattr(func, 'file_path', ''))
+                        static_facts = layer1_analyzer.analyze_function(
+                            file_path=absolute_file_path,
+                            func_name=func.name,
+                            start_line=func.lineno,
+                            end_line=func.end_lineno,
+                            complexity_score=0  # 暂时不计算复杂度
+                        )
+                    except Exception as e:
+                        logger.warning(f"Layer 1 analysis failed for {func.name}: {e}")
+
                 result = detector.detect(
                     func,
                     context,
@@ -441,7 +478,8 @@ def main():
                     callers=callers,
                     callees=callees,
                     inferred_callers=inferred_callers,
-                    bug_id_start=bug_counter
+                    bug_id_start=bug_counter,
+                    static_facts=static_facts
                 )
 
                 if result is None:

@@ -29,3 +29,60 @@
 15. 在 bug 修复时如果超过 2 次修复失败，请主动添加关键日志后再进行尝试修复，在我反馈修复后主动清除之前的日志信息。
 
 16. 项目中的重试过2次以上环境配置问题或其他重复犯错的问题，请在项目的CLAUDE.md中做记录。常用的命令，请记录在项目的CLAUDE.md中。
+
+---
+
+## 常见问题记录
+
+### Windows 路径解析问题
+
+**问题**：在 Windows 环境下，使用简单的 `split(':')` 解析包含文件路径的工具输出会失败。
+
+**原因**：Windows 绝对路径包含盘符（如 `C:\`），冒号会干扰基于冒号的分割逻辑。
+
+**示例**：
+```
+mypy 输出: C:\Users\hwuu\file.py:3:12: error: Message
+简单分割: ['C', '\Users\hwuu\file.py', '3', '12', ' error: Message']  # 错误！
+```
+
+**解决方案**：使用正则表达式匹配关键信息，绕开路径部分：
+```python
+import re
+match = re.search(r':(\d+):(\d+):\s*(\w+):\s*(.+)', line)
+if match:
+    line_num = int(match.group(1))
+    col_num = int(match.group(2))
+    severity = match.group(3)
+    message = match.group(4)
+```
+
+**影响模块**：`pyscan/layer1/mypy_analyzer.py`
+
+---
+
+## 常用命令
+
+### 测试命令
+```bash
+# 运行所有测试
+python -m pytest tests/ -v
+
+# 运行特定测试文件
+python -m pytest tests/test_layer1/test_mypy_analyzer.py -v
+
+# 运行特定测试（显示输出）
+python -m pytest tests/test_e2e_layer1.py::TestLayer1E2E::test_analyze_code_with_type_errors -v -s
+
+# 运行测试并查看覆盖率
+python -m pytest tests/ --cov=pyscan --cov-report=html
+```
+
+### 开发命令
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行 pyscan
+python -m pyscan <目录> --config config.yaml
+```

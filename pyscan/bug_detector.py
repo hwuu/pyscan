@@ -7,6 +7,7 @@ from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from pyscan.config import Config
 from pyscan.ast_parser import FunctionInfo
+from pyscan.layer1.base import StaticFacts
 
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,55 @@ class BugDetector:
 如果没有发现**真正的 bug**，返回 {"has_bug": false, "severity": "low", "bugs": []}
 """
 
+    SYSTEM_PROMPT_WITH_STATIC_ANALYSIS = """你是一个 Python 代码审查专家。静态分析工具（mypy、bandit）已经发现了一些基础问题（见用户消息中的"静态分析结果"部分）。
+
+你的任务是发现**静态工具无法检测的深层次问题**，请专注于：
+
+**应该检测的问题：**
+1. **业务逻辑错误**：算法错误、边界条件处理错误、状态转换错误、隐式约束违反
+2. **复杂数据流问题**：跨函数的数据依赖、间接引用、数据一致性问题
+3. **资源管理**：文件/连接/锁的正确释放（非简单的 with 语句缺失）
+4. **并发问题**：竞态条件、死锁风险
+5. **安全漏洞**：SQL 注入、路径遍历等（静态工具未发现的）
+6. **公共 API 参数验证**：仅当函数类型为"公共 API"且缺少必要验证时
+
+**重要限制：**
+1. **不要重复报告**静态工具已发现的问题（类型错误、基础安全问题等）
+2. 对于静态工具已发现的问题，可以补充说明其影响，但不要作为单独的 bug 报告
+3. 不要报告代码风格、命名规范、缺少 docstring 等问题
+4. 不要过度建议防御性编程（如到处检查 None、验证参数类型等）
+5. 信任函数的类型注解（type hints）和调用链中的验证
+6. **假定所有调用者（callers）和被调用函数（callees）都是正确的、无 bug 的**
+7. **尽量少标记为 high 严重程度，只有在确实会导致严重后果时才使用 high**
+8. **bug 的 description 字段必须用中文描述**
+
+**参数验证要求（根据函数类型）：**
+- 如果函数是**公共 API/接口**（会被外部或不可信代码调用），检查是否缺少必要验证
+- 如果函数是**内部函数**（仅被项目内部代码调用），信任调用者已做验证
+
+请以 JSON 格式返回分析结果，格式如下：
+{
+  "has_bug": true/false,
+  "severity": "high/medium/low",
+  "bugs": [
+    {
+      "type": "bug类型",
+      "description": "问题描述",
+      "location": "具体位置描述",
+      "start_line": 相对行号（相对于函数起始行，从1开始），
+      "end_line": 结束行号（相对于函数起始行），
+      "start_col": 起始列号（从0开始，如果无法确定设为0），
+      "end_col": 结束列号（如果无法确定设为0），
+      "suggestion": "修复建议"
+    }
+  ]
+}
+
+注意：
+- start_line/end_line 是相对于当前函数的第一行代码的行号，从1开始计数
+- 如果没有发现**真正的深层次 bug**，返回 {"has_bug": false, "severity": "low", "bugs": []}
+"""
+
     def __init__(self, config: Config):
         """
         Initialize bug detector.
@@ -126,7 +176,8 @@ class BugDetector:
         callers: List[Dict[str, Any]] = None,
         callees: List[str] = None,
         inferred_callers: List[Dict[str, str]] = None,
-        bug_id_start: int = 1
+        bug_id_start: int = 1,
+        static_facts: Optional[StaticFacts] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Detect bugs in a function.
@@ -140,6 +191,7 @@ class BugDetector:
             callees: List of callee function names.
             inferred_callers: List of inferred caller dicts with hints and code.
             bug_id_start: Starting bug ID number.
+            static_facts: Static analysis results from Layer 1 (optional).
 
         Returns:
             Dictionary containing:
@@ -148,14 +200,21 @@ class BugDetector:
                 - raw_response: The raw response from LLM
             None if failed after retries.
         """
-        prompt = self._build_prompt(function, context)
+        prompt = self._build_prompt(function, context, static_facts)
+
+        # 根据是否有静态分析结果选择不同的 system prompt
+        system_prompt = (
+            self.SYSTEM_PROMPT_WITH_STATIC_ANALYSIS
+            if static_facts is not None
+            else self.SYSTEM_PROMPT
+        )
 
         for attempt in range(self.config.detector_max_retries):
             try:
                 response = self.client.chat.completions.create(
                     model=self.config.llm_model,
                     messages=[
-                        {"role": "system", "content": self.SYSTEM_PROMPT},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=self.config.llm_temperature,
@@ -215,7 +274,10 @@ class BugDetector:
         return None
 
     def _build_prompt(
-        self, function: FunctionInfo, context: Dict[str, Any]
+        self,
+        function: FunctionInfo,
+        context: Dict[str, Any],
+        static_facts: Optional[StaticFacts] = None
     ) -> str:
         """
         Build prompt for LLM.
@@ -223,6 +285,7 @@ class BugDetector:
         Args:
             function: Function to analyze.
             context: Function context.
+            static_facts: Static analysis results from Layer 1 (optional).
 
         Returns:
             Formatted prompt.
@@ -248,6 +311,10 @@ class BugDetector:
             parts.append(f"{i:3d} | {line}\n")
         parts.append("```\n\n")
 
+        # 添加静态分析结果（如果有）
+        if static_facts is not None:
+            parts.append(self._build_static_facts_section(static_facts))
+
         if context.get("callers"):
             parts.append("### 调用者函数\n")
             for i, caller in enumerate(context["callers"], 1):
@@ -270,6 +337,60 @@ class BugDetector:
         parts.append(
             "请返回 JSON 格式的分析结果，只返回 JSON，不要其他说明文字。"
         )
+
+        return "".join(parts)
+
+    def _build_static_facts_section(self, facts: StaticFacts) -> str:
+        """
+        Build static analysis facts section for prompt.
+
+        Args:
+            facts: Static analysis results from Layer 1.
+
+        Returns:
+            Formatted section string.
+        """
+        parts = []
+        parts.append("### 静态分析结果\n\n")
+
+        has_issues = False
+
+        # 类型检查问题
+        if facts.type_issues:
+            has_issues = True
+            parts.append("**类型检查（Mypy）：**\n")
+            for issue in facts.type_issues:
+                parts.append(
+                    f"- 行 {issue.line}: [{issue.severity.upper()}] {issue.message}"
+                )
+                if issue.code:
+                    parts.append(f" [{issue.code}]")
+                parts.append("\n")
+            parts.append("\n")
+
+        # 安全扫描问题
+        if facts.security_issues:
+            has_issues = True
+            parts.append("**安全扫描（Bandit）：**\n")
+            for issue in facts.security_issues:
+                parts.append(
+                    f"- 行 {issue.line}: [{issue.severity.upper()}] {issue.message}"
+                )
+                if issue.code:
+                    parts.append(f" [{issue.code}]")
+                parts.append("\n")
+            parts.append("\n")
+
+        # 元信息
+        parts.append("**元信息：**\n")
+        parts.append(f"- 有类型注解: {'是' if facts.has_type_annotations else '否'}\n")
+        if facts.complexity_score > 0:
+            parts.append(f"- 复杂度评分: {facts.complexity_score}\n")
+        parts.append("\n")
+
+        # 如果没有发现问题，说明一下
+        if not has_issues:
+            parts.append("*静态工具未发现明显的类型错误或安全问题。*\n\n")
 
         return "".join(parts)
 

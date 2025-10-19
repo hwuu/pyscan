@@ -35,6 +35,9 @@ class Config:
         "*/venv/*",
         "*/.venv/*",
     ]
+    # Layer 1 默认值
+    DEFAULT_LAYER1_ENABLE_MYPY = True
+    DEFAULT_LAYER1_ENABLE_BANDIT = True
 
     def __init__(self, config_dict: Dict[str, Any]):
         """
@@ -117,6 +120,13 @@ class Config:
         self.detector_max_inferred = compression_config.get(
             "max_inferred", self.DEFAULT_MAX_INFERRED
         )
+
+        # Layer 1 静态分析配置
+        layer1_config = config_dict.get("layer1", {})
+        self.layer1 = {
+            "enable_mypy": layer1_config.get("enable_mypy", self.DEFAULT_LAYER1_ENABLE_MYPY),
+            "enable_bandit": layer1_config.get("enable_bandit", self.DEFAULT_LAYER1_ENABLE_BANDIT),
+        }
 
     def _validate_values(self) -> None:
         """Validate configuration values."""
