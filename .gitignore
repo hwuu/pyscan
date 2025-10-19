@@ -126,9 +126,6 @@ dmypy.json
 config.yaml
 *.json
 *.html
-*.md
-!README.md
-!CLAUDE.md
 .pyscan/
 
 # IDE
