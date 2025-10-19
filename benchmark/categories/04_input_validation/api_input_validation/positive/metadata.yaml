@@ -1,0 +1,184 @@
+# Public API Validation Issues
+
+bugs:
+  # Example 1: Missing validation
+  - id: "PI-VAL-001"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "high"
+    type: "MissingInputValidation"
+    file: "example1_missing_validation.py"
+    function: "create_user"
+    location:
+      start_line: 10
+      end_line: 22
+      start_col: 4
+      end_col: 16
+    description: "公共 API 缺少参数校验（username, email, age 均未验证）"
+    root_cause: "缺少输入验证，可能导致数据损坏或安全问题"
+    cwe_id: "CWE-20"
+    difficulty: "medium"
+    related_bugs: ["BUG_0012"]
+
+  - id: "PI-VAL-002"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "high"
+    type: "MissingWhitelist"
+    file: "example1_missing_validation.py"
+    function: "update_config"
+    location:
+      start_line: 33
+      end_line: 34
+      start_col: 4
+      end_col: 16
+    description: "缺少配置键白名单，可能覆盖敏感配置"
+    root_cause: "允许任意 key，应该使用白名单限制"
+    cwe_id: "CWE-20"
+    difficulty: "high"
+    related_bugs: ["BUG_0012"]
+
+  - id: "PI-VAL-003"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "high"
+    type: "MissingRoleValidation"
+    file: "example1_missing_validation.py"
+    function: "set_user_role"
+    location:
+      start_line: 47
+      end_line: 48
+      start_col: 4
+      end_col: 42
+    description: "缺少角色白名单验证，可能导致权限提升"
+    root_cause: "允许任意角色字符串"
+    cwe_id: "CWE-20"
+    difficulty: "high"
+    related_bugs: ["BUG_0012", "BUG_0013"]
+
+  - id: "PI-VAL-004"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "medium"
+    type: "MissingRangeValidation"
+    file: "example1_missing_validation.py"
+    function: "search_users"
+    location:
+      start_line: 61
+      end_line: 61
+      start_col: 4
+      end_col: 27
+    description: "limit 参数缺少范围验证，可能导致资源耗尽"
+    root_cause: "未验证 limit 范围，可能是负数或超大值"
+    cwe_id: "CWE-20"
+    difficulty: "medium"
+    related_bugs: ["BUG_0012"]
+
+  - id: "PI-VAL-005"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "high"
+    type: "MissingPathValidation"
+    file: "example1_missing_validation.py"
+    function: "delete_file"
+    location:
+      start_line: 76
+      end_line: 78
+      start_col: 4
+      end_col: 24
+    description: "公共 API 允许删除任意路径文件"
+    root_cause: "缺少路径验证，应该限制在特定目录内"
+    cwe_id: "CWE-22"
+    difficulty: "high"
+    related_bugs: ["BUG_0012"]
+
+  # Example 2: Inconsistent return types
+  - id: "VAL-INPUT-006"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "medium"
+    type: "InconsistentReturnType"
+    file: "example2_inconsistent_return.py"
+    function: "get_user_by_id"
+    location:
+      start_line: 17
+      end_line: 24
+      start_col: 4
+      end_col: 24
+    description: "返回类型不一致：成功返回 dict，失败返回 None 或抛出异常"
+    root_cause: "应该统一：始终返回 Optional[Dict] 或始终抛出异常"
+    cwe_id: "CWE-704"
+    difficulty: "medium"
+    related_bugs: ["BUG_0013"]
+
+  - id: "VAL-INPUT-007"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "medium"
+    type: "InconsistentReturnType"
+    file: "example2_inconsistent_return.py"
+    function: "calculate_average"
+    location:
+      start_line: 35
+      end_line: 36
+      start_col: 4
+      end_col: 41
+    description: "返回类型不一致：空列表返回 int(0)，非空返回 float"
+    root_cause: "应该统一返回 float 或抛出异常"
+    cwe_id: "CWE-704"
+    difficulty: "easy"
+    related_bugs: ["BUG_0013"]
+
+  - id: "VAL-INPUT-008"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "medium"
+    type: "InconsistentReturnType"
+    file: "example2_inconsistent_return.py"
+    function: "find_items"
+    location:
+      start_line: 51
+      end_line: 56
+      start_col: 4
+      end_col: 22
+    description: "返回类型不一致：找到返回 list，未找到返回 bool(False)"
+    root_cause: "应该始终返回列表（空列表表示未找到）"
+    cwe_id: "CWE-704"
+    difficulty: "easy"
+    related_bugs: ["BUG_0013"]
+
+  - id: "VAL-INPUT-009"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "medium"
+    type: "InconsistentReturnType"
+    file: "example2_inconsistent_return.py"
+    function: "parse_json_response"
+    location:
+      start_line: 70
+      end_line: 73
+      start_col: 4
+      end_col: 31
+    description: "返回类型不一致：成功返回 dict，失败返回 str 错误消息"
+    root_cause: "应该抛出异常或返回 None，而不是返回错误字符串"
+    cwe_id: "CWE-704"
+    difficulty: "medium"
+    related_bugs: ["BUG_0013"]
+
+  - id: "VAL-INPUT-010"
+    category: "input_validation"
+    subcategory: "api_input_validation"
+    severity: "low"
+    type: "UnclearReturnType"
+    file: "example2_inconsistent_return.py"
+    function: "get_config_value"
+    location:
+      start_line: 85
+      end_line: 85
+      start_col: 4
+      end_col: 39
+    description: "返回值类型取决于 default 参数，调用者无法确定类型"
+    root_cause: "应该使用泛型或明确返回类型"
+    cwe_id: "CWE-704"
+    difficulty: "medium"
+    related_bugs: ["BUG_0013"]

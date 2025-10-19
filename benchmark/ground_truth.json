@@ -1,0 +1,1018 @@
+{
+  "version": "0.1",
+  "created_date": "2025-10-19",
+  "total_bugs": 45,
+  "statistics": {
+    "by_category": {
+      "injection_flaws": 9,
+      "input_validation": 10,
+      "error_handling": 10,
+      "concurrency": 6,
+      "resource_management": 10
+    },
+    "by_severity": {
+      "high": 31,
+      "medium": 13,
+      "low": 1
+    },
+    "by_difficulty": {
+      "easy": 11,
+      "medium": 23,
+      "hard": 4,
+      "high": 7
+    }
+  },
+  "bugs": [
+    {
+      "id": "EC-PT-001",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example1_path_injection.py",
+      "function": "read_user_file",
+      "location": {
+        "start_line": 17,
+        "end_line": 17,
+        "start_col": 4,
+        "end_col": 50
+      },
+      "description": "用户输入直接拼接路径，可通过 '../' 访问任意文件",
+      "root_cause": "路径拼接未验证，缺少路径规范化",
+      "cwe_id": "CWE-22",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+    },
+    {
+      "id": "EC-PT-002",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example1_path_injection.py",
+      "function": "download_file",
+      "location": {
+        "start_line": 32,
+        "end_line": 32,
+        "start_col": 4,
+        "end_col": 45
+      },
+      "description": "file_id 直接拼接到路径，可能包含 '../' 导致路径遍历",
+      "root_cause": "用户输入未验证直接用于文件路径",
+      "cwe_id": "CWE-22",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+    },
+    {
+      "id": "EC-PT-003",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example1_path_injection.py",
+      "function": "serve_static_file",
+      "location": {
+        "start_line": 46,
+        "end_line": 46,
+        "start_col": 4,
+        "end_col": 54
+      },
+      "description": "路径检查不足，可能被符号链接或特殊字符绕过",
+      "root_cause": "使用 startswith 检查不够严格，应该使用 resolve()",
+      "cwe_id": "CWE-22",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+    },
+    {
+      "id": "EC-PT-004",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example1_path_injection.py",
+      "function": "delete_user_upload",
+      "location": {
+        "start_line": 62,
+        "end_line": 62,
+        "start_col": 4,
+        "end_col": 54
+      },
+      "description": "filename 可能包含 '../' 删除其他用户文件",
+      "root_cause": "文件名未验证，允许目录遍历",
+      "cwe_id": "CWE-22",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+    },
+    {
+      "id": "EC-PT-005",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example1_path_injection.py",
+      "function": "load_template",
+      "location": {
+        "start_line": 78,
+        "end_line": 78,
+        "start_col": 4,
+        "end_col": 58
+      },
+      "description": "模板名称未验证，可能导致任意文件读取",
+      "root_cause": "用户输入直接用于模板路径",
+      "cwe_id": "CWE-22",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+    },
+    {
+      "id": "EC-PT-006",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "TOCTOU",
+      "file": "example2_symlink_attack.py",
+      "function": "safe_write_to_user_dir",
+      "location": {
+        "start_line": 19,
+        "end_line": 26,
+        "start_col": 4,
+        "end_col": 22
+      },
+      "description": "检查和使用之间存在时间窗口，可能被符号链接攻击",
+      "root_cause": "TOCTOU 漏洞：检查后使用前文件可能被替换",
+      "cwe_id": "CWE-367",
+      "difficulty": "hard",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+    },
+    {
+      "id": "EC-PT-007",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "SymlinkNotChecked",
+      "file": "example2_symlink_attack.py",
+      "function": "read_config_file",
+      "location": {
+        "start_line": 39,
+        "end_line": 41,
+        "start_col": 4,
+        "end_col": 28
+      },
+      "description": "未检查是否为符号链接，可能读取任意文件",
+      "root_cause": "缺少符号链接检查",
+      "cwe_id": "CWE-59",
+      "difficulty": "hard",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+    },
+    {
+      "id": "EC-PT-008",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "ZipSlip",
+      "file": "example2_symlink_attack.py",
+      "function": "extract_archive_to_user_space",
+      "location": {
+        "start_line": 58,
+        "end_line": 59,
+        "start_col": 8,
+        "end_col": 35
+      },
+      "description": "压缩包解压未验证成员路径，可能覆盖任意文件（Zip Slip）",
+      "root_cause": "未验证压缩包成员路径，允许 '../' 路径",
+      "cwe_id": "CWE-22",
+      "difficulty": "hard",
+      "related_bugs": [
+        "BUG_0014"
+      ],
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+    },
+    {
+      "id": "EC-PT-009",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "medium",
+      "type": "TOCTOU",
+      "file": "example2_symlink_attack.py",
+      "function": "check_and_delete_temp_file",
+      "location": {
+        "start_line": 76,
+        "end_line": 81,
+        "start_col": 4,
+        "end_col": 33
+      },
+      "description": "检查后删除前文件可能被替换为符号链接",
+      "root_cause": "TOCTOU：检查和删除之间存在竞态窗口",
+      "cwe_id": "CWE-367",
+      "difficulty": "hard",
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+    },
+    {
+      "id": "PI-VAL-001",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "high",
+      "type": "MissingInputValidation",
+      "file": "example1_missing_validation.py",
+      "function": "create_user",
+      "location": {
+        "start_line": 10,
+        "end_line": 22,
+        "start_col": 4,
+        "end_col": 16
+      },
+      "description": "公共 API 缺少参数校验（username, email, age 均未验证）",
+      "root_cause": "缺少输入验证，可能导致数据损坏或安全问题",
+      "cwe_id": "CWE-20",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0012"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+    },
+    {
+      "id": "PI-VAL-002",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "high",
+      "type": "MissingWhitelist",
+      "file": "example1_missing_validation.py",
+      "function": "update_config",
+      "location": {
+        "start_line": 33,
+        "end_line": 34,
+        "start_col": 4,
+        "end_col": 16
+      },
+      "description": "缺少配置键白名单，可能覆盖敏感配置",
+      "root_cause": "允许任意 key，应该使用白名单限制",
+      "cwe_id": "CWE-20",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0012"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+    },
+    {
+      "id": "PI-VAL-003",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "high",
+      "type": "MissingRoleValidation",
+      "file": "example1_missing_validation.py",
+      "function": "set_user_role",
+      "location": {
+        "start_line": 47,
+        "end_line": 48,
+        "start_col": 4,
+        "end_col": 42
+      },
+      "description": "缺少角色白名单验证，可能导致权限提升",
+      "root_cause": "允许任意角色字符串",
+      "cwe_id": "CWE-20",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0012",
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+    },
+    {
+      "id": "PI-VAL-004",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "medium",
+      "type": "MissingRangeValidation",
+      "file": "example1_missing_validation.py",
+      "function": "search_users",
+      "location": {
+        "start_line": 61,
+        "end_line": 61,
+        "start_col": 4,
+        "end_col": 27
+      },
+      "description": "limit 参数缺少范围验证，可能导致资源耗尽",
+      "root_cause": "未验证 limit 范围，可能是负数或超大值",
+      "cwe_id": "CWE-20",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0012"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+    },
+    {
+      "id": "PI-VAL-005",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "high",
+      "type": "MissingPathValidation",
+      "file": "example1_missing_validation.py",
+      "function": "delete_file",
+      "location": {
+        "start_line": 76,
+        "end_line": 78,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "公共 API 允许删除任意路径文件",
+      "root_cause": "缺少路径验证，应该限制在特定目录内",
+      "cwe_id": "CWE-22",
+      "difficulty": "high",
+      "related_bugs": [
+        "BUG_0012"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+    },
+    {
+      "id": "VAL-INPUT-006",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "medium",
+      "type": "InconsistentReturnType",
+      "file": "example2_inconsistent_return.py",
+      "function": "get_user_by_id",
+      "location": {
+        "start_line": 17,
+        "end_line": 24,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "返回类型不一致：成功返回 dict，失败返回 None 或抛出异常",
+      "root_cause": "应该统一：始终返回 Optional[Dict] 或始终抛出异常",
+      "cwe_id": "CWE-704",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+    },
+    {
+      "id": "VAL-INPUT-007",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "medium",
+      "type": "InconsistentReturnType",
+      "file": "example2_inconsistent_return.py",
+      "function": "calculate_average",
+      "location": {
+        "start_line": 35,
+        "end_line": 36,
+        "start_col": 4,
+        "end_col": 41
+      },
+      "description": "返回类型不一致：空列表返回 int(0)，非空返回 float",
+      "root_cause": "应该统一返回 float 或抛出异常",
+      "cwe_id": "CWE-704",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+    },
+    {
+      "id": "VAL-INPUT-008",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "medium",
+      "type": "InconsistentReturnType",
+      "file": "example2_inconsistent_return.py",
+      "function": "find_items",
+      "location": {
+        "start_line": 51,
+        "end_line": 56,
+        "start_col": 4,
+        "end_col": 22
+      },
+      "description": "返回类型不一致：找到返回 list，未找到返回 bool(False)",
+      "root_cause": "应该始终返回列表（空列表表示未找到）",
+      "cwe_id": "CWE-704",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+    },
+    {
+      "id": "VAL-INPUT-009",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "medium",
+      "type": "InconsistentReturnType",
+      "file": "example2_inconsistent_return.py",
+      "function": "parse_json_response",
+      "location": {
+        "start_line": 70,
+        "end_line": 73,
+        "start_col": 4,
+        "end_col": 31
+      },
+      "description": "返回类型不一致：成功返回 dict，失败返回 str 错误消息",
+      "root_cause": "应该抛出异常或返回 None，而不是返回错误字符串",
+      "cwe_id": "CWE-704",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+    },
+    {
+      "id": "VAL-INPUT-010",
+      "category": "input_validation",
+      "subcategory": "api_input_validation",
+      "severity": "low",
+      "type": "UnclearReturnType",
+      "file": "example2_inconsistent_return.py",
+      "function": "get_config_value",
+      "location": {
+        "start_line": 85,
+        "end_line": 85,
+        "start_col": 4,
+        "end_col": 39
+      },
+      "description": "返回值类型取决于 default 参数，调用者无法确定类型",
+      "root_cause": "应该使用泛型或明确返回类型",
+      "cwe_id": "CWE-704",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0013"
+      ],
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+    },
+    {
+      "id": "EXC-CATCH-001",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "medium",
+      "type": "OverBroadException",
+      "file": "example2_exception_type.py",
+      "function": "parse_config",
+      "location": {
+        "start_line": 17,
+        "end_line": 17,
+        "start_col": 4,
+        "end_col": 21
+      },
+      "description": "捕获过于宽泛的 Exception,会掩盖 KeyboardInterrupt 等系统异常",
+      "root_cause": "应该捕获具体的 json.JSONDecodeError",
+      "cwe_id": "CWE-396",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0008"
+      ],
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CATCH-002",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "high",
+      "type": "WrongExceptionType",
+      "file": "example2_exception_type.py",
+      "function": "divide_numbers",
+      "location": {
+        "start_line": 30,
+        "end_line": 30,
+        "start_col": 4,
+        "end_col": 22
+      },
+      "description": "捕获了错误的异常类型 ValueError,实际应该捕获 ZeroDivisionError",
+      "root_cause": "异常类型不匹配",
+      "cwe_id": "CWE-396",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0008"
+      ],
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CATCH-003",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "medium",
+      "type": "IncompleteExceptionHandling",
+      "file": "example2_exception_type.py",
+      "function": "read_integer_from_file",
+      "location": {
+        "start_line": 44,
+        "end_line": 46,
+        "start_col": 8,
+        "end_col": 30
+      },
+      "description": "只捕获了 ValueError,但可能抛出 FileNotFoundError, IOError 等",
+      "root_cause": "异常处理不完整",
+      "cwe_id": "CWE-755",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0008"
+      ],
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CATCH-004",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "high",
+      "type": "BareExcept",
+      "file": "example2_exception_type.py",
+      "function": "process_user_input",
+      "location": {
+        "start_line": 61,
+        "end_line": 61,
+        "start_col": 4,
+        "end_col": 11
+      },
+      "description": "使用裸 except: 会捕获所有异常,包括 KeyboardInterrupt",
+      "root_cause": "裸 except 违反最佳实践",
+      "cwe_id": "CWE-396",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0008"
+      ],
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CLEAN-001",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "high",
+      "type": "ExceptionResourceLeak",
+      "file": "example1_resource_cleanup.py",
+      "function": "read_and_process_file",
+      "location": {
+        "start_line": 13,
+        "end_line": 13,
+        "start_col": 4,
+        "end_col": 31
+      },
+      "description": "文件打开后,如果 process() 抛出异常,文件句柄不会被关闭",
+      "root_cause": "异常处理缺少 finally 块来释放资源",
+      "cwe_id": "CWE-755",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0007"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+    },
+    {
+      "id": "EXC-CLEAN-002",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "high",
+      "type": "ExceptionResourceLeak",
+      "file": "example1_resource_cleanup.py",
+      "function": "download_and_save",
+      "location": {
+        "start_line": 35,
+        "end_line": 36,
+        "start_col": 4,
+        "end_col": 30
+      },
+      "description": "网络响应和文件在异常时都未关闭",
+      "root_cause": "多个资源未在 finally 块中释放",
+      "cwe_id": "CWE-755",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0007"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+    },
+    {
+      "id": "EXC-CLEAN-003",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "high",
+      "type": "ExceptionResourceLeak",
+      "file": "example1_resource_cleanup.py",
+      "function": "connect_and_query",
+      "location": {
+        "start_line": 58,
+        "end_line": 59,
+        "start_col": 4,
+        "end_col": 35
+      },
+      "description": "数据库连接和游标在异常时未关闭",
+      "root_cause": "数据库资源缺少 finally 块清理",
+      "cwe_id": "CWE-755",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0007"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+    },
+    {
+      "id": "EXC-CLEAN-004",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "high",
+      "type": "MissingFinally",
+      "file": "example3_finally_missing.py",
+      "function": "acquire_and_use_lock",
+      "location": {
+        "start_line": 15,
+        "end_line": 15,
+        "start_col": 4,
+        "end_col": 18
+      },
+      "description": "锁的 acquire() 后缺少 finally 块来 release(),可能导致死锁",
+      "root_cause": "缺少 finally 块释放锁",
+      "cwe_id": "CWE-667",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0009"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+    },
+    {
+      "id": "EXC-CLEAN-005",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "high",
+      "type": "MissingFinally",
+      "file": "example3_finally_missing.py",
+      "function": "manual_file_handling",
+      "location": {
+        "start_line": 34,
+        "end_line": 34,
+        "start_col": 4,
+        "end_col": 31
+      },
+      "description": "文件在正常路径关闭,但异常路径未关闭",
+      "root_cause": "应该使用 finally 或 with 语句",
+      "cwe_id": "CWE-755",
+      "difficulty": "easy",
+      "related_bugs": [
+        "BUG_0009"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+    },
+    {
+      "id": "EXC-CLEAN-006",
+      "category": "error_handling",
+      "subcategory": "resource_cleanup",
+      "severity": "medium",
+      "type": "MissingFinally",
+      "file": "example3_finally_missing.py",
+      "function": "set_flag_and_process",
+      "location": {
+        "start_line": 50,
+        "end_line": 50,
+        "start_col": 4,
+        "end_col": 41
+      },
+      "description": "标志在异常时未重置,导致后续调用被阻塞",
+      "root_cause": "状态重置应该在 finally 块中",
+      "cwe_id": "CWE-755",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0009"
+      ],
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+    },
+    {
+      "id": "ONC-RC-001",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "increment_counter",
+      "location": {
+        "start_line": 15,
+        "end_line": 15,
+        "start_col": 4,
+        "end_col": 16
+      },
+      "description": "全局变量 counter 的读-修改-写操作在多线程环境未加锁",
+      "root_cause": "全局变量写入未使用锁保护",
+      "cwe_id": "CWE-362",
+      "difficulty": "easy",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "ONC-RC-002",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "update_cache",
+      "location": {
+        "start_line": 21,
+        "end_line": 21,
+        "start_col": 4,
+        "end_col": 29
+      },
+      "description": "全局字典 cache_data 的修改未加锁",
+      "root_cause": "字典操作在多线程环境未同步",
+      "cwe_id": "CWE-362",
+      "difficulty": "easy",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "ONC-RC-003",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example1_global_var.py",
+      "function": "get_and_increment",
+      "location": {
+        "start_line": 26,
+        "end_line": 27,
+        "start_col": 4,
+        "end_col": 24
+      },
+      "description": "复合操作：读取和修改全局变量之间存在竞态窗口",
+      "root_cause": "非原子复合操作",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+    },
+    {
+      "id": "ONC-RC-004",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "initialize_detector",
+      "location": {
+        "start_line": 26,
+        "end_line": 26,
+        "start_col": 4,
+        "end_col": 50
+      },
+      "description": "全局对象成员 global_vars.detector 赋值存在竞态（BUG_0005 类型）",
+      "root_cause": "类成员变量写入未同步",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0005"
+      ],
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+    },
+    {
+      "id": "ONC-RC-005",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "update_config",
+      "location": {
+        "start_line": 37,
+        "end_line": 37,
+        "start_col": 4,
+        "end_col": 37
+      },
+      "description": "全局对象的字典成员修改未同步",
+      "root_cause": "嵌套属性访问的字典操作未加锁",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+    },
+    {
+      "id": "ONC-RC-006",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "medium",
+      "type": "RaceCondition",
+      "file": "example2_class_member.py",
+      "function": "handle_request",
+      "location": {
+        "start_line": 47,
+        "end_line": 47,
+        "start_col": 8,
+        "end_col": 30
+      },
+      "description": "实例变量 request_count 在共享实例时存在竞态",
+      "root_cause": "实例变量修改未考虑多线程共享场景",
+      "cwe_id": "CWE-362",
+      "difficulty": "medium",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+    },
+    {
+      "id": "RM-FILE-001",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_simple_leak.py",
+      "function": "read_config",
+      "location": {
+        "start_line": 10,
+        "end_line": 10,
+        "start_col": 4,
+        "end_col": 28
+      },
+      "description": "文件句柄未关闭，缺少 close() 调用",
+      "root_cause": "open() 调用后未使用 with 语句或显式 close()",
+      "cwe_id": "CWE-404",
+      "difficulty": "easy",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py"
+    },
+    {
+      "id": "RM-FILE-002",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_simple_leak.py",
+      "function": "write_log",
+      "location": {
+        "start_line": 16,
+        "end_line": 16,
+        "start_col": 4,
+        "end_col": 28
+      },
+      "description": "日志文件句柄未关闭",
+      "root_cause": "open() 调用后未使用 with 语句或显式 close()",
+      "cwe_id": "CWE-404",
+      "difficulty": "easy",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py"
+    },
+    {
+      "id": "RM-FILE-003",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example2_exception_path.py",
+      "function": "process_data_file",
+      "location": {
+        "start_line": 10,
+        "end_line": 10,
+        "start_col": 4,
+        "end_col": 30
+      },
+      "description": "异常路径下文件句柄未关闭",
+      "root_cause": "try-except 块中异常发生时未释放资源",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py"
+    },
+    {
+      "id": "RM-FILE-004",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example2_exception_path.py",
+      "function": "load_config_with_fallback",
+      "location": {
+        "start_line": 27,
+        "end_line": 27,
+        "start_col": 4,
+        "end_col": 34
+      },
+      "description": "多个 return 路径中某些路径文件未关闭",
+      "root_cause": "提前 return 导致 close() 未执行",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py"
+    },
+    {
+      "id": "RM-FILE-005",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "medium",
+      "type": "ResourceImplicitCleanup",
+      "file": "example3_direct_use.py",
+      "function": "quick_write",
+      "location": {
+        "start_line": 10,
+        "end_line": 10,
+        "start_col": 4,
+        "end_col": 45
+      },
+      "description": "文件对象直接使用未保存引用，依赖隐式清理（__del__）",
+      "root_cause": "未保存文件句柄引用，依赖垃圾回收",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+    },
+    {
+      "id": "RM-FILE-006",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "medium",
+      "type": "ResourceImplicitCleanup",
+      "file": "example3_direct_use.py",
+      "function": "chain_operations",
+      "location": {
+        "start_line": 16,
+        "end_line": 16,
+        "start_col": 14,
+        "end_col": 48
+      },
+      "description": "链式调用中文件未保存引用",
+      "root_cause": "未保存文件句柄引用，依赖垃圾回收",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+    },
+    {
+      "id": "RM-FILE-007",
+      "category": "resource_management",
+      "subcategory": "file_leak",
+      "severity": "medium",
+      "type": "ResourceImplicitCleanup",
+      "file": "example3_direct_use.py",
+      "function": "nested_open",
+      "location": {
+        "start_line": 22,
+        "end_line": 22,
+        "start_col": 19,
+        "end_col": 48
+      },
+      "description": "嵌套调用中文件未保存引用",
+      "root_cause": "未保存文件句柄引用，依赖垃圾回收",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+    },
+    {
+      "id": "M-TPL-001",
+      "category": "resource_management",
+      "subcategory": "thread_pool_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_no_shutdown.py",
+      "function": "run_tasks_simple",
+      "location": {
+        "start_line": 12,
+        "end_line": 12,
+        "start_col": 4,
+        "end_col": 48
+      },
+      "description": "ThreadPoolExecutor 创建后未调用 shutdown()",
+      "root_cause": "未使用 with 语句或显式 shutdown()",
+      "cwe_id": "CWE-404",
+      "difficulty": "easy",
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
+    },
+    {
+      "id": "M-TPL-002",
+      "category": "resource_management",
+      "subcategory": "thread_pool_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_no_shutdown.py",
+      "function": "run_single_task",
+      "location": {
+        "start_line": 20,
+        "end_line": 20,
+        "start_col": 4,
+        "end_col": 48
+      },
+      "description": "ThreadPoolExecutor 创建后未调用 shutdown()",
+      "root_cause": "未使用 with 语句或显式 shutdown()",
+      "cwe_id": "CWE-404",
+      "difficulty": "easy",
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
+    },
+    {
+      "id": "M-TPL-003",
+      "category": "resource_management",
+      "subcategory": "thread_pool_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example2_async_leak.py",
+      "function": "run_in_thread_pool",
+      "location": {
+        "start_line": 17,
+        "end_line": 17,
+        "start_col": 4,
+        "end_col": 52
+      },
+      "description": "异步函数中每次调用都创建新线程池但未关闭（BUG_0010 类型）",
+      "root_cause": "函数每次调用创建新 Executor 但未释放",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "related_bugs": [
+        "BUG_0010"
+      ],
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example2_async_leak.py"
+    }
+  ]
+}

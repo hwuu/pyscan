@@ -1,0 +1,112 @@
+# Resource Cleanup in Exception Handling Positive Examples
+
+bugs:
+  # Example 1: Resource cleanup issues
+  - id: "EXC-CLEAN-001"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "high"
+    type: "ExceptionResourceLeak"
+    file: "example1_resource_cleanup.py"
+    function: "read_and_process_file"
+    location:
+      start_line: 13
+      end_line: 13
+      start_col: 4
+      end_col: 31
+    description: "文件打开后,如果 process() 抛出异常,文件句柄不会被关闭"
+    root_cause: "异常处理缺少 finally 块来释放资源"
+    cwe_id: "CWE-755"
+    difficulty: "medium"
+    related_bugs: ["BUG_0007"]
+
+  - id: "EXC-CLEAN-002"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "high"
+    type: "ExceptionResourceLeak"
+    file: "example1_resource_cleanup.py"
+    function: "download_and_save"
+    location:
+      start_line: 35
+      end_line: 36
+      start_col: 4
+      end_col: 30
+    description: "网络响应和文件在异常时都未关闭"
+    root_cause: "多个资源未在 finally 块中释放"
+    cwe_id: "CWE-755"
+    difficulty: "medium"
+    related_bugs: ["BUG_0007"]
+
+  - id: "EXC-CLEAN-003"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "high"
+    type: "ExceptionResourceLeak"
+    file: "example1_resource_cleanup.py"
+    function: "connect_and_query"
+    location:
+      start_line: 58
+      end_line: 59
+      start_col: 4
+      end_col: 35
+    description: "数据库连接和游标在异常时未关闭"
+    root_cause: "数据库资源缺少 finally 块清理"
+    cwe_id: "CWE-755"
+    difficulty: "medium"
+    related_bugs: ["BUG_0007"]
+
+  # Example 3: Missing finally block
+  - id: "EXC-CLEAN-004"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "high"
+    type: "MissingFinally"
+    file: "example3_finally_missing.py"
+    function: "acquire_and_use_lock"
+    location:
+      start_line: 15
+      end_line: 15
+      start_col: 4
+      end_col: 18
+    description: "锁的 acquire() 后缺少 finally 块来 release(),可能导致死锁"
+    root_cause: "缺少 finally 块释放锁"
+    cwe_id: "CWE-667"
+    difficulty: "medium"
+    related_bugs: ["BUG_0009"]
+
+  - id: "EXC-CLEAN-005"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "high"
+    type: "MissingFinally"
+    file: "example3_finally_missing.py"
+    function: "manual_file_handling"
+    location:
+      start_line: 34
+      end_line: 34
+      start_col: 4
+      end_col: 31
+    description: "文件在正常路径关闭,但异常路径未关闭"
+    root_cause: "应该使用 finally 或 with 语句"
+    cwe_id: "CWE-755"
+    difficulty: "easy"
+    related_bugs: ["BUG_0009"]
+
+  - id: "EXC-CLEAN-006"
+    category: "error_handling"
+    subcategory: "resource_cleanup"
+    severity: "medium"
+    type: "MissingFinally"
+    file: "example3_finally_missing.py"
+    function: "set_flag_and_process"
+    location:
+      start_line: 50
+      end_line: 50
+      start_col: 4
+      end_col: 41
+    description: "标志在异常时未重置,导致后续调用被阻塞"
+    root_cause: "状态重置应该在 finally 块中"
+    cwe_id: "CWE-755"
+    difficulty: "medium"
+    related_bugs: ["BUG_0009"]

@@ -1,0 +1,124 @@
+# File Leak Positive Examples - Bug 标注
+
+bugs:
+  # Example 1: Simple leak
+  - id: "RM-FILE-001"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_simple_leak.py"
+    function: "read_config"
+    location:
+      start_line: 10
+      end_line: 10
+      start_col: 4
+      end_col: 28
+    description: "文件句柄未关闭，缺少 close() 调用"
+    root_cause: "open() 调用后未使用 with 语句或显式 close()"
+    cwe_id: "CWE-404"
+    difficulty: "easy"
+
+  - id: "RM-FILE-002"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_simple_leak.py"
+    function: "write_log"
+    location:
+      start_line: 16
+      end_line: 16
+      start_col: 4
+      end_col: 28
+    description: "日志文件句柄未关闭"
+    root_cause: "open() 调用后未使用 with 语句或显式 close()"
+    cwe_id: "CWE-404"
+    difficulty: "easy"
+
+  # Example 2: Exception path
+  - id: "RM-FILE-003"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example2_exception_path.py"
+    function: "process_data_file"
+    location:
+      start_line: 10
+      end_line: 10
+      start_col: 4
+      end_col: 30
+    description: "异常路径下文件句柄未关闭"
+    root_cause: "try-except 块中异常发生时未释放资源"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+
+  - id: "RM-FILE-004"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example2_exception_path.py"
+    function: "load_config_with_fallback"
+    location:
+      start_line: 27
+      end_line: 27
+      start_col: 4
+      end_col: 34
+    description: "多个 return 路径中某些路径文件未关闭"
+    root_cause: "提前 return 导致 close() 未执行"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+
+  # Example 3: Direct use
+  - id: "RM-FILE-005"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "medium"
+    type: "ResourceImplicitCleanup"
+    file: "example3_direct_use.py"
+    function: "quick_write"
+    location:
+      start_line: 10
+      end_line: 10
+      start_col: 4
+      end_col: 45
+    description: "文件对象直接使用未保存引用，依赖隐式清理（__del__）"
+    root_cause: "未保存文件句柄引用，依赖垃圾回收"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+
+  - id: "RM-FILE-006"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "medium"
+    type: "ResourceImplicitCleanup"
+    file: "example3_direct_use.py"
+    function: "chain_operations"
+    location:
+      start_line: 16
+      end_line: 16
+      start_col: 14
+      end_col: 48
+    description: "链式调用中文件未保存引用"
+    root_cause: "未保存文件句柄引用，依赖垃圾回收"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+
+  - id: "RM-FILE-007"
+    category: "resource_management"
+    subcategory: "file_leak"
+    severity: "medium"
+    type: "ResourceImplicitCleanup"
+    file: "example3_direct_use.py"
+    function: "nested_open"
+    location:
+      start_line: 22
+      end_line: 22
+      start_col: 19
+      end_col: 48
+    description: "嵌套调用中文件未保存引用"
+    root_cause: "未保存文件句柄引用，依赖垃圾回收"
+    cwe_id: "CWE-404"
+    difficulty: "medium"

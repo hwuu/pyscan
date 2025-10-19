@@ -1,0 +1,75 @@
+# Exception Catching Positive Examples
+
+bugs:
+  # Example 2: Exception type errors
+  - id: "EXC-CATCH-001"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "medium"
+    type: "OverBroadException"
+    file: "example2_exception_type.py"
+    function: "parse_config"
+    location:
+      start_line: 17
+      end_line: 17
+      start_col: 4
+      end_col: 21
+    description: "捕获过于宽泛的 Exception,会掩盖 KeyboardInterrupt 等系统异常"
+    root_cause: "应该捕获具体的 json.JSONDecodeError"
+    cwe_id: "CWE-396"
+    difficulty: "medium"
+    related_bugs: ["BUG_0008"]
+
+  - id: "EXC-CATCH-002"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "high"
+    type: "WrongExceptionType"
+    file: "example2_exception_type.py"
+    function: "divide_numbers"
+    location:
+      start_line: 30
+      end_line: 30
+      start_col: 4
+      end_col: 22
+    description: "捕获了错误的异常类型 ValueError,实际应该捕获 ZeroDivisionError"
+    root_cause: "异常类型不匹配"
+    cwe_id: "CWE-396"
+    difficulty: "easy"
+    related_bugs: ["BUG_0008"]
+
+  - id: "EXC-CATCH-003"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "medium"
+    type: "IncompleteExceptionHandling"
+    file: "example2_exception_type.py"
+    function: "read_integer_from_file"
+    location:
+      start_line: 44
+      end_line: 46
+      start_col: 8
+      end_col: 30
+    description: "只捕获了 ValueError,但可能抛出 FileNotFoundError, IOError 等"
+    root_cause: "异常处理不完整"
+    cwe_id: "CWE-755"
+    difficulty: "medium"
+    related_bugs: ["BUG_0008"]
+
+  - id: "EXC-CATCH-004"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "high"
+    type: "BareExcept"
+    file: "example2_exception_type.py"
+    function: "process_user_input"
+    location:
+      start_line: 61
+      end_line: 61
+      start_col: 4
+      end_col: 11
+    description: "使用裸 except: 会捕获所有异常,包括 KeyboardInterrupt"
+    root_cause: "裸 except 违反最佳实践"
+    cwe_id: "CWE-396"
+    difficulty: "easy"
+    related_bugs: ["BUG_0008"]

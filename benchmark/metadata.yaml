@@ -1,0 +1,107 @@
+# PyScan Benchmark 元数据
+
+version: "0.1"
+created_date: "2025-10-19"
+last_updated: "2025-10-19"
+
+# 统计信息
+statistics:
+  total_samples: 0  # 将在构建后更新
+  positive_samples: 0
+  negative_samples: 0
+  total_bugs: 0
+
+  # 按类别统计
+  by_category:
+    resource_and_context: 0
+    concurrency: 0
+    logic_and_control_flow: 0
+    security: 0
+    api_design: 0
+
+  # 按严重程度统计
+  by_severity:
+    high: 0
+    medium: 0
+    low: 0
+
+  # 按难度统计
+  by_difficulty:
+    easy: 0
+    medium: 0
+    hard: 0
+
+# 类别定义
+categories:
+  - id: "09_resource_and_context"
+    name: "资源管理与上下文"
+    description: "资源未正确释放、上下文管理器误用等问题"
+    priority: "P0"
+    subcategories:
+      - file_leak
+      - thread_pool_leak
+      - socket_leak
+      - db_connection_leak
+      - context_manager_error
+
+  - id: "13_concurrency"
+    name: "并发与线程安全"
+    description: "竞态条件、死锁、锁管理等并发问题"
+    priority: "P0"
+    subcategories:
+      - race_condition
+      - lock_mismatch
+      - deadlock_risk
+
+  - id: "05_logic_and_control_flow"
+    name: "逻辑与控制流"
+    description: "条件判断、循环控制、异常处理等逻辑错误"
+    priority: "P0"
+    subcategories:
+      - constant_condition
+      - exception_logic_error
+
+  - id: "10_security"
+    name: "安全漏洞"
+    description: "命令注入、路径遍历等安全问题"
+    priority: "P0"
+    subcategories:
+      - command_injection
+      - path_traversal
+
+  - id: "21_api_design"
+    name: "API 设计与使用"
+    description: "参数验证、返回值一致性等 API 问题"
+    priority: "P0"
+    subcategories:
+      - public_api_no_validation
+      - return_type_inconsistent
+
+# 难度定义
+difficulty_levels:
+  easy:
+    description: "显而易见的 bug，单一函数内，无复杂依赖"
+    examples:
+      - "文件未使用 with 语句"
+      - "除数为常量 0"
+
+  medium:
+    description: "需要分析调用关系或数据流的 bug"
+    examples:
+      - "函数参数可能为 None 但未检查"
+      - "异常路径下资源未释放"
+
+  hard:
+    description: "需要深度分析或跨模块推断的 bug"
+    examples:
+      - "多线程竞态条件"
+      - "间接调用导致的类型错误"
+
+# CWE 映射
+cwe_mapping:
+  "CWE-404": "Improper Resource Shutdown or Release"
+  "CWE-362": "Concurrent Execution using Shared Resource with Improper Synchronization"
+  "CWE-835": "Loop with Unreachable Exit Condition"
+  "CWE-77": "Improper Neutralization of Special Elements used in a Command"
+  "CWE-22": "Improper Limitation of a Pathname to a Restricted Directory"
+  "CWE-20": "Improper Input Validation"

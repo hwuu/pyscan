@@ -1,0 +1,54 @@
+# Thread Pool Leak Positive Examples
+
+bugs:
+  - id: "M-TPL-001"
+    category: "resource_management"
+    subcategory: "thread_pool_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_no_shutdown.py"
+    function: "run_tasks_simple"
+    location:
+      start_line: 12
+      end_line: 12
+      start_col: 4
+      end_col: 48
+    description: "ThreadPoolExecutor 创建后未调用 shutdown()"
+    root_cause: "未使用 with 语句或显式 shutdown()"
+    cwe_id: "CWE-404"
+    difficulty: "easy"
+
+  - id: "M-TPL-002"
+    category: "resource_management"
+    subcategory: "thread_pool_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_no_shutdown.py"
+    function: "run_single_task"
+    location:
+      start_line: 20
+      end_line: 20
+      start_col: 4
+      end_col: 48
+    description: "ThreadPoolExecutor 创建后未调用 shutdown()"
+    root_cause: "未使用 with 语句或显式 shutdown()"
+    cwe_id: "CWE-404"
+    difficulty: "easy"
+
+  - id: "M-TPL-003"
+    category: "resource_management"
+    subcategory: "thread_pool_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example2_async_leak.py"
+    function: "run_in_thread_pool"
+    location:
+      start_line: 17
+      end_line: 17
+      start_col: 4
+      end_col: 52
+    description: "异步函数中每次调用都创建新线程池但未关闭（BUG_0010 类型）"
+    root_cause: "函数每次调用创建新 Executor 但未释放"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+    related_bugs: ["BUG_0010"]

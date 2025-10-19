@@ -1,0 +1,165 @@
+# Path Traversal Positive Examples
+
+bugs:
+  # Example 1: Basic path traversal
+  - id: "EC-PT-001"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example1_path_injection.py"
+    function: "read_user_file"
+    location:
+      start_line: 17
+      end_line: 17
+      start_col: 4
+      end_col: 50
+    description: "用户输入直接拼接路径，可通过 '../' 访问任意文件"
+    root_cause: "路径拼接未验证，缺少路径规范化"
+    cwe_id: "CWE-22"
+    difficulty: "high"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-002"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example1_path_injection.py"
+    function: "download_file"
+    location:
+      start_line: 32
+      end_line: 32
+      start_col: 4
+      end_col: 45
+    description: "file_id 直接拼接到路径，可能包含 '../' 导致路径遍历"
+    root_cause: "用户输入未验证直接用于文件路径"
+    cwe_id: "CWE-22"
+    difficulty: "high"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-003"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example1_path_injection.py"
+    function: "serve_static_file"
+    location:
+      start_line: 46
+      end_line: 46
+      start_col: 4
+      end_col: 54
+    description: "路径检查不足，可能被符号链接或特殊字符绕过"
+    root_cause: "使用 startswith 检查不够严格，应该使用 resolve()"
+    cwe_id: "CWE-22"
+    difficulty: "high"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-004"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example1_path_injection.py"
+    function: "delete_user_upload"
+    location:
+      start_line: 62
+      end_line: 62
+      start_col: 4
+      end_col: 54
+    description: "filename 可能包含 '../' 删除其他用户文件"
+    root_cause: "文件名未验证，允许目录遍历"
+    cwe_id: "CWE-22"
+    difficulty: "medium"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-005"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example1_path_injection.py"
+    function: "load_template"
+    location:
+      start_line: 78
+      end_line: 78
+      start_col: 4
+      end_col: 58
+    description: "模板名称未验证，可能导致任意文件读取"
+    root_cause: "用户输入直接用于模板路径"
+    cwe_id: "CWE-22"
+    difficulty: "high"
+    related_bugs: ["BUG_0014"]
+
+  # Example 2: Symlink and TOCTOU
+  - id: "EC-PT-006"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "TOCTOU"
+    file: "example2_symlink_attack.py"
+    function: "safe_write_to_user_dir"
+    location:
+      start_line: 19
+      end_line: 26
+      start_col: 4
+      end_col: 22
+    description: "检查和使用之间存在时间窗口，可能被符号链接攻击"
+    root_cause: "TOCTOU 漏洞：检查后使用前文件可能被替换"
+    cwe_id: "CWE-367"
+    difficulty: "hard"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-007"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "SymlinkNotChecked"
+    file: "example2_symlink_attack.py"
+    function: "read_config_file"
+    location:
+      start_line: 39
+      end_line: 41
+      start_col: 4
+      end_col: 28
+    description: "未检查是否为符号链接，可能读取任意文件"
+    root_cause: "缺少符号链接检查"
+    cwe_id: "CWE-59"
+    difficulty: "hard"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-008"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "ZipSlip"
+    file: "example2_symlink_attack.py"
+    function: "extract_archive_to_user_space"
+    location:
+      start_line: 58
+      end_line: 59
+      start_col: 8
+      end_col: 35
+    description: "压缩包解压未验证成员路径，可能覆盖任意文件（Zip Slip）"
+    root_cause: "未验证压缩包成员路径，允许 '../' 路径"
+    cwe_id: "CWE-22"
+    difficulty: "hard"
+    related_bugs: ["BUG_0014"]
+
+  - id: "EC-PT-009"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "medium"
+    type: "TOCTOU"
+    file: "example2_symlink_attack.py"
+    function: "check_and_delete_temp_file"
+    location:
+      start_line: 76
+      end_line: 81
+      start_col: 4
+      end_col: 33
+    description: "检查后删除前文件可能被替换为符号链接"
+    root_cause: "TOCTOU：检查和删除之间存在竞态窗口"
+    cwe_id: "CWE-367"
+    difficulty: "hard"

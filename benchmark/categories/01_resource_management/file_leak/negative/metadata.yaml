@@ -1,0 +1,18 @@
+# File Leak Negative Examples - 无 Bug 标注
+
+# 这些文件不包含 bug，用于测试 False Positive
+files:
+  - file: "example1_with_statement.py"
+    functions:
+      - "read_config_correct"
+      - "write_log_correct"
+      - "process_multiple_files"
+    description: "正确使用 with 语句管理文件"
+    verification: "所有文件都通过 with 语句自动关闭"
+
+  - file: "example2_try_finally.py"
+    functions:
+      - "process_data_file_correct"
+      - "load_config_with_cleanup"
+    description: "正确使用 try-finally 显式关闭文件"
+    verification: "finally 块确保文件在所有路径都被关闭"
