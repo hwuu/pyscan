@@ -67,3 +67,43 @@ def process_user_input(user_input):
         # 会捕获所有异常，包括 SystemExit, KeyboardInterrupt
         print("处理失败")
         return None
+
+
+# Bug EXC-CATCH-005: except 仅 pass
+def save_important_data(data, filename):
+    """
+    Bug: 异常被捕获但仅 pass，完全吞掉错误
+
+    风险:
+    - 数据保存失败但程序继续运行
+    - 用户误以为操作成功
+    - 无法调试问题
+    """
+    try:
+        with open(filename, 'w') as f:
+            f.write(data)
+    except:
+        pass  # Bug: 异常被吞掉，无任何处理
+
+
+# Bug EXC-CATCH-006: 捕获后未记录
+def fetch_critical_config(url):
+    """
+    Bug: 异常捕获后未记录日志，返回 None
+
+    风险:
+    - 配置加载失败但无日志
+    - 调试困难
+    - 生产环境问题难以排查
+    """
+    import requests
+    try:
+        response = requests.get(url, timeout=5)
+        return response.json()
+    except Exception:
+        # Bug: 异常未记录，直接返回 None
+        return None
+
+
+if __name__ == "__main__":
+    print("Exception catching bugs (continued)")

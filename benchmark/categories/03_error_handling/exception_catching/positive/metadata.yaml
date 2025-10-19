@@ -73,3 +73,41 @@ bugs:
     cwe_id: "CWE-396"
     difficulty: "easy"
     related_bugs: ["BUG_0008"]
+
+  - id: "EXC-CATCH-005"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "medium"
+    type: "SilentException"
+    file: "example2_exception_type.py"
+    function: "save_important_data"
+    location:
+      start_line: 85
+      end_line: 86
+      start_col: 4
+      end_col: 12
+    description: "except 仅 pass，完全吞掉异常，无任何处理或日志"
+    root_cause: "数据保存失败但程序继续运行，用户误以为操作成功"
+    cwe_id: "CWE-391"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "EXC-CATCH-006"
+    category: "error_handling"
+    subcategory: "exception_catching"
+    severity: "medium"
+    type: "UnloggedException"
+    file: "example2_exception_type.py"
+    function: "fetch_critical_config"
+    location:
+      start_line: 103
+      end_line: 105
+      start_col: 4
+      end_col: 20
+    description: "异常捕获后未记录日志，直接返回 None，生产环境问题难以排查"
+    root_cause: "配置加载失败但无日志记录"
+    cwe_id: "CWE-391"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"

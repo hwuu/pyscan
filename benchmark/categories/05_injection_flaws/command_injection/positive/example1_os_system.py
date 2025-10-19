@@ -177,3 +177,49 @@ def calculate_expression(expr):
     # Bug: eval 可执行任意代码
     result = eval(expr)
     return result
+
+
+# Bug INJ-CMD-004: os.popen 注入
+def list_directory_popen(path):
+    """
+    Bug: os.popen() 执行 shell 命令，拼接用户输入
+
+    攻击场景:
+    - 输入: ". && cat /etc/passwd"
+    - 结果: 执行多个命令
+    """
+    import os
+    # Bug: os.popen 启用 shell，拼接用户输入
+    pipe = os.popen(f"ls {path}")
+    return pipe.read()
+
+
+# Bug INJ-CMD-005: exec 注入
+def execute_user_code(code):
+    """
+    Bug: exec() 执行用户提供的代码字符串
+
+    攻击场景:
+    - 输入: "import os; os.system('id')"
+    - 结果: 执行任意 Python 代码
+    """
+    # Bug: exec 动态执行代码
+    exec(code)
+
+
+# Bug INJ-CMD-006: compile 注入
+def compile_and_run(source_code):
+    """
+    Bug: compile() + exec() 组合执行用户代码
+
+    攻击场景:
+    - 输入: 恶意 Python 代码
+    - 结果: 编译并执行
+    """
+    # Bug: compile 编译用户输入的代码
+    code_obj = compile(source_code, '<string>', 'exec')
+    exec(code_obj)
+
+
+if __name__ == "__main__":
+    print("Command injection examples (DANGEROUS)")

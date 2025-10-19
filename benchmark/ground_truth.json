@@ -1,33 +1,77 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 85,
+  "total_bugs": 92,
   "statistics": {
     "by_category": {
-      "api_usage": 2,
+      "api_usage": 4,
       "type_safety": 3,
       "data_flow_issues": 15,
-      "injection_flaws": 15,
+      "injection_flaws": 18,
       "input_validation": 10,
-      "error_handling": 10,
+      "error_handling": 12,
       "concurrency": 13,
       "resource_management": 17
     },
     "by_severity": {
-      "high": 51,
-      "medium": 23,
+      "high": 52,
+      "medium": 25,
       "low": 5,
-      "critical": 6
+      "critical": 10
     },
     "by_difficulty": {
-      "easy": 18,
+      "easy": 23,
       "medium": 37,
       "hard": 4,
-      "low": 4,
+      "low": 6,
       "high": 22
     }
   },
   "bugs": [
+    {
+      "id": "API-DANGER-001",
+      "category": "api_usage",
+      "subcategory": "dangerous_api",
+      "severity": "critical",
+      "type": "UnsafeDeserialization",
+      "file": "example1_pickle_yaml.py",
+      "function": "load_user_session",
+      "location": {
+        "start_line": 23,
+        "end_line": 23,
+        "start_col": 4,
+        "end_col": 43
+      },
+      "description": "pickle.loads() 反序列化不可信数据，可执行任意代码",
+      "root_cause": "pickle 反序列化可触发 __reduce__ 方法执行任意代码",
+      "cwe_id": "CWE-502",
+      "difficulty": "low",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
+    },
+    {
+      "id": "API-DANGER-002",
+      "category": "api_usage",
+      "subcategory": "dangerous_api",
+      "severity": "high",
+      "type": "UnsafeDeserialization",
+      "file": "example1_pickle_yaml.py",
+      "function": "load_config_yaml",
+      "location": {
+        "start_line": 48,
+        "end_line": 48,
+        "start_col": 4,
+        "end_col": 61
+      },
+      "description": "yaml.load() 使用 FullLoader 可执行 Python 代码",
+      "root_cause": "yaml.load 默认 Loader 不安全，应使用 safe_load",
+      "cwe_id": "CWE-502",
+      "difficulty": "low",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
+    },
     {
       "id": "API-DEP-001",
       "category": "api_usage",
@@ -532,6 +576,72 @@
       },
       "description": "eval() 直接执行用户输入的表达式，可执行任意 Python 代码",
       "root_cause": "eval 动态执行代码，未进行任何验证",
+      "cwe_id": "CWE-94",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
+    {
+      "id": "INJ-CMD-004",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CommandInjection",
+      "file": "example1_os_system.py",
+      "function": "list_directory_popen",
+      "location": {
+        "start_line": 194,
+        "end_line": 194,
+        "start_col": 4,
+        "end_col": 32
+      },
+      "description": "os.popen() 拼接用户输入执行 shell 命令，可注入任意命令",
+      "root_cause": "os.popen 启用 shell，未验证用户输入",
+      "cwe_id": "CWE-78",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
+    {
+      "id": "INJ-CMD-005",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CodeInjection",
+      "file": "example1_os_system.py",
+      "function": "execute_user_code",
+      "location": {
+        "start_line": 214,
+        "end_line": 214,
+        "start_col": 4,
+        "end_col": 14
+      },
+      "description": "exec() 执行用户提供的代码字符串，可执行任意 Python 代码",
+      "root_cause": "exec 动态执行代码，未进行任何验证",
+      "cwe_id": "CWE-94",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
+    {
+      "id": "INJ-CMD-006",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CodeInjection",
+      "file": "example1_os_system.py",
+      "function": "compile_and_run",
+      "location": {
+        "start_line": 228,
+        "end_line": 228,
+        "start_col": 4,
+        "end_col": 61
+      },
+      "description": "compile() + exec() 组合执行用户代码，可执行任意 Python 代码",
+      "root_cause": "compile 编译并执行用户输入的代码",
       "cwe_id": "CWE-94",
       "difficulty": "easy",
       "related_bugs": [],
@@ -1129,6 +1239,50 @@
       "related_bugs": [
         "BUG_0008"
       ],
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CATCH-005",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "medium",
+      "type": "SilentException",
+      "file": "example2_exception_type.py",
+      "function": "save_important_data",
+      "location": {
+        "start_line": 85,
+        "end_line": 86,
+        "start_col": 4,
+        "end_col": 12
+      },
+      "description": "except 仅 pass，完全吞掉异常，无任何处理或日志",
+      "root_cause": "数据保存失败但程序继续运行，用户误以为操作成功",
+      "cwe_id": "CWE-391",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+    },
+    {
+      "id": "EXC-CATCH-006",
+      "category": "error_handling",
+      "subcategory": "exception_catching",
+      "severity": "medium",
+      "type": "UnloggedException",
+      "file": "example2_exception_type.py",
+      "function": "fetch_critical_config",
+      "location": {
+        "start_line": 103,
+        "end_line": 105,
+        "start_col": 4,
+        "end_col": 20
+      },
+      "description": "异常捕获后未记录日志，直接返回 None，生产环境问题难以排查",
+      "root_cause": "配置加载失败但无日志记录",
+      "cwe_id": "CWE-391",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
       "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
     },
     {
