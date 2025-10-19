@@ -163,3 +163,22 @@ bugs:
     root_cause: "TOCTOU：检查和删除之间存在竞态窗口"
     cwe_id: "CWE-367"
     difficulty: "hard"
+
+  - id: "INPUT-PATH-003"
+    category: "injection_flaws"
+    subcategory: "path_traversal"
+    severity: "high"
+    type: "PathTraversal"
+    file: "example3_zip_traversal.py"
+    function: "extract_zip_unsafe"
+    location:
+      start_line: 17
+      end_line: 17
+      start_col: 8
+      end_col: 38
+    description: "zipfile.extractall() 未验证路径，可解压到任意位置覆盖文件"
+    root_cause: "未检查 ZIP 成员路径是否包含 ../ 等路径遍历字符"
+    cwe_id: "CWE-22"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"

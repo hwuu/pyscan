@@ -1,0 +1,40 @@
+# SQL Injection - Bug 标注
+
+bugs:
+  - id: "INJ-SQL-001"
+    category: "injection_flaws"
+    subcategory: "sql_injection"
+    severity: "critical"
+    type: "SQLInjection"
+    file: "example1_sql_injection.py"
+    function: "get_user_by_id"
+    location:
+      start_line: 20
+      end_line: 20
+      start_col: 4
+      end_col: 57
+    description: "使用 f-string 拼接 SQL 查询，可注入任意 SQL 代码"
+    root_cause: "未使用参数化查询，直接拼接用户输入"
+    cwe_id: "CWE-89"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "INJ-SQL-002"
+    category: "injection_flaws"
+    subcategory: "sql_injection"
+    severity: "critical"
+    type: "SQLInjection"
+    file: "example1_sql_injection.py"
+    function: "search_users"
+    location:
+      start_line: 39
+      end_line: 39
+      start_col: 4
+      end_col: 83
+    description: "使用 format() 拼接表名和查询条件，可执行任意 SQL"
+    root_cause: "表名和条件未验证，直接使用 format 拼接"
+    cwe_id: "CWE-89"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"

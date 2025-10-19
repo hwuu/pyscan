@@ -20,3 +20,41 @@ bugs:
     difficulty: "easy"
     related_bugs: []
     detection_layer: "Layer 1/2"
+
+  - id: "INJ-CMD-002"
+    category: "injection_flaws"
+    subcategory: "command_injection"
+    severity: "critical"
+    type: "CommandInjection"
+    file: "example1_os_system.py"
+    function: "execute_command_subprocess"
+    location:
+      start_line: 166
+      end_line: 166
+      start_col: 4
+      end_col: 43
+    description: "subprocess.Popen 使用 shell=True 拼接命令，可执行任意命令"
+    root_cause: "shell=True 启用 shell 解释，未验证用户输入"
+    cwe_id: "CWE-78"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"
+
+  - id: "INJ-CMD-003"
+    category: "injection_flaws"
+    subcategory: "command_injection"
+    severity: "critical"
+    type: "CodeInjection"
+    file: "example1_os_system.py"
+    function: "calculate_expression"
+    location:
+      start_line: 179
+      end_line: 179
+      start_col: 4
+      end_col: 25
+    description: "eval() 直接执行用户输入的表达式，可执行任意 Python 代码"
+    root_cause: "eval 动态执行代码，未进行任何验证"
+    cwe_id: "CWE-94"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"

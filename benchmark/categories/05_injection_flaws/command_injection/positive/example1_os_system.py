@@ -149,3 +149,31 @@ if __name__ == "__main__":
     # backup_file("../../../etc/passwd && cat /etc/passwd")
 
     print("\nAll dangerous calls are commented out for safety.")
+
+
+# Bug INJ-CMD-002: subprocess shell=True 拼接
+def execute_command_subprocess(command):
+    """
+    Bug: subprocess.Popen with shell=True
+    
+    攻击场景:
+    - 输入: "ls; rm -rf /"
+    - 结果: 执行删除命令
+    """
+    import subprocess
+    # Bug: shell=True 启用 shell 解释
+    subprocess.Popen(command, shell=True)
+
+
+# Bug INJ-CMD-003: eval/exec 执行用户输入
+def calculate_expression(expr):
+    """
+    Bug: eval() 执行用户输入的代码
+    
+    攻击场景:
+    - 输入: "__import__('os').system('rm -rf /')"
+    - 结果: 执行任意 Python 代码
+    """
+    # Bug: eval 可执行任意代码
+    result = eval(expr)
+    return result

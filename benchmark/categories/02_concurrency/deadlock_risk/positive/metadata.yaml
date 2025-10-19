@@ -20,3 +20,41 @@ bugs:
     difficulty: "high"
     related_bugs: ["BUG_0003"]
     detection_layer: "Layer 3"
+
+  - id: "CONC-DEAD-002"
+    category: "concurrency"
+    subcategory: "deadlock_risk"
+    severity: "high"
+    type: "DeadlockRisk"
+    file: "example2_callback_wait_deadlock.py"
+    function: "trigger_event"
+    location:
+      start_line: 20
+      end_line: 20
+      start_col: 8
+      end_col: 23
+    description: "持有锁时调用用户回调函数，回调可能尝试获取同一个锁导致死锁"
+    root_cause: "锁内调用不受控制的外部代码"
+    cwe_id: "CWE-833"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "CONC-DEAD-003"
+    category: "concurrency"
+    subcategory: "deadlock_risk"
+    severity: "high"
+    type: "DeadlockRisk"
+    file: "example2_callback_wait_deadlock.py"
+    function: "process_data"
+    location:
+      start_line: 32
+      end_line: 32
+      start_col: 12
+      end_col: 37
+    description: "持有锁时等待 Future.result()，异步任务如需同一锁则死锁"
+    root_cause: "锁内等待可能需要该锁的异步操作"
+    cwe_id: "CWE-833"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"

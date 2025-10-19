@@ -105,3 +105,62 @@ bugs:
     root_cause: "实例变量修改未考虑多线程共享场景"
     cwe_id: "CWE-362"
     difficulty: "medium"
+# Extended Race Condition - Bug 标注
+
+bugs:
+  - id: "CONC-RACE-007"
+    category: "concurrency"
+    subcategory: "race_condition"
+    severity: "high"
+    type: "RaceCondition"
+    file: "example4_extended_races.py"
+    function: "__new__"
+    location:
+      start_line: 10
+      end_line: 10
+      start_col: 8
+      end_col: 33
+    description: "单例模式双重检查锁定不正确，多线程下可能创建多个实例"
+    root_cause: "检查和实例化之间没有同步保护，存在竞态窗口"
+    cwe_id: "CWE-362"
+    difficulty: "high"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "CONC-RACE-008"
+    category: "concurrency"
+    subcategory: "race_condition"
+    severity: "medium"
+    type: "RaceCondition"
+    file: "example4_extended_races.py"
+    function: "get_resource"
+    location:
+      start_line: 21
+      end_line: 21
+      start_col: 8
+      end_col: 33
+    description: "懒加载资源初始化无锁保护，多线程可能重复初始化"
+    root_cause: "检查和赋值操作非原子，缺少同步机制"
+    cwe_id: "CWE-362"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "CONC-RACE-009"
+    category: "concurrency"
+    subcategory: "race_condition"
+    severity: "medium"
+    type: "RaceCondition"
+    file: "example4_extended_races.py"
+    function: "increment_counter"
+    location:
+      start_line: 29
+      end_line: 29
+      start_col: 4
+      end_col: 23
+    description: "全局计数器递增非原子操作，存在读-改-写竞态"
+    root_cause: "读取、修改、写入三步操作未加锁保护"
+    cwe_id: "CWE-362"
+    difficulty: "easy"
+    related_bugs: []
+    detection_layer: "Layer 1"

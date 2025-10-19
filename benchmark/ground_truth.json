@@ -1,26 +1,26 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 55,
+  "total_bugs": 59,
   "statistics": {
     "by_category": {
-      "injection_flaws": 10,
+      "injection_flaws": 15,
       "input_validation": 10,
       "error_handling": 10,
-      "concurrency": 8,
+      "concurrency": 7,
       "resource_management": 17
     },
     "by_severity": {
-      "high": 36,
-      "medium": 16,
+      "high": 35,
+      "medium": 17,
       "low": 1,
-      "critical": 2
+      "critical": 6
     },
     "by_difficulty": {
-      "easy": 13,
-      "medium": 30,
+      "easy": 16,
+      "medium": 28,
       "hard": 4,
-      "high": 8
+      "high": 11
     }
   },
   "bugs": [
@@ -44,6 +44,50 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1/2",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
+    {
+      "id": "INJ-CMD-002",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CommandInjection",
+      "file": "example1_os_system.py",
+      "function": "execute_command_subprocess",
+      "location": {
+        "start_line": 166,
+        "end_line": 166,
+        "start_col": 4,
+        "end_col": 43
+      },
+      "description": "subprocess.Popen 使用 shell=True 拼接命令，可执行任意命令",
+      "root_cause": "shell=True 启用 shell 解释，未验证用户输入",
+      "cwe_id": "CWE-78",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+    },
+    {
+      "id": "INJ-CMD-003",
+      "category": "injection_flaws",
+      "subcategory": "command_injection",
+      "severity": "critical",
+      "type": "CodeInjection",
+      "file": "example1_os_system.py",
+      "function": "calculate_expression",
+      "location": {
+        "start_line": 179,
+        "end_line": 179,
+        "start_col": 4,
+        "end_col": 25
+      },
+      "description": "eval() 直接执行用户输入的表达式，可执行任意 Python 代码",
+      "root_cause": "eval 动态执行代码，未进行任何验证",
+      "cwe_id": "CWE-94",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
       "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
     },
     {
@@ -249,6 +293,72 @@
       "cwe_id": "CWE-367",
       "difficulty": "hard",
       "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+    },
+    {
+      "id": "INPUT-PATH-003",
+      "category": "injection_flaws",
+      "subcategory": "path_traversal",
+      "severity": "high",
+      "type": "PathTraversal",
+      "file": "example3_zip_traversal.py",
+      "function": "extract_zip_unsafe",
+      "location": {
+        "start_line": 17,
+        "end_line": 17,
+        "start_col": 8,
+        "end_col": 38
+      },
+      "description": "zipfile.extractall() 未验证路径，可解压到任意位置覆盖文件",
+      "root_cause": "未检查 ZIP 成员路径是否包含 ../ 等路径遍历字符",
+      "cwe_id": "CWE-22",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example3_zip_traversal.py"
+    },
+    {
+      "id": "INJ-SQL-001",
+      "category": "injection_flaws",
+      "subcategory": "sql_injection",
+      "severity": "critical",
+      "type": "SQLInjection",
+      "file": "example1_sql_injection.py",
+      "function": "get_user_by_id",
+      "location": {
+        "start_line": 20,
+        "end_line": 20,
+        "start_col": 4,
+        "end_col": 57
+      },
+      "description": "使用 f-string 拼接 SQL 查询，可注入任意 SQL 代码",
+      "root_cause": "未使用参数化查询，直接拼接用户输入",
+      "cwe_id": "CWE-89",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py"
+    },
+    {
+      "id": "INJ-SQL-002",
+      "category": "injection_flaws",
+      "subcategory": "sql_injection",
+      "severity": "critical",
+      "type": "SQLInjection",
+      "file": "example1_sql_injection.py",
+      "function": "search_users",
+      "location": {
+        "start_line": 39,
+        "end_line": 39,
+        "start_col": 4,
+        "end_col": 83
+      },
+      "description": "使用 format() 拼接表名和查询条件，可执行任意 SQL",
+      "root_cause": "表名和条件未验证，直接使用 format 拼接",
+      "cwe_id": "CWE-89",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py"
     },
     {
       "id": "PI-VAL-001",
@@ -760,127 +870,114 @@
       "relative_path": "02_concurrency\\deadlock_risk\\positive\\example1_nested_locks.py"
     },
     {
-      "id": "ONC-RC-001",
+      "id": "CONC-DEAD-002",
       "category": "concurrency",
-      "subcategory": "race_condition",
+      "subcategory": "deadlock_risk",
       "severity": "high",
-      "type": "RaceCondition",
-      "file": "example1_global_var.py",
-      "function": "increment_counter",
+      "type": "DeadlockRisk",
+      "file": "example2_callback_wait_deadlock.py",
+      "function": "trigger_event",
       "location": {
-        "start_line": 15,
-        "end_line": 15,
-        "start_col": 4,
-        "end_col": 16
+        "start_line": 20,
+        "end_line": 20,
+        "start_col": 8,
+        "end_col": 23
       },
-      "description": "全局变量 counter 的读-修改-写操作在多线程环境未加锁",
-      "root_cause": "全局变量写入未使用锁保护",
-      "cwe_id": "CWE-362",
-      "difficulty": "easy",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+      "description": "持有锁时调用用户回调函数，回调可能尝试获取同一个锁导致死锁",
+      "root_cause": "锁内调用不受控制的外部代码",
+      "cwe_id": "CWE-833",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
     },
     {
-      "id": "ONC-RC-002",
+      "id": "CONC-DEAD-003",
       "category": "concurrency",
-      "subcategory": "race_condition",
+      "subcategory": "deadlock_risk",
       "severity": "high",
-      "type": "RaceCondition",
-      "file": "example1_global_var.py",
-      "function": "update_cache",
+      "type": "DeadlockRisk",
+      "file": "example2_callback_wait_deadlock.py",
+      "function": "process_data",
       "location": {
-        "start_line": 21,
-        "end_line": 21,
-        "start_col": 4,
-        "end_col": 29
-      },
-      "description": "全局字典 cache_data 的修改未加锁",
-      "root_cause": "字典操作在多线程环境未同步",
-      "cwe_id": "CWE-362",
-      "difficulty": "easy",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
-    },
-    {
-      "id": "ONC-RC-003",
-      "category": "concurrency",
-      "subcategory": "race_condition",
-      "severity": "high",
-      "type": "RaceCondition",
-      "file": "example1_global_var.py",
-      "function": "get_and_increment",
-      "location": {
-        "start_line": 26,
-        "end_line": 27,
-        "start_col": 4,
-        "end_col": 24
-      },
-      "description": "复合操作：读取和修改全局变量之间存在竞态窗口",
-      "root_cause": "非原子复合操作",
-      "cwe_id": "CWE-362",
-      "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
-    },
-    {
-      "id": "ONC-RC-004",
-      "category": "concurrency",
-      "subcategory": "race_condition",
-      "severity": "high",
-      "type": "RaceCondition",
-      "file": "example2_class_member.py",
-      "function": "initialize_detector",
-      "location": {
-        "start_line": 26,
-        "end_line": 26,
-        "start_col": 4,
-        "end_col": 50
-      },
-      "description": "全局对象成员 global_vars.detector 赋值存在竞态（BUG_0005 类型）",
-      "root_cause": "类成员变量写入未同步",
-      "cwe_id": "CWE-362",
-      "difficulty": "medium",
-      "related_bugs": [
-        "BUG_0005"
-      ],
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
-    },
-    {
-      "id": "ONC-RC-005",
-      "category": "concurrency",
-      "subcategory": "race_condition",
-      "severity": "high",
-      "type": "RaceCondition",
-      "file": "example2_class_member.py",
-      "function": "update_config",
-      "location": {
-        "start_line": 37,
-        "end_line": 37,
-        "start_col": 4,
+        "start_line": 32,
+        "end_line": 32,
+        "start_col": 12,
         "end_col": 37
       },
-      "description": "全局对象的字典成员修改未同步",
-      "root_cause": "嵌套属性访问的字典操作未加锁",
-      "cwe_id": "CWE-362",
-      "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+      "description": "持有锁时等待 Future.result()，异步任务如需同一锁则死锁",
+      "root_cause": "锁内等待可能需要该锁的异步操作",
+      "cwe_id": "CWE-833",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
     },
     {
-      "id": "ONC-RC-006",
+      "id": "CONC-RACE-007",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "high",
+      "type": "RaceCondition",
+      "file": "example4_extended_races.py",
+      "function": "__new__",
+      "location": {
+        "start_line": 10,
+        "end_line": 10,
+        "start_col": 8,
+        "end_col": 33
+      },
+      "description": "单例模式双重检查锁定不正确，多线程下可能创建多个实例",
+      "root_cause": "检查和实例化之间没有同步保护，存在竞态窗口",
+      "cwe_id": "CWE-362",
+      "difficulty": "high",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
+    },
+    {
+      "id": "CONC-RACE-008",
       "category": "concurrency",
       "subcategory": "race_condition",
       "severity": "medium",
       "type": "RaceCondition",
-      "file": "example2_class_member.py",
-      "function": "handle_request",
+      "file": "example4_extended_races.py",
+      "function": "get_resource",
       "location": {
-        "start_line": 47,
-        "end_line": 47,
+        "start_line": 21,
+        "end_line": 21,
         "start_col": 8,
-        "end_col": 30
+        "end_col": 33
       },
-      "description": "实例变量 request_count 在共享实例时存在竞态",
-      "root_cause": "实例变量修改未考虑多线程共享场景",
+      "description": "懒加载资源初始化无锁保护，多线程可能重复初始化",
+      "root_cause": "检查和赋值操作非原子，缺少同步机制",
       "cwe_id": "CWE-362",
       "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
+    },
+    {
+      "id": "CONC-RACE-009",
+      "category": "concurrency",
+      "subcategory": "race_condition",
+      "severity": "medium",
+      "type": "RaceCondition",
+      "file": "example4_extended_races.py",
+      "function": "increment_counter",
+      "location": {
+        "start_line": 29,
+        "end_line": 29,
+        "start_col": 4,
+        "end_col": 23
+      },
+      "description": "全局计数器递增非原子操作，存在读-改-写竞态",
+      "root_cause": "读取、修改、写入三步操作未加锁保护",
+      "cwe_id": "CWE-362",
+      "difficulty": "easy",
+      "related_bugs": [],
+      "detection_layer": "Layer 1",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
     },
     {
       "id": "RM-FILE-001",
