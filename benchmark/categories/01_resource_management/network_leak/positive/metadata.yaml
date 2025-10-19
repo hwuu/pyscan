@@ -39,3 +39,41 @@ bugs:
     difficulty: "medium"
     related_bugs: ["BUG_0015"]
     detection_layer: "Layer 2"
+
+  - id: "RM-NET-003"
+    category: "resource_management"
+    subcategory: "network_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example2_database_leak.py"
+    function: "query_users_sqlite"
+    location:
+      start_line: 18
+      end_line: 18
+      start_col: 4
+      end_col: 42
+    description: "SQLite 数据库连接创建后未关闭，导致文件描述符泄露和数据库锁无法释放"
+    root_cause: "未使用 with 语句或 finally 块关闭数据库连接"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "RM-NET-004"
+    category: "resource_management"
+    subcategory: "network_leak"
+    severity: "medium"
+    type: "ResourceLeakRisk"
+    file: "example3_smtp_leak.py"
+    function: "send_email_smtp"
+    location:
+      start_line: 19
+      end_line: 19
+      start_col: 4
+      end_col: 45
+    description: "SMTP 连接创建后未调用 quit() 关闭，导致服务器端连接累积"
+    root_cause: "未使用 with 语句或 finally 块关闭 SMTP 连接"
+    cwe_id: "CWE-404"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"

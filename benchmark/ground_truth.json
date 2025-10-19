@@ -1,24 +1,24 @@
 {
   "version": "0.1",
   "created_date": "2025-10-19",
-  "total_bugs": 50,
+  "total_bugs": 55,
   "statistics": {
     "by_category": {
       "injection_flaws": 10,
       "input_validation": 10,
       "error_handling": 10,
       "concurrency": 8,
-      "resource_management": 12
+      "resource_management": 17
     },
     "by_severity": {
-      "high": 34,
-      "medium": 13,
+      "high": 36,
+      "medium": 16,
       "low": 1,
       "critical": 2
     },
     "by_difficulty": {
       "easy": 13,
-      "medium": 25,
+      "medium": 30,
       "hard": 4,
       "high": 8
     }
@@ -1023,6 +1023,72 @@
       "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
     },
     {
+      "id": "RM-SYNC-001",
+      "category": "resource_management",
+      "subcategory": "lock_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example1_lock_leak.py",
+      "function": "increment_counter_unsafe",
+      "location": {
+        "start_line": 26,
+        "end_line": 26,
+        "start_col": 4,
+        "end_col": 27
+      },
+      "description": "Lock.acquire() 后未调用 release()，导致其他线程永久阻塞",
+      "root_cause": "未使用 with 语句或 try/finally 释放锁",
+      "cwe_id": "CWE-667",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+    },
+    {
+      "id": "RM-SYNC-002",
+      "category": "resource_management",
+      "subcategory": "lock_leak",
+      "severity": "medium",
+      "type": "ResourceLeakRisk",
+      "file": "example1_lock_leak.py",
+      "function": "limited_resource_access_unsafe",
+      "location": {
+        "start_line": 90,
+        "end_line": 90,
+        "start_col": 4,
+        "end_col": 23
+      },
+      "description": "Semaphore.acquire() 后未调用 release()，最终耗尽信号量资源",
+      "root_cause": "未在 finally 块中释放信号量",
+      "cwe_id": "CWE-667",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+    },
+    {
+      "id": "RM-SYNC-003",
+      "category": "resource_management",
+      "subcategory": "lock_leak",
+      "severity": "medium",
+      "type": "ResourceLeakRisk",
+      "file": "example1_lock_leak.py",
+      "function": "producer_condition_leak",
+      "location": {
+        "start_line": 146,
+        "end_line": 146,
+        "start_col": 4,
+        "end_col": 23
+      },
+      "description": "Condition.acquire() 后未调用 release()，内部锁未释放",
+      "root_cause": "未使用 with 语句或 finally 块释放 condition",
+      "cwe_id": "CWE-667",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+    },
+    {
       "id": "RM-NET-001",
       "category": "resource_management",
       "subcategory": "network_leak",
@@ -1069,6 +1135,50 @@
       ],
       "detection_layer": "Layer 2",
       "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py"
+    },
+    {
+      "id": "RM-NET-003",
+      "category": "resource_management",
+      "subcategory": "network_leak",
+      "severity": "high",
+      "type": "ResourceLeakRisk",
+      "file": "example2_database_leak.py",
+      "function": "query_users_sqlite",
+      "location": {
+        "start_line": 18,
+        "end_line": 18,
+        "start_col": 4,
+        "end_col": 42
+      },
+      "description": "SQLite 数据库连接创建后未关闭，导致文件描述符泄露和数据库锁无法释放",
+      "root_cause": "未使用 with 语句或 finally 块关闭数据库连接",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\network_leak\\positive\\example2_database_leak.py"
+    },
+    {
+      "id": "RM-NET-004",
+      "category": "resource_management",
+      "subcategory": "network_leak",
+      "severity": "medium",
+      "type": "ResourceLeakRisk",
+      "file": "example3_smtp_leak.py",
+      "function": "send_email_smtp",
+      "location": {
+        "start_line": 19,
+        "end_line": 19,
+        "start_col": 4,
+        "end_col": 45
+      },
+      "description": "SMTP 连接创建后未调用 quit() 关闭，导致服务器端连接累积",
+      "root_cause": "未使用 with 语句或 finally 块关闭 SMTP 连接",
+      "cwe_id": "CWE-404",
+      "difficulty": "medium",
+      "related_bugs": [],
+      "detection_layer": "Layer 2",
+      "relative_path": "01_resource_management\\network_leak\\positive\\example3_smtp_leak.py"
     },
     {
       "id": "M-TPL-001",

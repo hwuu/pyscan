@@ -1,0 +1,59 @@
+# Lock/Semaphore/Condition Leak - Bug 标注
+
+bugs:
+  - id: "RM-SYNC-001"
+    category: "resource_management"
+    subcategory: "lock_leak"
+    severity: "high"
+    type: "ResourceLeakRisk"
+    file: "example1_lock_leak.py"
+    function: "increment_counter_unsafe"
+    location:
+      start_line: 26
+      end_line: 26
+      start_col: 4
+      end_col: 27
+    description: "Lock.acquire() 后未调用 release()，导致其他线程永久阻塞"
+    root_cause: "未使用 with 语句或 try/finally 释放锁"
+    cwe_id: "CWE-667"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "RM-SYNC-002"
+    category: "resource_management"
+    subcategory: "lock_leak"
+    severity: "medium"
+    type: "ResourceLeakRisk"
+    file: "example1_lock_leak.py"
+    function: "limited_resource_access_unsafe"
+    location:
+      start_line: 90
+      end_line: 90
+      start_col: 4
+      end_col: 23
+    description: "Semaphore.acquire() 后未调用 release()，最终耗尽信号量资源"
+    root_cause: "未在 finally 块中释放信号量"
+    cwe_id: "CWE-667"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
+
+  - id: "RM-SYNC-003"
+    category: "resource_management"
+    subcategory: "lock_leak"
+    severity: "medium"
+    type: "ResourceLeakRisk"
+    file: "example1_lock_leak.py"
+    function: "producer_condition_leak"
+    location:
+      start_line: 146
+      end_line: 146
+      start_col: 4
+      end_col: 23
+    description: "Condition.acquire() 后未调用 release()，内部锁未释放"
+    root_cause: "未使用 with 语句或 finally 块释放 condition"
+    cwe_id: "CWE-667"
+    difficulty: "medium"
+    related_bugs: []
+    detection_layer: "Layer 2"
