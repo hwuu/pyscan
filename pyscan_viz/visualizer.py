@@ -570,9 +570,9 @@ class Visualizer:
 
                 <!-- Function 筛选 -->
                 <div class="filter-section">
-                    <div class="filter-label">Function</div>
-                    <select class="filter-select" id="functionFilter">
-                        <option value="all">All Functions</option>
+                    <div class="filter-label">File Path</div>
+                    <select class="filter-select" id="pathFilter">
+                        <option value="all">All Paths</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -584,17 +584,6 @@ class Visualizer:
                         <option value="all">All Types</option>
                         <!-- 动态生成 -->
                     </select>
-                </div>
-
-                <!-- 排序 -->
-                <div class="filter-section">
-                    <div class="filter-label">Sort By</div>
-                    <div class="sort-buttons">
-                        <button class="sort-btn active" data-sort="severity">Severity</button>
-                        <button class="sort-btn" data-sort="function">Function</button>
-                        <button class="sort-btn" data-sort="type">Type</button>
-                        <button class="sort-btn" data-sort="line">Line</button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -627,10 +616,9 @@ class Visualizer:
 
         let currentFilters = {{
             severity: 'all',
-            function: 'all',
+            path: 'all',
             type: 'all'
         }};
-        let currentSort = 'severity';
         let selectedBugIndex = -1;
 
         // 初始化
@@ -648,7 +636,7 @@ class Visualizer:
             // 统计每个维度的数量
             const stats = {{
                 severity: {{}},
-                function: {{}},
+                path: {{}},
                 type: {{}}
             }};
 
@@ -656,8 +644,8 @@ class Visualizer:
                 // Severity
                 stats.severity[bug.severity] = (stats.severity[bug.severity] || 0) + 1;
 
-                // Function
-                stats.function[bug.function_name] = (stats.function[bug.function_name] || 0) + 1;
+                // Path
+                stats.path[bug.file_path] = (stats.path[bug.file_path] || 0) + 1;
 
                 // Type
                 stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
@@ -679,13 +667,13 @@ class Visualizer:
                 </button>
             `).join('');
 
-            // 生成 Function 选项
-            const functionSelect = document.getElementById('functionFilter');
-            const functions = Object.keys(stats.function).sort();
-            functionSelect.innerHTML = `
-                <option value="all">All Functions (${{bugsData.length}})</option>
-                ${{functions.map(fn => `
-                    <option value="${{fn}}">${{fn}} (${{stats.function[fn]}})</option>
+            // 生成 Path 选项
+            const pathSelect = document.getElementById('pathFilter');
+            const paths = Object.keys(stats.path).sort();
+            pathSelect.innerHTML = `
+                <option value="all">All Paths (${{bugsData.length}})</option>
+                ${{paths.map(p => `
+                    <option value="${{p}}">${{p}} (${{stats.path[p]}})</option>
                 `).join('')}}
             `;
 
@@ -713,9 +701,9 @@ class Visualizer:
                 renderBugsList();
             }});
 
-            // Function 下拉框
-            document.getElementById('functionFilter').addEventListener('change', (e) => {{
-                currentFilters.function = e.target.value;
+            // Path 下拉框
+            document.getElementById('pathFilter').addEventListener('change', (e) => {{
+                currentFilters.path = e.target.value;
                 renderBugsList();
             }});
 
@@ -723,16 +711,6 @@ class Visualizer:
             document.getElementById('typeFilter').addEventListener('change', (e) => {{
                 currentFilters.type = e.target.value;
                 renderBugsList();
-            }});
-
-            // Sort 按钮
-            document.querySelectorAll('.sort-btn').forEach(btn => {{
-                btn.addEventListener('click', () => {{
-                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentSort = btn.dataset.sort;
-                    renderBugsList();
-                }});
             }});
         }}
 
@@ -789,33 +767,21 @@ class Visualizer:
                 filtered = filtered.filter(bug => bug.severity === currentFilters.severity);
             }}
 
-            if (currentFilters.function !== 'all') {{
-                filtered = filtered.filter(bug => bug.function_name === currentFilters.function);
+            if (currentFilters.path !== 'all') {{
+                filtered = filtered.filter(bug => bug.file_path === currentFilters.path);
             }}
 
             if (currentFilters.type !== 'all') {{
                 filtered = filtered.filter(bug => bug.type === currentFilters.type);
             }}
 
-            // 应用排序
-            const sortFunctions = {{
-                severity: (a, b) => {{
-                    const order = {{ high: 0, medium: 1, low: 2 }};
-                    return (order[a.severity] || 3) - (order[b.severity] || 3);
-                }},
-                function: (a, b) => a.function_name.localeCompare(b.function_name),
-                type: (a, b) => a.type.localeCompare(b.type),
-                line: (a, b) => {{
-                    if (a.file_path !== b.file_path) {{
-                        return a.file_path.localeCompare(b.file_path);
-                    }}
-                    return a.start_line - b.start_line;
-                }}
-            }};
-
-            if (sortFunctions[currentSort]) {{
-                filtered.sort(sortFunctions[currentSort]);
-            }}
+            // 按 bug id 升序排序
+            filtered.sort((a, b) => {{
+                // 提取 bug id 中的数字进行比较
+                const aNum = parseInt(a.id.replace(/\D/g, '')) || 0;
+                const bNum = parseInt(b.id.replace(/\D/g, '')) || 0;
+                return aNum - bNum;
+            }});
 
             return filtered;
         }}
