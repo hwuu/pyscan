@@ -748,7 +748,7 @@
             // 添加 Callers 部分（使用 POI）
             if (bug.callers && bug.callers.length > 0) {
                 html += '<div class="caller-section">';
-                html += '<div class="caller-header">📞 Callers (Functions that call this function)</div>';
+                html += '<div class="caller-header">Callers (Functions that call this function)</div>';
 
                 for (let i = 0; i < bug.callers.length; i++) {
                     const caller = bug.callers[i];
@@ -818,7 +818,7 @@
             // 添加 Inferred Callers 部分（使用 POI）
             if (bug.inferred_callers && bug.inferred_callers.length > 0) {
                 html += '<div class="caller-section">';
-                html += '<div class="caller-header">🔍 Inferred Callers (Potential callers detected by analysis)</div>';
+                html += '<div class="caller-header">Inferred Callers (Potential callers detected by analysis)</div>';
 
                 for (let i = 0; i < bug.inferred_callers.length; i++) {
                     const inferredCaller = bug.inferred_callers[i];
@@ -921,4 +921,3 @@
     </script>
 </body>
 </html>
-
