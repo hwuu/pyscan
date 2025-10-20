@@ -123,6 +123,9 @@ class ProgressManager:
                     'function_name': r.function_name,
                     'file_path': r.file_path,
                     'function_start_line': r.function_start_line,
+                    'function_end_line': r.function_end_line,
+                    'function_start_col': r.function_start_col,
+                    'function_end_col': r.function_end_col,
                     'severity': r.severity,
                     'type': r.bug_type,
                     'description': r.description,
@@ -132,6 +135,8 @@ class ProgressManager:
                     'start_col': r.start_col,
                     'end_col': r.end_col,
                     'suggestion': r.suggestion,
+                    'confidence': r.confidence,
+                    'evidence': r.evidence,
                     'callers': r.callers,
                     'callees': r.callees,
                     'inferred_callers': r.inferred_callers

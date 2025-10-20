@@ -244,7 +244,9 @@ class DetectionPipeline:
                     break
 
             if not matched:
-                # LLM bug 没有匹配，直接添加
+                # LLM bug 没有匹配，直接添加，标记来源
+                if 'detection_source' not in llm_bug.evidence:
+                    llm_bug.evidence['detection_source'] = 'llm'
                 merged.append(llm_bug)
 
         # 添加未匹配的 Layer 4 bugs

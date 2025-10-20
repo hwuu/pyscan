@@ -61,6 +61,8 @@ class Reporter:
                     "start_col": r.start_col,
                     "end_col": r.end_col,
                     "suggestion": r.suggestion,
+                    "confidence": r.confidence,
+                    "evidence": r.evidence,
                     "callers": [
                         {
                             "file_path": c.get("file_path", ""),

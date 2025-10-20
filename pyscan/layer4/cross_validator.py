@@ -37,7 +37,8 @@ class CrossValidator:
 
         # 处理 mypy type issues
         for issue in static_facts.type_issues:
-            if issue.severity == 'error':
+            # mypy 的 error 会被映射为 severity='high'
+            if issue.severity in ['error', 'high']:
                 # 检查 LLM 是否确认
                 llm_confirmed = self._check_llm_confirmation(issue, llm_bugs)
 
@@ -65,7 +66,8 @@ class CrossValidator:
                         evidence={
                             'mypy_detected': True,
                             'llm_confirmed': llm_confirmed,
-                            'tool': 'mypy'
+                            'tool': 'mypy',
+                            'detection_source': 'layer4'
                         }
                     ))
 
