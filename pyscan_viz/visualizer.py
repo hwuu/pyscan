@@ -246,68 +246,6 @@ class Visualizer:
             flex-wrap: wrap;
         }}
 
-        .filter-btn {{
-            padding: 5px 10px;
-            border: 1px solid rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }}
-
-        .filter-btn:hover {{
-            background: rgba(255,255,255,0.2);
-        }}
-
-        .filter-btn.active {{
-            background: rgba(255,255,255,0.3);
-            color: white;
-            border-color: rgba(255,255,255,0.5);
-        }}
-
-        .filter-count {{
-            background: rgba(0,0,0,0.2);
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: bold;
-        }}
-
-        .filter-btn.active .filter-count {{
-            background: rgba(0,0,0,0.3);
-        }}
-
-        .sort-buttons {{
-            display: flex;
-            gap: 8px;
-        }}
-
-        .sort-btn {{
-            padding: 5px 10px;
-            border: 1px solid rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }}
-
-        .sort-btn:hover {{
-            background: rgba(255,255,255,0.2);
-        }}
-
-        .sort-btn.active {{
-            background: rgba(255,255,255,0.3);
-            color: white;
-            border-color: rgba(255,255,255,0.5);
-        }}
-
         select.filter-select {{
             padding: 5px 10px;
             border: 1px solid rgba(255,255,255,0.3);
@@ -559,16 +497,17 @@ class Visualizer:
         <div class="stats-pane">
             <h1>🔍 PyScan Bug Report</h1>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
                 <!-- Severity 筛选 -->
                 <div class="filter-section">
                     <div class="filter-label">Severity</div>
-                    <div class="filter-buttons" id="severityFilters">
+                    <select class="filter-select" id="severityFilter">
+                        <option value="all">All Severities</option>
                         <!-- 动态生成 -->
-                    </div>
+                    </select>
                 </div>
 
-                <!-- Function 筛选 -->
+                <!-- File Path 筛选 -->
                 <div class="filter-section">
                     <div class="filter-label">File Path</div>
                     <select class="filter-select" id="pathFilter">
@@ -631,8 +570,11 @@ class Visualizer:
             handleUrlHash();
         }}
 
-        // 生成筛选选项和统计
+        // 生成筛选选项和统计（联动：根据当前筛选条件更新可用选项）
         function generateFilterOptions() {{
+            // 获取当前筛选后的 bugs（用于计算联动后的统计）
+            const currentBugs = getFilteredBugs();
+
             // 统计每个维度的数量
             const stats = {{
                 severity: {{}},
@@ -640,78 +582,93 @@ class Visualizer:
                 type: {{}}
             }};
 
-            bugsData.forEach(bug => {{
-                // Severity
+            currentBugs.forEach(bug => {{
                 stats.severity[bug.severity] = (stats.severity[bug.severity] || 0) + 1;
-
-                // Path
                 stats.path[bug.file_path] = (stats.path[bug.file_path] || 0) + 1;
-
-                // Type
                 stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
             }});
 
-            // 生成 Severity 按钮
-            const severityContainer = document.getElementById('severityFilters');
+            // 生成 Severity 下拉选项
+            const severitySelect = document.getElementById('severityFilter');
+            const currentSeverity = currentFilters.severity;
             const severities = [
-                {{ value: 'all', label: 'All', count: bugsData.length }},
+                {{ value: 'all', label: 'All Severities', count: currentBugs.length }},
                 {{ value: 'high', label: 'High', count: stats.severity.high || 0 }},
                 {{ value: 'medium', label: 'Medium', count: stats.severity.medium || 0 }},
                 {{ value: 'low', label: 'Low', count: stats.severity.low || 0 }}
             ];
-
-            severityContainer.innerHTML = severities.map(s => `
-                <button class="filter-btn ${{s.value === 'all' ? 'active' : ''}}" data-filter="${{s.value}}">
-                    <span>${{s.label}}</span>
-                    <span class="filter-count">${{s.count}}</span>
-                </button>
+            severitySelect.innerHTML = severities.map(s => `
+                <option value="${{s.value}}" ${{s.value === currentSeverity ? 'selected' : ''}}>${{s.label}} (${{s.count}})</option>
             `).join('');
 
             // 生成 Path 选项
             const pathSelect = document.getElementById('pathFilter');
+            const currentPath = currentFilters.path;
             const paths = Object.keys(stats.path).sort();
             pathSelect.innerHTML = `
-                <option value="all">All Paths (${{bugsData.length}})</option>
+                <option value="all" ${{currentPath === 'all' ? 'selected' : ''}}>All Paths (${{currentBugs.length}})</option>
                 ${{paths.map(p => `
-                    <option value="${{p}}">${{p}} (${{stats.path[p]}})</option>
+                    <option value="${{p}}" ${{p === currentPath ? 'selected' : ''}}>${{p}} (${{stats.path[p]}})</option>
                 `).join('')}}
             `;
 
             // 生成 Type 选项
             const typeSelect = document.getElementById('typeFilter');
+            const currentType = currentFilters.type;
             const types = Object.keys(stats.type).sort();
             typeSelect.innerHTML = `
-                <option value="all">All Types (${{bugsData.length}})</option>
+                <option value="all" ${{currentType === 'all' ? 'selected' : ''}}>All Types (${{currentBugs.length}})</option>
                 ${{types.map(t => `
-                    <option value="${{t}}">${{t}} (${{stats.type[t]}})</option>
+                    <option value="${{t}}" ${{t === currentType ? 'selected' : ''}}>${{t}} (${{stats.type[t]}})</option>
                 `).join('')}}
             `;
         }}
 
+        // 获取当前筛选条件下的 bugs（用于联动计算，不包括当前正在修改的筛选器）
+        function getFilteredBugs() {{
+            let filtered = bugsData;
+
+            // 应用筛选
+            if (currentFilters.severity !== 'all') {{
+                filtered = filtered.filter(bug => bug.severity === currentFilters.severity);
+            }}
+
+            if (currentFilters.path !== 'all') {{
+                filtered = filtered.filter(bug => bug.file_path === currentFilters.path);
+            }}
+
+            if (currentFilters.type !== 'all') {{
+                filtered = filtered.filter(bug => bug.type === currentFilters.type);
+            }}
+
+            return filtered;
+        }}
+
         // 设置筛选控件
         function setupFilterControls() {{
-            // Severity 按钮
-            document.getElementById('severityFilters').addEventListener('click', (e) => {{
-                const btn = e.target.closest('.filter-btn');
-                if (!btn) return;
-
-                document.querySelectorAll('#severityFilters .filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilters.severity = btn.dataset.filter;
-                renderBugsList();
+            // Severity 下拉框
+            document.getElementById('severityFilter').addEventListener('change', (e) => {{
+                currentFilters.severity = e.target.value;
+                updateFiltersAndRender();
             }});
 
             // Path 下拉框
             document.getElementById('pathFilter').addEventListener('change', (e) => {{
                 currentFilters.path = e.target.value;
-                renderBugsList();
+                updateFiltersAndRender();
             }});
 
             // Type 下拉框
             document.getElementById('typeFilter').addEventListener('change', (e) => {{
                 currentFilters.type = e.target.value;
-                renderBugsList();
+                updateFiltersAndRender();
             }});
+        }}
+
+        // 更新筛选器选项并重新渲染列表（联动）
+        function updateFiltersAndRender() {{
+            generateFilterOptions();  // 重新生成选项（联动更新）
+            renderBugsList();          // 渲染 bug 列表
         }}
 
         // 处理 URL hash
