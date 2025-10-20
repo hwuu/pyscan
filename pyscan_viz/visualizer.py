@@ -589,38 +589,45 @@ class Visualizer:
                 stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
             }});
 
-            // 生成 Severity 下拉选项
+            // 生成 Severity 下拉选项（按数量从大到小排序）
             const severitySelect = document.getElementById('severityFilter');
             const currentSeverity = currentFilters.severity;
             const severities = [
-                {{ value: 'all', label: 'All Severities', count: currentBugs.length }},
                 {{ value: 'high', label: 'High', count: stats.severity.high || 0 }},
                 {{ value: 'medium', label: 'Medium', count: stats.severity.medium || 0 }},
                 {{ value: 'low', label: 'Low', count: stats.severity.low || 0 }}
-            ];
-            severitySelect.innerHTML = severities.map(s => `
-                <option value="${{s.value}}" ${{s.value === currentSeverity ? 'selected' : ''}}>${{s.label}} (${{s.count}})</option>
-            `).join('');
+            ].sort((a, b) => b.count - a.count);  // 按数量降序
 
-            // 生成 Path 选项
-            const pathSelect = document.getElementById('pathFilter');
-            const currentPath = currentFilters.path;
-            const paths = Object.keys(stats.path).sort();
-            pathSelect.innerHTML = `
-                <option value="all" ${{currentPath === 'all' ? 'selected' : ''}}>All Paths (${{currentBugs.length}})</option>
-                ${{paths.map(p => `
-                    <option value="${{p}}" ${{p === currentPath ? 'selected' : ''}}>${{p}} (${{stats.path[p]}})</option>
+            severitySelect.innerHTML = `
+                <option value="all" ${{currentSeverity === 'all' ? 'selected' : ''}}>All Severities (${{currentBugs.length}})</option>
+                ${{severities.map(s => `
+                    <option value="${{s.value}}" ${{s.value === currentSeverity ? 'selected' : ''}}>${{s.label}} (${{s.count}})</option>
                 `).join('')}}
             `;
 
-            // 生成 Type 选项
+            // 生成 Path 选项（按数量从大到小排序）
+            const pathSelect = document.getElementById('pathFilter');
+            const currentPath = currentFilters.path;
+            const paths = Object.entries(stats.path)
+                .sort((a, b) => b[1] - a[1])  // 按数量降序
+                .map(([path, count]) => ({{ path, count }}));
+            pathSelect.innerHTML = `
+                <option value="all" ${{currentPath === 'all' ? 'selected' : ''}}>All Paths (${{currentBugs.length}})</option>
+                ${{paths.map(p => `
+                    <option value="${{p.path}}" ${{p.path === currentPath ? 'selected' : ''}}>${{p.path}} (${{p.count}})</option>
+                `).join('')}}
+            `;
+
+            // 生成 Type 选项（按数量从大到小排序）
             const typeSelect = document.getElementById('typeFilter');
             const currentType = currentFilters.type;
-            const types = Object.keys(stats.type).sort();
+            const types = Object.entries(stats.type)
+                .sort((a, b) => b[1] - a[1])  // 按数量降序
+                .map(([type, count]) => ({{ type, count }}));
             typeSelect.innerHTML = `
                 <option value="all" ${{currentType === 'all' ? 'selected' : ''}}>All Types (${{currentBugs.length}})</option>
                 ${{types.map(t => `
-                    <option value="${{t}}" ${{t === currentType ? 'selected' : ''}}>${{t}} (${{stats.type[t]}})</option>
+                    <option value="${{t.type}}" ${{t.type === currentType ? 'selected' : ''}}>${{t.type}} (${{t.count}})</option>
                 `).join('')}}
             `;
         }}
