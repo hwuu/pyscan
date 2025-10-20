@@ -134,13 +134,17 @@ class MypyAnalyzer(StaticAnalyzer):
 
         Args:
             output: mypy 标准输出
-            file_path: 文件路径
+            file_path: 文件路径（用于过滤只保留该文件的错误）
 
         Returns:
             问题列表
         """
         import re
+        from pathlib import Path
         issues = []
+
+        # 规范化文件路径以便比较
+        normalized_file_path = str(Path(file_path).resolve())
 
         for line in output.strip().split('\n'):
             if not line:
@@ -151,16 +155,28 @@ class MypyAnalyzer(StaticAnalyzer):
                 # 注意：Windows 路径可能包含 C:\，需要特殊处理
                 # 例如: C:\path\to\file.py:10:5: error: Message
 
-                # 使用正则表达式匹配: <任意路径>:<行号>:<列号>: <严重程度>: <消息>
-                # 查找第一个":<数字>:"模式（这是行号）
-                match = re.search(r':(\d+):(\d+):\s*(\w+):\s*(.+)', line)
+                # 提取文件路径：查找第一个":<数字>:"模式之前的所有内容
+                # 使用正则表达式匹配: <文件路径>:<行号>:<列号>: <严重程度>: <消息>
+                match = re.match(r'^(.+?):(\d+):(\d+):\s*(\w+):\s*(.+)$', line)
                 if not match:
                     continue
 
-                line_num = int(match.group(1))
-                col_num = int(match.group(2))
-                severity_str = match.group(3)
-                message = match.group(4)
+                line_file_path = match.group(1)
+                line_num = int(match.group(2))
+                col_num = int(match.group(3))
+                severity_str = match.group(4)
+                message = match.group(5)
+
+                # 规范化 mypy 输出的文件路径
+                normalized_line_file_path = str(Path(line_file_path).resolve())
+
+                # 只保留当前文件的错误，忽略导入的其他文件的错误
+                if normalized_line_file_path != normalized_file_path:
+                    logger.debug(
+                        f"Skipping error from different file: {line_file_path} "
+                        f"(expected: {file_path})"
+                    )
+                    continue
 
                 # 判断严重程度
                 if severity_str == 'error':

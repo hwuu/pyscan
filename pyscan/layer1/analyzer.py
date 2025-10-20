@@ -52,16 +52,18 @@ class Layer1Analyzer:
                         func_name: str,
                         start_line: int,
                         end_line: int,
-                        complexity_score: int = 0) -> StaticFacts:
+                        complexity_score: int = 0,
+                        relative_file_path: str = None) -> StaticFacts:
         """
         分析单个函数，收集所有工具的结果
 
         Args:
-            file_path: 文件路径
+            file_path: 文件的绝对路径（用于工具分析）
             func_name: 函数名
             start_line: 函数起始行号
             end_line: 函数结束行号
             complexity_score: 复杂度分数
+            relative_file_path: 相对文件路径（用于报告），如果为 None 则使用 file_path
 
         Returns:
             静态分析事实
@@ -94,8 +96,11 @@ class Layer1Analyzer:
             file_path, start_line, end_line
         )
 
+        # 使用相对路径（如果提供）创建 StaticFacts
+        report_path = relative_file_path if relative_file_path is not None else file_path
+
         facts = StaticFacts(
-            file_path=file_path,
+            file_path=report_path,
             function_name=func_name,
             function_start_line=start_line,
             type_issues=type_issues,

@@ -107,7 +107,8 @@ class DetectionPipeline:
                     func_name=function.name,
                     start_line=function.lineno,
                     end_line=function.end_lineno,
-                    complexity_score=0  # 暂时不计算复杂度
+                    complexity_score=0,  # 暂时不计算复杂度
+                    relative_file_path=file_path  # 传递相对路径用于报告
                 )
             except Exception as e:
                 logger.warning(f"Layer 1 analysis failed for {function.name}: {e}")
