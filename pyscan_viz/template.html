@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScan Bug Report - {timestamp}</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }}
+
+        .container {{
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }}
+
+        /* 顶部统计面板 */
+        .stats-pane {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+
+        .stats-pane h1 {{
+            font-size: 20px;
+            margin-bottom: 10px;
+        }}
+
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }}
+
+        .stat-card {{
+            background: rgba(255,255,255,0.1);
+            padding: 10px 12px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+        }}
+
+        .stat-label {{
+            font-size: 11px;
+            opacity: 0.9;
+            margin-bottom: 3px;
+        }}
+
+        .stat-value {{
+            font-size: 22px;
+            font-weight: bold;
+        }}
+
+        /* 主内容区域 */
+        .main-content {{
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }}
+
+        /* 左侧 Bug 列表 */
+        .bugs-pane {{
+            width: 40%;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }}
+
+        .filter-section {{
+            margin-bottom: 0;
+        }}
+
+        .filter-label {{
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 6px;
+        }}
+
+        .filter-buttons {{
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }}
+
+        select.filter-select {{
+            width: 100%;
+            padding: 5px 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            cursor: pointer;
+            outline: none;
+        }}
+
+        select.filter-select option {{
+            background: #667eea;
+            color: white;
+        }}
+
+        select.filter-select:focus {{
+            border-color: rgba(255,255,255,0.5);
+        }}
+
+        .bugs-list {{
+            flex: 1;
+        }}
+
+        .bug-item {{
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }}
+
+        .bug-item:hover {{
+            background: #f9f9f9;
+        }}
+
+        .bug-item.selected {{
+            background: #e8eaf6;
+            border-left: 4px solid #667eea;
+        }}
+
+        .bug-id {{
+            display: inline-block;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+            margin-right: 8px;
+        }}
+
+        .bug-severity {{
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }}
+
+        .bug-severity.high {{
+            background: #ffebee;
+            color: #c62828;
+        }}
+
+        .bug-severity.medium {{
+            background: #fff3e0;
+            color: #e65100;
+        }}
+
+        .bug-severity.low {{
+            background: #e8f5e9;
+            color: #2e7d32;
+        }}
+
+        .bug-type {{
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }}
+
+        .bug-location {{
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }}
+
+        /* 右侧代码面板 */
+        .code-pane {{
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            overflow-y: auto;
+            padding: 20px;
+        }}
+
+        .code-header {{
+            color: #9cdcfe;
+            font-size: 14px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3e3e3e;
+        }}
+
+        .code-content {{
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }}
+
+        .code-line {{
+            display: flex;
+        }}
+
+        .line-number {{
+            color: #858585;
+            padding-right: 20px;
+            user-select: none;
+            text-align: right;
+            min-width: 50px;
+        }}
+
+        .line-content {{
+            flex: 1;
+        }}
+
+        .code-line.highlighted {{
+            background: rgba(255, 87, 51, 0.2);
+            border-left: 3px solid #ff5733;
+        }}
+
+        .bug-details {{
+            background: #252526;
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff5733;
+        }}
+
+        .bug-details h3 {{
+            color: #ff5733;
+            font-size: 14px;
+            margin: 0 0 8px 0;
+        }}
+
+        .bug-details p {{
+            margin: 0 0 4px 0;
+            line-height: 1.4;
+            font-size: 13px;
+        }}
+
+        .bug-details .label {{
+            color: #9cdcfe;
+            font-weight: 600;
+        }}
+
+        .empty-state {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 14px;
+        }}
+
+        /* Caller 展示样式 */
+        .caller-section {{
+            margin-top: 20px;
+            border-top: 2px solid #3e3e3e;
+            padding-top: 15px;
+        }}
+
+        .caller-header {{
+            color: #4ec9b0;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #2d2d2d;
+            border-left: 4px solid #4ec9b0;
+        }}
+
+        .caller-item {{
+            margin-bottom: 15px;
+            background: #252526;
+            border-radius: 4px;
+            padding: 12px;
+            border-left: 3px solid #569cd6;
+        }}
+
+        .caller-label {{
+            color: #569cd6;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }}
+
+        .caller-hint {{
+            color: #ce9178;
+            font-size: 12px;
+            font-style: italic;
+            margin-bottom: 8px;
+        }}
+
+        .caller-code {{
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #d4d4d4;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }}
+
+        .caller-code .call-line {{
+            background: rgba(255, 215, 0, 0.15);
+            border-left: 3px solid #ffd700;
+            padding-left: 8px;
+            margin-left: -8px;
+            display: block;
+        }}
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {{
+            width: 10px;
+            height: 10px;
+        }}
+
+        ::-webkit-scrollbar-track {{
+            background: #f1f1f1;
+        }}
+
+        ::-webkit-scrollbar-thumb {{
+            background: #888;
+            border-radius: 5px;
+        }}
+
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #555;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部过滤/排序面板 -->
+        <div class="stats-pane">
+            <h1>🔍 PyScan Bug Report</h1>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                <!-- Severity 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">Severity</div>
+                    <select class="filter-select" id="severityFilter">
+                        <option value="all">All Severities</option>
+                        <!-- 动态生成 -->
+                    </select>
+                </div>
+
+                <!-- File Path 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">File Path</div>
+                    <select class="filter-select" id="pathFilter">
+                        <option value="all">All Paths</option>
+                        <!-- 动态生成 -->
+                    </select>
+                </div>
+
+                <!-- Bug Type 筛选 -->
+                <div class="filter-section">
+                    <div class="filter-label">Bug Type</div>
+                    <select class="filter-select" id="typeFilter">
+                        <option value="all">All Types</option>
+                        <!-- 动态生成 -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 左侧 Bug 列表 -->
+            <div class="bugs-pane">
+                <div class="bugs-list" id="bugsList">
+                    <!-- Bug items will be inserted here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- 右侧代码面板 -->
+            <div class="code-pane">
+                <div class="empty-state">
+                    👈 Select a bug from the list to view details
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Bug 数据
+        const bugsData = {bugs_json};
+
+        // 源码文件数据（如果嵌入模式）
+        const sourceFiles = {source_files_json};
+        const embedMode = {embed_source};
+
+        let currentFilters = {{
+            severity: 'all',
+            path: 'all',
+            type: 'all'
+        }};
+        let selectedBugIndex = -1;
+
+        // 初始化
+        function init() {{
+            generateFilterOptions();
+            setupFilterControls();
+            renderBugsList();
+
+            // 处理 URL hash，自动定位到相应的 bug
+            handleUrlHash();
+        }}
+
+        // 生成筛选选项和统计（联动：根据当前筛选条件更新可用选项）
+        function generateFilterOptions() {{
+            // 获取当前筛选后的 bugs（用于计算联动后的统计）
+            const currentBugs = getFilteredBugs();
+
+            // 统计每个维度的数量
+            const stats = {{
+                severity: {{}},
+                path: {{}},
+                type: {{}}
+            }};
+
+            currentBugs.forEach(bug => {{
+                stats.severity[bug.severity] = (stats.severity[bug.severity] || 0) + 1;
+                stats.path[bug.file_path] = (stats.path[bug.file_path] || 0) + 1;
+                stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
+            }});
+
+            // 生成 Severity 下拉选项（按数量从大到小排序）
+            const severitySelect = document.getElementById('severityFilter');
+            const currentSeverity = currentFilters.severity;
+            const severities = [
+                {{ value: 'high', label: 'High', count: stats.severity.high || 0 }},
+                {{ value: 'medium', label: 'Medium', count: stats.severity.medium || 0 }},
+                {{ value: 'low', label: 'Low', count: stats.severity.low || 0 }}
+            ].sort((a, b) => b.count - a.count);  // 按数量降序
+
+            severitySelect.innerHTML = `
+                <option value="all" ${{currentSeverity === 'all' ? 'selected' : ''}}>All Severities (${{currentBugs.length}})</option>
+                ${{severities.map(s => `
+                    <option value="${{s.value}}" ${{s.value === currentSeverity ? 'selected' : ''}}>${{s.label}} (${{s.count}})</option>
+                `).join('')}}
+            `;
+
+            // 生成 Path 选项（按数量从大到小排序）
+            const pathSelect = document.getElementById('pathFilter');
+            const currentPath = currentFilters.path;
+            const paths = Object.entries(stats.path)
+                .sort((a, b) => b[1] - a[1])  // 按数量降序
+                .map(([path, count]) => ({{ path, count }}));
+            pathSelect.innerHTML = `
+                <option value="all" ${{currentPath === 'all' ? 'selected' : ''}}>All Paths (${{currentBugs.length}})</option>
+                ${{paths.map(p => `
+                    <option value="${{p.path}}" ${{p.path === currentPath ? 'selected' : ''}}>${{p.path}} (${{p.count}})</option>
+                `).join('')}}
+            `;
+
+            // 生成 Type 选项（按数量从大到小排序）
+            const typeSelect = document.getElementById('typeFilter');
+            const currentType = currentFilters.type;
+            const types = Object.entries(stats.type)
+                .sort((a, b) => b[1] - a[1])  // 按数量降序
+                .map(([type, count]) => ({{ type, count }}));
+            typeSelect.innerHTML = `
+                <option value="all" ${{currentType === 'all' ? 'selected' : ''}}>All Types (${{currentBugs.length}})</option>
+                ${{types.map(t => `
+                    <option value="${{t.type}}" ${{t.type === currentType ? 'selected' : ''}}>${{t.type}} (${{t.count}})</option>
+                `).join('')}}
+            `;
+        }}
+
+        // 获取当前筛选条件下的 bugs（用于联动计算，不包括当前正在修改的筛选器）
+        function getFilteredBugs() {{
+            let filtered = bugsData;
+
+            // 应用筛选
+            if (currentFilters.severity !== 'all') {{
+                filtered = filtered.filter(bug => bug.severity === currentFilters.severity);
+            }}
+
+            if (currentFilters.path !== 'all') {{
+                filtered = filtered.filter(bug => bug.file_path === currentFilters.path);
+            }}
+
+            if (currentFilters.type !== 'all') {{
+                filtered = filtered.filter(bug => bug.type === currentFilters.type);
+            }}
+
+            return filtered;
+        }}
+
+        // 设置筛选控件
+        function setupFilterControls() {{
+            // Severity 下拉框
+            document.getElementById('severityFilter').addEventListener('change', (e) => {{
+                currentFilters.severity = e.target.value;
+                updateFiltersAndRender();
+            }});
+
+            // Path 下拉框
+            document.getElementById('pathFilter').addEventListener('change', (e) => {{
+                currentFilters.path = e.target.value;
+                updateFiltersAndRender();
+            }});
+
+            // Type 下拉框
+            document.getElementById('typeFilter').addEventListener('change', (e) => {{
+                currentFilters.type = e.target.value;
+                updateFiltersAndRender();
+            }});
+        }}
+
+        // 更新筛选器选项并重新渲染列表（联动）
+        function updateFiltersAndRender() {{
+            generateFilterOptions();  // 重新生成选项（联动更新）
+            renderBugsList();          // 渲染 bug 列表
+        }}
+
+        // 处理 URL hash
+        function handleUrlHash() {{
+            const hash = window.location.hash.slice(1); // 移除 # 号
+            if (hash) {{
+                // 查找匹配的 bug
+                const filteredBugs = filterAndSortBugs();
+                const bugIndex = filteredBugs.findIndex(bug => bug.id === hash);
+
+                if (bugIndex !== -1) {{
+                    // 找到了，选择这个 bug
+                    selectBug(bugIndex);
+                }}
+            }}
+        }}
+
+        // 监听 hash 变化
+        window.addEventListener('hashchange', () => {{
+            handleUrlHash();
+        }});
+
+        // 渲染 Bug 列表
+        function renderBugsList() {{
+            const bugsList = document.getElementById('bugsList');
+            const filteredBugs = filterAndSortBugs();
+
+            if (filteredBugs.length === 0) {{
+                bugsList.innerHTML = '<div class="empty-state">No bugs found</div>';
+                return;
+            }}
+
+            bugsList.innerHTML = filteredBugs.map((bug, index) => `
+                <div class="bug-item" onclick="selectBug(${{index}})" data-index="${{index}}" data-bug-id="${{bug.id}}" data-severity="${{bug.severity}}">
+                    <div class="bug-id">${{bug.id}}</div>
+                    <div class="bug-severity ${{bug.severity}}">${{bug.severity}}</div>
+                    <div class="bug-type">${{bug.type}}</div>
+                    <div class="bug-location">${{bug.file_path}}:${{bug.function_name}}</div>
+                </div>
+            `).join('');
+
+            // 如果有选中的 bug，清除选中状态
+            selectedBugIndex = -1;
+            document.querySelector('.code-pane').innerHTML = '<div class="empty-state">👈 Select a bug from the list to view details</div>';
+        }}
+
+        // 筛选和排序 Bug
+        function filterAndSortBugs() {{
+            let filtered = bugsData;
+
+            // 应用筛选
+            if (currentFilters.severity !== 'all') {{
+                filtered = filtered.filter(bug => bug.severity === currentFilters.severity);
+            }}
+
+            if (currentFilters.path !== 'all') {{
+                filtered = filtered.filter(bug => bug.file_path === currentFilters.path);
+            }}
+
+            if (currentFilters.type !== 'all') {{
+                filtered = filtered.filter(bug => bug.type === currentFilters.type);
+            }}
+
+            // 按 bug id 升序排序
+            filtered.sort((a, b) => {{
+                // 提取 bug id 中的数字进行比较
+                const aNum = parseInt(a.id.replace(/\\D/g, '')) || 0;
+                const bNum = parseInt(b.id.replace(/\\D/g, '')) || 0;
+                return aNum - bNum;
+            }});
+
+            return filtered;
+        }}
+
+        // 选择 Bug
+        function selectBug(index) {{
+            selectedBugIndex = index;
+
+            // 更新选中状态
+            document.querySelectorAll('.bug-item').forEach(item => {{
+                item.classList.remove('selected');
+            }});
+
+            const selectedItem = document.querySelector(`.bug-item[data-index="${{index}}"]`);
+            if (selectedItem) {{
+                selectedItem.classList.add('selected');
+            }}
+
+            // 显示 Bug 详情和代码
+            const filteredBugs = filterAndSortBugs();
+            const bug = filteredBugs[index];
+
+            // 更新 URL hash
+            window.location.hash = bug.id;
+
+            displayBugDetails(bug);
+        }}
+
+        // 显示 Bug 详情
+        async function displayBugDetails(bug) {{
+            const codePane = document.querySelector('.code-pane');
+
+            codePane.innerHTML = '<div class="empty-state">Loading...</div>';
+
+            let sourceCode;
+
+            if (embedMode) {{
+                // 嵌入模式：从 sourceFiles 对象获取源码
+                sourceCode = sourceFiles[bug.file_path];
+                if (!sourceCode) {{
+                    sourceCode = `// Source file not found in embedded data: ${{bug.file_path}}`;
+                }}
+                displayCodeWithBug(bug, sourceCode);
+            }} else {{
+                // 动态加载模式：从文件系统读取
+                try {{
+                    const response = await fetch(`file:///${{bug.file_path}}`);
+
+                    if (response.ok) {{
+                        sourceCode = await response.text();
+                    }} else {{
+                        sourceCode = `// Unable to load source file: ${{bug.file_path}}\\n// Please ensure the file exists and is accessible.`;
+                    }}
+
+                    displayCodeWithBug(bug, sourceCode);
+
+                }} catch (error) {{
+                    // 文件加载失败，显示错误信息
+                    codePane.innerHTML = `
+                        <div class="bug-details">
+                            <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
+                            <p>${{bug.description}}</p>
+                            <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
+                        </div>
+                        <div class="code-header">⚠️ Unable to load source file</div>
+                        <div style="color: #858585; padding: 20px;">
+                            Source code cannot be displayed because the file could not be loaded.<br>
+                            File path: ${{bug.file_path}}<br><br>
+                            Please ensure:<br>
+                            1. The file exists at the specified location<br>
+                            2. You have permission to read the file<br>
+                            3. The HTML file is opened from a local file system (file:// protocol)
+                        </div>
+                    `;
+                }}
+            }}
+        }}
+
+        // 显示带有 Bug 标记的代码（使用 POI）
+        function displayCodeWithBug(bug, sourceCode) {{
+            const codePane = document.querySelector('.code-pane');
+
+            // 构建 HTML
+            let html = `
+                <div class="bug-details">
+                    <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
+                    <p>${{bug.description}}</p>
+                    <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
+                </div>
+                <div class="code-header">${{bug.function_name}} @ ${{bug.file_path}}</div>
+                <div class="code-content">
+            `;
+
+            // embedMode: 使用预先提取的 snippet
+            if (bug.function_snippet) {{
+                const snippet = bug.function_snippet;
+                const snippetLines = snippet.snippet.split('\\n');
+                const snippetStartLine = snippet.snippet_start_line;
+                const bugPoiStart = snippet.poi_start_line;
+                const bugPoiEnd = snippet.poi_end_line;
+
+                // 计算 bug 在 snippet 中的绝对位置（用于高亮 bug POI）
+                const bugRelativeStart = bug.bug_poi.start_line;
+                const bugRelativeEnd = bug.bug_poi.end_line;
+
+                // bug 在整个文件中的绝对行号
+                const bugAbsoluteStart = bug.function_poi.start_line + bugRelativeStart - 1;
+                const bugAbsoluteEnd = bug.function_poi.start_line + bugRelativeEnd - 1;
+
+                for (let i = 0; i < snippetLines.length; i++) {{
+                    const lineNum = snippetStartLine + i;
+                    // 高亮 bug POI 行
+                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
+
+                    html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[i])}}</div></div>`;
+                }}
+            }} else {{
+                // 非 embedMode: 从 sourceCode 动态提取 bug POI snippet
+                const lines = sourceCode.split('\\n');
+                const functionStartLine = bug.function_poi.start_line;
+
+                // 计算 bug 在整个文件中的绝对行号
+                const bugRelativeStart = bug.bug_poi.start_line;
+                const bugRelativeEnd = bug.bug_poi.end_line;
+
+                let bugAbsoluteStart, bugAbsoluteEnd;
+                if (bugRelativeStart > 0) {{
+                    bugAbsoluteStart = functionStartLine + bugRelativeStart - 1;
+                    bugAbsoluteEnd = functionStartLine + bugRelativeEnd - 1;
+                }} else {{
+                    // 如果没有 bug POI，使用函数起始行
+                    bugAbsoluteStart = functionStartLine;
+                    bugAbsoluteEnd = functionStartLine;
+                }}
+
+                // 提取 bug POI ± 5 行
+                const contextLines = 5;
+                const snippetStart = Math.max(1, bugAbsoluteStart - contextLines);
+                const snippetEnd = Math.min(lines.length, bugAbsoluteEnd + contextLines);
+
+                for (let i = snippetStart - 1; i < snippetEnd; i++) {{
+                    const lineNum = i + 1;
+                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
+
+                    html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[i])}}</div></div>`;
+                }}
+            }}
+
+            html += '</div>';
+
+            // 添加 Callers 部分（使用 POI）
+            if (bug.callers && bug.callers.length > 0) {{
+                html += '<div class="caller-section">';
+                html += '<div class="caller-header">📞 Callers (Functions that call this function)</div>';
+
+                for (let i = 0; i < bug.callers.length; i++) {{
+                    const caller = bug.callers[i];
+                    const filePath = caller.file_path || 'Unknown';
+                    const functionName = caller.function_name || 'Unknown';
+                    const callLines = caller.call_lines || [];
+
+                    html += `
+                        <div class="caller-item">
+                            <div class="caller-label">[${{i + 1}}/${{bug.callers.length}}] ${{functionName}} @ ${{filePath}}</div>
+                            <div class="code-content">
+                    `;
+
+                    // embedMode: 使用预先提取的 snippet
+                    if (caller.snippet) {{
+                        const snippet = caller.snippet;
+                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetStartLine = snippet.snippet_start_line;
+
+                        for (let j = 0; j < snippetLines.length; j++) {{
+                            const lineNum = snippetStartLine + j;
+                            const isHighlighted = callLines.includes(lineNum);
+                            const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[j])}}</div></div>`;
+                        }}
+                    }} else {{
+                        // 非 embedMode: 从 sourceFiles 动态提取 caller POI snippet
+                        const callerSourceCode = sourceFiles[filePath];
+                        if (callerSourceCode) {{
+                            const lines = callerSourceCode.split('\\n');
+
+                            // 使用 callLines 来确定 snippet 范围（而不是整个函数）
+                            let poiStart, poiEnd;
+                            if (callLines && callLines.length > 0) {{
+                                poiStart = Math.min(...callLines);
+                                poiEnd = Math.max(...callLines);
+                            }} else {{
+                                poiStart = caller.start_line || 1;
+                                poiEnd = poiStart;
+                            }}
+
+                            // 提取 POI ± 5 行
+                            const contextLines = 5;
+                            const snippetStart = Math.max(1, poiStart - contextLines);
+                            const snippetEnd = Math.min(lines.length, poiEnd + contextLines);
+
+                            for (let j = snippetStart - 1; j < snippetEnd; j++) {{
+                                const lineNum = j + 1;
+                                const isHighlighted = callLines.includes(lineNum);
+                                const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                                html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[j])}}</div></div>`;
+                            }}
+                        }} else {{
+                            html += `<div class="code-line"><div class="line-content">Source file not available</div></div>`;
+                        }}
+                    }}
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }}
+
+                html += '</div>';
+            }}
+
+            // 添加 Inferred Callers 部分（使用 POI）
+            if (bug.inferred_callers && bug.inferred_callers.length > 0) {{
+                html += '<div class="caller-section">';
+                html += '<div class="caller-header">🔍 Inferred Callers (Potential callers detected by analysis)</div>';
+
+                for (let i = 0; i < bug.inferred_callers.length; i++) {{
+                    const inferredCaller = bug.inferred_callers[i];
+                    const hint = inferredCaller.hint || '';
+                    const filePath = inferredCaller.file_path || 'Unknown';
+                    const functionName = inferredCaller.function_name || 'Unknown';
+                    const inferenceLines = inferredCaller.inference_lines || [];
+
+                    html += `
+                        <div class="caller-item">
+                            <div class="caller-hint">${{escapeHtml(hint)}}</div>
+                            <div class="caller-label">[${{i + 1}}/${{bug.inferred_callers.length}}] ${{functionName}} @ ${{filePath}}</div>
+                            <div class="code-content">
+                    `;
+
+                    // embedMode: 使用预先提取的 snippet
+                    if (inferredCaller.snippet) {{
+                        const snippet = inferredCaller.snippet;
+                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetStartLine = snippet.snippet_start_line;
+
+                        for (let j = 0; j < snippetLines.length; j++) {{
+                            const lineNum = snippetStartLine + j;
+                            const isHighlighted = inferenceLines.includes(lineNum);
+                            const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                            html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(snippetLines[j])}}</div></div>`;
+                        }}
+                    }} else {{
+                        // 非 embedMode: 从 sourceFiles 动态提取 inferred caller POI snippet
+                        const inferredSourceCode = sourceFiles[filePath];
+                        if (inferredSourceCode) {{
+                            const lines = inferredSourceCode.split('\\n');
+
+                            // 使用 inferenceLines 来确定 snippet 范围（而不是整个函数）
+                            let poiStart, poiEnd;
+                            if (inferenceLines && inferenceLines.length > 0) {{
+                                poiStart = Math.min(...inferenceLines);
+                                poiEnd = Math.max(...inferenceLines);
+                            }} else {{
+                                poiStart = inferredCaller.start_line || 1;
+                                poiEnd = poiStart;
+                            }}
+
+                            // 提取 POI ± 5 行
+                            const contextLines = 5;
+                            const snippetStart = Math.max(1, poiStart - contextLines);
+                            const snippetEnd = Math.min(lines.length, poiEnd + contextLines);
+
+                            for (let j = snippetStart - 1; j < snippetEnd; j++) {{
+                                const lineNum = j + 1;
+                                const isHighlighted = inferenceLines.includes(lineNum);
+                                const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
+                                html += `<div class="${{lineClass}}"><div class="line-number">${{lineNum}}</div><div class="line-content">${{escapeHtml(lines[j])}}</div></div>`;
+                            }}
+                        }} else {{
+                            html += `<div class="code-line"><div class="line-content">Source file not available</div></div>`;
+                        }}
+                    }}
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }}
+
+                html += '</div>';
+            }}
+
+            codePane.innerHTML = html;
+
+            // 滚动到顶部
+            codePane.scrollTop = 0;
+        }}
+
+        // HTML 转义（保留空格和缩进）
+        function escapeHtml(text) {{
+            const div = document.createElement('div');
+            div.textContent = text;
+            // 将空格替换为 &nbsp; 以保留缩进
+            return div.innerHTML.replace(/ /g, '&nbsp;');
+        }}
+
+        // 格式化 caller code，高亮调用行（以 ">>> " 开头）
+        function formatCallerCode(code) {{
+            const lines = code.split('\\n');
+            const formattedLines = lines.map(line => {{
+                if (line.startsWith('>>> ')) {{
+                    // 移除 ">>> " 标记，并添加高亮类
+                    const cleanLine = line.substring(4);
+                    return `<span class="call-line">${{escapeHtml(cleanLine)}}</span>`;
+                }} else {{
+                    return escapeHtml(line);
+                }}
+            }});
+            return formattedLines.join('\\n');
+        }}
+
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>
+
