@@ -465,36 +465,6 @@ class Visualizer:
             font-weight: 600;
         }}
 
-        /* Evidence Chain 样式 - 紧凑单行显示 */
-        .evidence-section {{
-            margin-top: 8px;
-            padding: 6px 10px;
-            background: rgba(100, 200, 255, 0.1);
-            border-left: 3px solid #64c8ff;
-            border-radius: 3px;
-        }}
-
-        .evidence-list {{
-            list-style: none;
-            padding-left: 0;
-            margin: 0;
-            font-size: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }}
-
-        .evidence-list li {{
-            color: #d4d4d4;
-            display: inline;
-        }}
-
-        .evidence-label {{
-            color: #64c8ff;
-            font-weight: 600;
-            margin-right: 4px;
-        }}
-
         .empty-state {{
             display: flex;
             align-items: center;
@@ -906,11 +876,7 @@ class Visualizer:
                     // 文件加载失败，显示错误信息
                     codePane.innerHTML = `
                         <div class="bug-details">
-                            <h3>${{bug.type}}</h3>
-                            <p><span class="label">Severity:</span> ${{bug.severity}}</p>
-                            <p><span class="label">Function:</span> ${{bug.function_name}}</p>
-                            <p><span class="label">File:</span> ${{bug.file_path}}</p>
-                            <p><span class="label">Location:</span> ${{bug.location}}</p>
+                            <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
                             <p><span class="label">Description:</span> ${{bug.description}}</p>
                             <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
                         </div>
@@ -935,54 +901,10 @@ class Visualizer:
             // 构建 HTML
             let html = `
                 <div class="bug-details">
-                    <h3>${{bug.id}} - ${{bug.type}}</h3>
-                    <p><span class="label">Severity:</span> ${{bug.severity}}</p>
-                    <p><span class="label">Function:</span> ${{bug.function_name}}</p>
-                    <p><span class="label">Location:</span> ${{bug.location}}</p>
+                    <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
                     <p><span class="label">Description:</span> ${{bug.description}}</p>
                     <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
-            `;
-
-            // 添加 Layer 4 证据链信息
-            if (bug.confidence !== undefined && bug.confidence !== 1.0) {{
-                html += `<p><span class="label">Confidence:</span> ${{(bug.confidence * 100).toFixed(0)}}%</p>`;
-            }}
-
-            if (bug.evidence && Object.keys(bug.evidence).length > 0) {{
-                const evidence = bug.evidence;
-                html += `<div class="evidence-section">`;
-                html += `<p class="label" style="margin-top: 8px; margin-bottom: 4px;">🔍 Evidence Chain:</p>`;
-                html += `<ul class="evidence-list">`;
-
-                if (evidence.detection_source) {{
-                    const sourceLabels = {{
-                        'llm': '🤖 LLM Only',
-                        'layer4': '🔬 Layer 4 (Static Analysis)',
-                        'both': '✅ LLM + Layer 4'
-                    }};
-                    html += `<li><span class="evidence-label">Detection Source:</span> ${{sourceLabels[evidence.detection_source] || evidence.detection_source}}</li>`;
-                }}
-
-                if (evidence.mypy_detected !== undefined) {{
-                    html += `<li><span class="evidence-label">Mypy Detected:</span> ${{evidence.mypy_detected ? '✓ Yes' : '✗ No'}}</li>`;
-                }}
-
-                if (evidence.llm_confirmed !== undefined) {{
-                    html += `<li><span class="evidence-label">LLM Confirmed:</span> ${{evidence.llm_confirmed ? '✓ Yes' : '✗ No'}}</li>`;
-                }}
-
-                if (evidence.tool) {{
-                    html += `<li><span class="evidence-label">Tool:</span> ${{evidence.tool}}</li>`;
-                }}
-
-                if (evidence.llm_description) {{
-                    html += `<li><span class="evidence-label">LLM Description:</span> ${{evidence.llm_description}}</li>`;
-                }}
-
-                html += `</ul></div>`;
-            }}
-
-            html += `</div>
+                </div>
                 <div class="code-header">📄 Current Function: ${{bug.function_name}} @ ${{bug.file_path}}</div>
                 <div class="code-content">
             `;
