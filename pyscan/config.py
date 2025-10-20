@@ -128,6 +128,15 @@ class Config:
             "enable_bandit": layer1_config.get("enable_bandit", self.DEFAULT_LAYER1_ENABLE_BANDIT),
         }
 
+        # Layer 4 交叉验证配置
+        layer4_config = config_dict.get("layer4", {})
+        self.layer4 = {
+            "enable_cross_validation": layer4_config.get("enable_cross_validation", True),
+            "confidence_threshold": layer4_config.get("confidence_threshold", 0.7),
+            "position_tolerance": layer4_config.get("position_tolerance", 2),
+            "enable_deduplication": layer4_config.get("enable_deduplication", True),
+        }
+
     def _validate_values(self) -> None:
         """Validate configuration values."""
         if self.llm_max_tokens <= 0:

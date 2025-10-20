@@ -14,6 +14,7 @@ from pyscan.context_builder import ContextBuilder
 from pyscan.bug_detector import BugDetector
 from pyscan.reporter import Reporter
 from pyscan.layer1.analyzer import Layer1Analyzer
+from pyscan.pipeline import DetectionPipeline
 
 
 # 设置日志
@@ -373,6 +374,9 @@ def main():
         else:
             logger.warning("Layer 1 static analysis disabled (no tools available)")
 
+        # 初始化检测流水线（集成 Layer 1 + Layer 3 + Layer 4）
+        pipeline = DetectionPipeline(config, layer1_analyzer, detector)
+
         # 生成函数唯一ID
         def get_function_id(func):
             return f"{getattr(func, 'file_path', '')}::{func.name}"
@@ -457,32 +461,20 @@ def main():
                         'hint': inferred.get('hint', '')
                     })
 
-                # Layer 1 静态分析
-                static_facts = None
-                if layer1_analyzer.is_enabled():
-                    try:
-                        # 获取文件的绝对路径（Layer1 需要真实文件路径）
-                        absolute_file_path = os.path.join(scan_dir, getattr(func, 'file_path', ''))
-                        static_facts = layer1_analyzer.analyze_function(
-                            file_path=absolute_file_path,
-                            func_name=func.name,
-                            start_line=func.lineno,
-                            end_line=func.end_lineno,
-                            complexity_score=0  # 暂时不计算复杂度
-                        )
-                    except Exception as e:
-                        logger.warning(f"Layer 1 analysis failed for {func.name}: {e}")
+                # 使用 Pipeline 执行完整检测流程（Layer 1 + Layer 3 + Layer 4）
+                # 获取文件的绝对路径（Layer1 需要真实文件路径）
+                absolute_file_path = os.path.join(scan_dir, getattr(func, 'file_path', ''))
 
-                result = detector.detect(
-                    func,
-                    context,
+                result = pipeline.detect_bugs(
+                    function=func,
+                    context=context,
                     file_path=getattr(func, 'file_path', ''),
+                    absolute_file_path=absolute_file_path,
                     function_start_line=func.lineno,
                     callers=callers,
                     callees=callees,
                     inferred_callers=inferred_callers,
-                    bug_id_start=bug_counter,
-                    static_facts=static_facts
+                    bug_id_start=bug_counter
                 )
 
                 if result is None:
@@ -505,10 +497,10 @@ def main():
                     )
                     sys.exit(1)
 
-                # 检测成功，提取结果（现在是 bug 列表）
-                bug_reports = result["reports"]
-                prompt = result["prompt"]
-                raw_response = result["raw_response"]
+                # 检测成功，提取结果
+                bug_reports = result.reports  # 已去重和标记来源的 bug 列表
+                prompt = result.prompt
+                raw_response = result.raw_response
 
                 # 如果有 bug，保存 LLM 交互并添加到 reports
                 if bug_reports:
