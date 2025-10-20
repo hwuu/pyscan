@@ -4,6 +4,7 @@ tiktoken>=0.5.0
 tqdm>=4.65.0
 pytest>=7.0.0
 pytest-mock>=3.10.0
+Jinja2>=3.0.0
 
 # Layer 1 静态分析工具
 mypy>=1.0.0

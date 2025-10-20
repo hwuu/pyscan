@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from typing import Dict, List, Any
+from jinja2 import Environment, FileSystemLoader
 
 
 class Visualizer:
@@ -149,20 +150,17 @@ class Visualizer:
         """
         # 准备数据
         bugs_list = self._prepare_bugs_list(report, source_files, embed_source)
-        bugs_json = json.dumps(bugs_list, ensure_ascii=False)
-        source_files_json = json.dumps(source_files, ensure_ascii=False) if embed_source else "{}"
 
-        # 加载 HTML 模板
-        template_path = Path(__file__).parent / 'template.html'
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template = f.read()
+        # 使用 Jinja2 渲染模板
+        template_dir = Path(__file__).parent
+        env = Environment(loader=FileSystemLoader(template_dir))
+        template = env.get_template('template.html')
 
-        # 替换模板中的变量
-        html = template.format(
+        html = template.render(
             timestamp=report.get('timestamp', ''),
-            bugs_json=bugs_json,
-            source_files_json=source_files_json,
-            embed_source=str(embed_source).lower()
+            bugs_json=json.dumps(bugs_list, ensure_ascii=False),
+            source_files_json=json.dumps(source_files, ensure_ascii=False) if embed_source else "{}",
+            embed_source='true' if embed_source else 'false'
         )
 
         return html
