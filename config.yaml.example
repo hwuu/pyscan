@@ -1,6 +1,6 @@
 llm:
   base_url: "https://api.openai.com/v1"
-  api_key: "sk-xxx"
+  api_key: "sk-xxx"  # 替换为你的 API key
   model: "gpt-4"
   max_tokens: 8000
   temperature: 0.2
@@ -15,8 +15,32 @@ scan:
     - "*/venv/*"
     - "*/.venv/*"
 
+# Bug 过滤配置
+filter:
+  # 排除的 bug 类型（完全匹配）
+  exclude_types:
+    # - "资源管理错误"
+    # - "业务逻辑错误"
+    # - "安全漏洞"
+  # 排除的严重程度
+  exclude_severities:
+    # - "low"
+    # - "medium"
+
 detector:
   max_retries: 3
   concurrency: 1
-  context_token_limit: 6000
+  context_token_limit: 6000  # Context 最大长度要小于 llm 的 max_tokens
   # use_tiktoken: false  # 是否使用 tiktoken 精确计算 token 数 (默认: false, 使用字符估算)
+
+# Layer 1 静态分析工具配置
+layer1:
+  enable_mypy: true      # 启用 mypy 类型检查
+  enable_bandit: true    # 启用 bandit 安全扫描
+
+# Layer 4 交叉验证配置
+layer4:
+  enable_cross_validation: true  # 启用 Layer 4 交叉验证
+  confidence_threshold: 0.7      # 最低置信度阈值
+  position_tolerance: 2          # 位置匹配容忍度（行数）
+  enable_deduplication: true     # 启用去重

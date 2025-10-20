@@ -153,8 +153,11 @@ class DetectionPipeline:
             bug_id_start
         )
 
+        # Step 5: 应用过滤器
+        filtered_reports = self._apply_filters(merged_reports)
+
         return DetectionResult(
-            reports=merged_reports,
+            reports=filtered_reports,
             prompt=prompt,
             raw_response=raw_response,
             layer1_facts=static_facts,
@@ -307,3 +310,49 @@ class DetectionPipeline:
             return True
 
         return False
+
+    def _apply_filters(self, reports: List[BugReport]) -> List[BugReport]:
+        """
+        应用配置文件中的过滤规则
+
+        根据 config.yaml 中的 filter.exclude_types 和 filter.exclude_severities
+        过滤掉不需要的 bug
+
+        Args:
+            reports: 原始 bug 报告列表
+
+        Returns:
+            过滤后的 bug 报告列表
+        """
+        # 读取过滤配置
+        filter_config = getattr(self.config, 'filter', {})
+        if isinstance(filter_config, dict):
+            exclude_types = filter_config.get('exclude_types', []) or []
+            exclude_severities = filter_config.get('exclude_severities', []) or []
+        else:
+            exclude_types = getattr(filter_config, 'exclude_types', []) or []
+            exclude_severities = getattr(filter_config, 'exclude_severities', []) or []
+
+        # 如果没有配置任何过滤规则，直接返回
+        if not exclude_types and not exclude_severities:
+            return reports
+
+        # 应用过滤规则
+        filtered = []
+        for bug in reports:
+            # 检查类型是否需要排除
+            if bug.bug_type in exclude_types:
+                logger.debug(f"Filtered out bug {bug.bug_id} due to type: {bug.bug_type}")
+                continue
+
+            # 检查严重程度是否需要排除
+            if bug.severity in exclude_severities:
+                logger.debug(f"Filtered out bug {bug.bug_id} due to severity: {bug.severity}")
+                continue
+
+            filtered.append(bug)
+
+        if len(filtered) < len(reports):
+            logger.info(f"Filtered {len(reports) - len(filtered)} bugs based on config rules")
+
+        return filtered
