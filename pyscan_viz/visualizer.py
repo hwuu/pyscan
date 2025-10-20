@@ -247,6 +247,7 @@ class Visualizer:
         }}
 
         select.filter-select {{
+            width: 100%;
             padding: 5px 10px;
             border: 1px solid rgba(255,255,255,0.3);
             border-radius: 4px;
