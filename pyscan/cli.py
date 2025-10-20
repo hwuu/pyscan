@@ -244,6 +244,51 @@ def extract_caller_snippet(caller_code: str, target_func_name: str, context_line
     return '\n'.join(snippets)
 
 
+def apply_bug_filters(reports, config):
+    """
+    应用配置文件中的 bug 过滤规则
+
+    Args:
+        reports: Bug 报告列表
+        config: 配置对象
+
+    Returns:
+        过滤后的 bug 报告列表
+    """
+    # 读取过滤配置
+    filter_config = getattr(config, 'filter', {})
+    if isinstance(filter_config, dict):
+        exclude_types = filter_config.get('exclude_types', []) or []
+        exclude_severities = filter_config.get('exclude_severities', []) or []
+    else:
+        exclude_types = getattr(filter_config, 'exclude_types', []) or []
+        exclude_severities = getattr(filter_config, 'exclude_severities', []) or []
+
+    # 如果没有配置任何过滤规则，直接返回
+    if not exclude_types and not exclude_severities:
+        return reports
+
+    # 应用过滤规则
+    filtered = []
+    for bug in reports:
+        # 检查类型是否需要排除
+        if bug.bug_type in exclude_types:
+            logger.debug(f"Filtered out bug {bug.bug_id} due to type: {bug.bug_type}")
+            continue
+
+        # 检查严重程度是否需要排除
+        if bug.severity in exclude_severities:
+            logger.debug(f"Filtered out bug {bug.bug_id} due to severity: {bug.severity}")
+            continue
+
+        filtered.append(bug)
+
+    if len(filtered) < len(reports):
+        logger.info(f"Filtered {len(reports) - len(filtered)} bugs based on config rules")
+
+    return filtered
+
+
 def main():
     """Main entry point for pyscan CLI."""
     parser = argparse.ArgumentParser(
@@ -341,10 +386,12 @@ def main():
         # 加载之前的进度
         completed_functions, reports = progress_manager.load_progress()
 
-        # 如果有之前的进度，先生成一次报告
+        # 如果有之前的进度，应用过滤并生成一次报告
         if reports:
             logger.info("Found previous progress, generating report from existing data...")
-            reporter = Reporter(reports, scan_dir)
+            # 应用过滤规则
+            filtered_reports = apply_bug_filters(reports, config)
+            reporter = Reporter(filtered_reports, scan_dir)
             reporter.to_json(args.output)
             logger.info(f"Existing report generated: {args.output}")
 
@@ -493,7 +540,9 @@ def main():
 
                     # 保存当前进度和报告
                     progress_manager.save_progress(completed_functions, reports)
-                    reporter = Reporter(reports, scan_dir)
+                    # 应用过滤规则
+                    filtered_reports = apply_bug_filters(reports, config)
+                    reporter = Reporter(filtered_reports, scan_dir)
                     reporter.to_json(args.output)
 
                     logger.info(
@@ -525,7 +574,9 @@ def main():
 
                 # 每完成一个函数就保存进度和更新报告
                 progress_manager.save_progress(completed_functions, reports)
-                reporter = Reporter(reports, scan_dir)
+                # 应用过滤规则
+                filtered_reports = apply_bug_filters(reports, config)
+                reporter = Reporter(filtered_reports, scan_dir)
                 reporter.to_json(args.output)
 
             except Exception as e:
@@ -537,7 +588,9 @@ def main():
 
                 # 保存当前进度和报告
                 progress_manager.save_progress(completed_functions, reports)
-                reporter = Reporter(reports, scan_dir)
+                # 应用过滤规则
+                filtered_reports = apply_bug_filters(reports, config)
+                reporter = Reporter(filtered_reports, scan_dir)
                 reporter.to_json(args.output)
 
                 logger.info(
@@ -548,16 +601,18 @@ def main():
 
         # 5. 生成报告
         logger.info("Generating report...")
-        reporter = Reporter(reports, scan_dir)
+        # 应用过滤规则
+        filtered_reports = apply_bug_filters(reports, config)
+        reporter = Reporter(filtered_reports, scan_dir)
         reporter.to_json(args.output)
         logger.info(f"Report generated: {args.output}")
 
         # 统计信息
-        total_bugs = len(reports)
-        affected_functions = len(set(r.function_name for r in reports))
-        high_severity = sum(1 for r in reports if r.severity == "high")
-        medium_severity = sum(1 for r in reports if r.severity == "medium")
-        low_severity = sum(1 for r in reports if r.severity == "low")
+        total_bugs = len(filtered_reports)
+        affected_functions = len(set(r.function_name for r in filtered_reports))
+        high_severity = sum(1 for r in filtered_reports if r.severity == "high")
+        medium_severity = sum(1 for r in filtered_reports if r.severity == "medium")
+        low_severity = sum(1 for r in filtered_reports if r.severity == "low")
 
         logger.info(f"\nScan completed!")
         logger.info(f"Total bugs found: {total_bugs}")

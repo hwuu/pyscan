@@ -308,14 +308,7 @@ class Visualizer:
 
             bugs_list.append(bug_data)
 
-        # 排序：按照 severity > file_path > function_start_line
-        severity_order = {'high': 0, 'medium': 1, 'low': 2}
-        bugs_list.sort(key=lambda x: (
-            severity_order.get(x['severity'], 3),
-            x['file_path'],
-            x['function_poi']['start_line']
-        ))
-
+        # 不需要排序，由前端 JavaScript 按 bug_id 排序
         return bugs_list
 
     def _count_bugs_by_severity(self, report: Dict[str, Any], severity: str) -> int:

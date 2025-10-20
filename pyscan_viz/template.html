@@ -589,8 +589,8 @@
             // 按 bug id 升序排序
             filtered.sort((a, b) => {
                 // 提取 bug id 中的数字进行比较
-                const aNum = parseInt(a.id.replace(/\\D/g, '')) || 0;
-                const bNum = parseInt(b.id.replace(/\\D/g, '')) || 0;
+                const aNum = parseInt(a.id.replace(/\D/g, '')) || 0;
+                const bNum = parseInt(b.id.replace(/\D/g, '')) || 0;
                 return aNum - bNum;
             });
 

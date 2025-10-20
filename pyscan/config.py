@@ -137,6 +137,13 @@ class Config:
             "enable_deduplication": layer4_config.get("enable_deduplication", True),
         }
 
+        # Bug 过滤配置
+        filter_config = config_dict.get("filter", {})
+        self.filter = {
+            "exclude_types": filter_config.get("exclude_types", []) or [],
+            "exclude_severities": filter_config.get("exclude_severities", []) or [],
+        }
+
     def _validate_values(self) -> None:
         """Validate configuration values."""
         if self.llm_max_tokens <= 0:
