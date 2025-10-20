@@ -689,7 +689,7 @@
             // embedMode: 使用预先提取的 snippet
             if (bug.function_snippet) {
                 const snippet = bug.function_snippet;
-                const snippetLines = snippet.snippet.split('\\n');
+                const snippetLines = snippet.snippet.split('\n');
                 const snippetStartLine = snippet.snippet_start_line;
                 const bugPoiStart = snippet.poi_start_line;
                 const bugPoiEnd = snippet.poi_end_line;
@@ -712,7 +712,7 @@
                 }
             } else {
                 // 非 embedMode: 从 sourceCode 动态提取 bug POI snippet
-                const lines = sourceCode.split('\\n');
+                const lines = sourceCode.split('\n');
                 const functionStartLine = bug.function_poi.start_line;
 
                 // 计算 bug 在整个文件中的绝对行号
@@ -765,7 +765,7 @@
                     // embedMode: 使用预先提取的 snippet
                     if (caller.snippet) {
                         const snippet = caller.snippet;
-                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetLines = snippet.snippet.split('\n');
                         const snippetStartLine = snippet.snippet_start_line;
 
                         for (let j = 0; j < snippetLines.length; j++) {
@@ -778,7 +778,7 @@
                         // 非 embedMode: 从 sourceFiles 动态提取 caller POI snippet
                         const callerSourceCode = sourceFiles[filePath];
                         if (callerSourceCode) {
-                            const lines = callerSourceCode.split('\\n');
+                            const lines = callerSourceCode.split('\n');
 
                             // 使用 callLines 来确定 snippet 范围（而不是整个函数）
                             let poiStart, poiEnd;
@@ -837,7 +837,7 @@
                     // embedMode: 使用预先提取的 snippet
                     if (inferredCaller.snippet) {
                         const snippet = inferredCaller.snippet;
-                        const snippetLines = snippet.snippet.split('\\n');
+                        const snippetLines = snippet.snippet.split('\n');
                         const snippetStartLine = snippet.snippet_start_line;
 
                         for (let j = 0; j < snippetLines.length; j++) {
@@ -850,7 +850,7 @@
                         // 非 embedMode: 从 sourceFiles 动态提取 inferred caller POI snippet
                         const inferredSourceCode = sourceFiles[filePath];
                         if (inferredSourceCode) {
-                            const lines = inferredSourceCode.split('\\n');
+                            const lines = inferredSourceCode.split('\n');
 
                             // 使用 inferenceLines 来确定 snippet 范围（而不是整个函数）
                             let poiStart, poiEnd;
@@ -903,7 +903,7 @@
 
         // 格式化 caller code，高亮调用行（以 ">>> " 开头）
         function formatCallerCode(code) {
-            const lines = code.split('\\n');
+            const lines = code.split('\n');
             const formattedLines = lines.map(line => {
                 if (line.startsWith('>>> ')) {
                     // 移除 ">>> " 标记，并添加高亮类
@@ -913,7 +913,7 @@
                     return escapeHtml(line);
                 }
             });
-            return formattedLines.join('\\n');
+            return formattedLines.join('\n');
         }
 
         // 启动应用
