@@ -843,7 +843,7 @@ class Visualizer:
                     codePane.innerHTML = `
                         <div class="bug-details">
                             <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
-                            <p><span class="label">Description:</span> ${{bug.description}}</p>
+                            <p>${{bug.description}}</p>
                             <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
                         </div>
                         <div class="code-header">⚠️ Unable to load source file</div>
@@ -868,10 +868,10 @@ class Visualizer:
             let html = `
                 <div class="bug-details">
                     <h3>${{bug.id}} - ${{bug.type}} [${{bug.severity.toUpperCase()}}]</h3>
-                    <p><span class="label">Description:</span> ${{bug.description}}</p>
+                    <p>${{bug.description}}</p>
                     <p><span class="label">Suggestion:</span> ${{bug.suggestion}}</p>
                 </div>
-                <div class="code-header">📄 Current Function: ${{bug.function_name}} @ ${{bug.file_path}}</div>
+                <div class="code-header">${{bug.function_name}} @ ${{bug.file_path}}</div>
                 <div class="code-content">
             `;
 
@@ -947,7 +947,7 @@ class Visualizer:
 
                     html += `
                         <div class="caller-item">
-                            <div class="caller-label">Caller ${{i + 1}}: ${{functionName}} @ ${{filePath}}</div>
+                            <div class="caller-label">[${{i + 1}}/${{bug.callers.length}}] ${{functionName}} @ ${{filePath}}</div>
                             <div class="code-content">
                     `;
 
@@ -1019,7 +1019,7 @@ class Visualizer:
                     html += `
                         <div class="caller-item">
                             <div class="caller-hint">${{escapeHtml(hint)}}</div>
-                            <div class="caller-label">${{functionName}} @ ${{filePath}}</div>
+                            <div class="caller-label">[${{i + 1}}/${{bug.inferred_callers.length}}] ${{functionName}} @ ${{filePath}}</div>
                             <div class="code-content">
                     `;
 
