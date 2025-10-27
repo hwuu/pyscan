@@ -593,8 +593,10 @@
                 { value: 'low', label: 'Low', count: stats.severity.low || 0 }
             ].sort((a, b) => b.count - a.count);  // 按数量降序
 
+            // 当选择了具体选项时，All 不显示数字
+            const severityAllText = currentSeverity === 'all' ? `All (${currentBugs.length})` : 'All';
             severitySelect.innerHTML = `
-                <option value="all" ${currentSeverity === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
+                <option value="all" ${currentSeverity === 'all' ? 'selected' : ''}>${severityAllText}</option>
                 ${severities.map(s => `
                     <option value="${s.value}" ${s.value === currentSeverity ? 'selected' : ''}>${s.label} (${s.count})</option>
                 `).join('')}
@@ -606,8 +608,11 @@
             const paths = Object.entries(stats.path)
                 .sort((a, b) => b[1] - a[1])  // 按数量降序
                 .map(([path, count]) => ({ path, count }));
+
+            // 当选择了具体选项时，All 不显示数字
+            const pathAllText = currentPath === 'all' ? `All (${currentBugs.length})` : 'All';
             pathSelect.innerHTML = `
-                <option value="all" ${currentPath === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
+                <option value="all" ${currentPath === 'all' ? 'selected' : ''}>${pathAllText}</option>
                 ${paths.map(p => `
                     <option value="${p.path}" ${p.path === currentPath ? 'selected' : ''}>${p.path} (${p.count})</option>
                 `).join('')}
@@ -619,8 +624,11 @@
             const types = Object.entries(stats.type)
                 .sort((a, b) => b[1] - a[1])  // 按数量降序
                 .map(([type, count]) => ({ type, count }));
+
+            // 当选择了具体选项时，All 不显示数字
+            const typeAllText = currentType === 'all' ? `All (${currentBugs.length})` : 'All';
             typeSelect.innerHTML = `
-                <option value="all" ${currentType === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
+                <option value="all" ${currentType === 'all' ? 'selected' : ''}>${typeAllText}</option>
                 ${types.map(t => `
                     <option value="${t.type}" ${t.type === currentType ? 'selected' : ''}>${t.type} (${t.count})</option>
                 `).join('')}
@@ -644,8 +652,10 @@
                     })
                     .sort((a, b) => b.count - a.count);  // 按数量降序
 
+                // 当选择了具体选项时，All 不显示数字
+                const commitAllText = !currentCommit ? `All (${currentBugs.length})` : 'All';
                 commitSelect.innerHTML = `
-                    <option value="" ${!currentCommit ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    <option value="" ${!currentCommit ? 'selected' : ''}>${commitAllText}</option>
                     ${commits.map(c => `
                         <option value="${c.hash_full}" ${c.hash_full === currentCommit ? 'selected' : ''}>${c.hash} - ${c.subject} (${c.count}) - ${c.date_relative}</option>
                     `).join('')}
@@ -671,8 +681,10 @@
                     })
                     .sort((a, b) => b.count - a.count);  // 按数量降序
 
+                // 当选择了具体选项时，All 不显示数字
+                const ownerAllText = !currentOwner ? `All (${currentBugs.length})` : 'All';
                 ownerSelect.innerHTML = `
-                    <option value="" ${!currentOwner ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    <option value="" ${!currentOwner ? 'selected' : ''}>${ownerAllText}</option>
                     ${owners.map(o => `
                         <option value="${o.email}" ${o.email === currentOwner ? 'selected' : ''}>${o.name} <${o.email}> (${o.count})</option>
                     `).join('')}
@@ -707,8 +719,10 @@
                     return { ...range, count };
                 });
 
+                // 当选择了具体选项时，All 不显示数字
+                const timeRangeAllText = !currentTimeRange ? `All (${currentBugs.length})` : 'All';
                 timeRangeSelect.innerHTML = `
-                    <option value="" ${!currentTimeRange ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    <option value="" ${!currentTimeRange ? 'selected' : ''}>${timeRangeAllText}</option>
                     ${timeRanges.map(r => `
                         <option value="${r.value}" ${r.value == currentTimeRange ? 'selected' : ''}>Last ${r.label} (${r.count})</option>
                     `).join('')}
