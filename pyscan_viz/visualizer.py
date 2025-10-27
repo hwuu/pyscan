@@ -8,7 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 class Visualizer:
     """Generate interactive HTML visualization from JSON report."""
 
-    def generate_html(self, report_json_path: str, output_html_path: str, embed_source: bool = True):
+    def generate_html(self, report_json_path: str, output_html_path: str, embed_source: bool = True, report: Dict[str, Any] = None):
         """
         Generate interactive HTML from JSON report.
 
@@ -16,10 +16,12 @@ class Visualizer:
             report_json_path: Path to JSON report file.
             output_html_path: Path to output HTML file.
             embed_source: If True, embed source code in HTML. If False, load dynamically.
+            report: Optional pre-loaded report data. If None, will load from report_json_path.
         """
-        # 加载 JSON 报告
-        with open(report_json_path, 'r', encoding='utf-8') as f:
-            report = json.load(f)
+        # 加载 JSON 报告（如果未提供）
+        if report is None:
+            with open(report_json_path, 'r', encoding='utf-8') as f:
+                report = json.load(f)
 
         # 获取 report.json 所在的目录，用于解析相对路径
         report_dir = Path(report_json_path).parent.absolute()
@@ -151,6 +153,10 @@ class Visualizer:
         # 准备数据
         bugs_list = self._prepare_bugs_list(report, source_files, embed_source)
 
+        # 提取 commits 和 owners（用于过滤器）
+        all_commits = self._extract_commits(report.get('bugs', []))
+        all_owners = self._extract_owners(report.get('bugs', []))
+
         # 使用 Jinja2 渲染模板
         template_dir = Path(__file__).parent
         env = Environment(loader=FileSystemLoader(template_dir))
@@ -160,7 +166,9 @@ class Visualizer:
             timestamp=report.get('timestamp', ''),
             bugs_json=json.dumps(bugs_list, ensure_ascii=False),
             source_files_json=json.dumps(source_files, ensure_ascii=False) if embed_source else "{}",
-            embed_source='true' if embed_source else 'false'
+            embed_source='true' if embed_source else 'false',
+            all_commits_json=json.dumps(all_commits, ensure_ascii=False),
+            all_owners_json=json.dumps(all_owners, ensure_ascii=False)
         )
 
         return html
@@ -311,3 +319,77 @@ class Visualizer:
     def _count_bugs_by_severity(self, report: Dict[str, Any], severity: str) -> int:
         """Count bugs by severity level."""
         return sum(1 for bug in report.get('bugs', []) if bug.get('severity') == severity)
+
+    def _extract_commits(self, bugs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Extract unique commits from bugs, sorted by date (newest first).
+
+        Args:
+            bugs: List of bugs with git_info
+
+        Returns:
+            List of commit dictionaries with bug_count
+        """
+        commit_map = {}  # {hash_full: commit_info}
+
+        for bug in bugs:
+            git_info = bug.get('git_info')
+            if not git_info:
+                continue
+
+            hash_full = git_info['hash_full']
+
+            if hash_full not in commit_map:
+                commit_map[hash_full] = {
+                    'hash': git_info['hash'],
+                    'hash_full': hash_full,
+                    'subject': git_info['subject'],
+                    'author': git_info['author'],
+                    'date': git_info['date'],
+                    'date_relative': git_info['date_relative'],
+                    'url': git_info.get('url'),
+                    'bug_count': 0
+                }
+
+            commit_map[hash_full]['bug_count'] += 1
+
+        # Sort by date (newest first)
+        commits = list(commit_map.values())
+        commits.sort(key=lambda c: c['date'], reverse=True)
+
+        return commits
+
+    def _extract_owners(self, bugs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Extract unique owners from bugs, sorted by bug_count (descending).
+
+        Args:
+            bugs: List of bugs with git_info
+
+        Returns:
+            List of owner dictionaries with bug_count
+        """
+        owner_map = {}  # {email: owner_info}
+
+        for bug in bugs:
+            git_info = bug.get('git_info')
+            if not git_info:
+                continue
+
+            email = git_info['email']
+            name = git_info['author']
+
+            if email not in owner_map:
+                owner_map[email] = {
+                    'name': name,
+                    'email': email,
+                    'bug_count': 0
+                }
+
+            owner_map[email]['bug_count'] += 1
+
+        # Sort by bug_count (descending)
+        owners = list(owner_map.values())
+        owners.sort(key=lambda o: o['bug_count'], reverse=True)
+
+        return owners

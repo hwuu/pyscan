@@ -61,6 +61,43 @@ if match:
 
 ---
 
+### Windows Subprocess 编码问题
+
+**问题**：在 Windows 环境下使用 `subprocess.run` 读取 git 命令输出时，遇到 `UnicodeDecodeError: 'gbk' codec can't decode byte...`
+
+**原因**：
+- Windows 系统默认使用 GBK 编码
+- `subprocess.run` 在 `text=True` 时会使用系统默认编码
+- Git 输出（如 git blame）可能包含 UTF-8 编码的内容（中文作者名、中文注释等）
+- GBK 无法正确解码某些 UTF-8 字节序列
+
+**错误示例**：
+```
+UnicodeDecodeError: 'gbk' codec can't decode byte 0xa6 in position 20560: illegal multibyte sequence
+```
+
+**解决方案**：在所有 `subprocess.run` 调用中明确指定 UTF-8 编码和错误处理：
+```python
+result = subprocess.run(
+    ['git', 'blame', '--line-porcelain', file_path],
+    capture_output=True,
+    text=True,
+    encoding='utf-8',        # 明确指定 UTF-8 编码
+    errors='replace',        # 遇到无法解码的字符时替换而不是报错
+    check=True,
+    timeout=30
+)
+```
+
+**影响模块**：`pyscan_viz/git_analyzer.py`
+
+**关键点**：
+- 所有调用 git 命令的地方都需要指定 `encoding='utf-8'`
+- 使用 `errors='replace'` 确保即使遇到特殊字符也不会崩溃
+- 包括：`git rev-parse`、`git remote get-url`、`git blame` 等
+
+---
+
 ## 常用命令
 
 ### 测试命令

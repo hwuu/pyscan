@@ -250,6 +250,107 @@
             font-weight: 600;
         }
 
+        /* Git 信息样式 */
+        .git-info-section {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #3e3e3e;
+        }
+
+        .git-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9cdcfe;
+            margin: 0 0 10px 0;
+        }
+
+        .git-commit-card {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #3e3e3e;
+        }
+
+        .git-commit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .git-commit-hash {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #2a2a2a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ce9178;
+            cursor: help;
+        }
+
+        .git-commit-hash code {
+            color: #ce9178;
+            background: none;
+        }
+
+        .git-commit-date {
+            font-size: 12px;
+            color: #858585;
+        }
+
+        .git-commit-author {
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #cccccc;
+        }
+
+        .git-icon {
+            margin-right: 4px;
+        }
+
+        .git-author-name {
+            font-weight: 500;
+            color: #dcdcaa;
+        }
+
+        .git-author-email {
+            font-size: 11px;
+            color: #858585;
+            margin-left: 5px;
+        }
+
+        .git-commit-subject {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cccccc;
+            font-style: italic;
+        }
+
+        .git-commit-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: #0e639c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .git-commit-link:hover {
+            background: #1177bb;
+        }
+
+        .git-external-icon {
+            font-size: 10px;
+        }
+
         .empty-state {
             display: flex;
             align-items: center;
@@ -372,6 +473,42 @@
                     </select>
                 </div>
             </div>
+
+            <!-- Git 过滤器 -->
+            <div id="gitFilters" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); display: none;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <!-- Commit 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">📝 Commit</div>
+                        <select class="filter-select" id="commitFilter">
+                            <option value="">全部 Commits</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- Time Range 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">⏰ Time Range</div>
+                        <select class="filter-select" id="timeRangeFilter">
+                            <option value="">全部时间</option>
+                            <option value="1">最近 1 天</option>
+                            <option value="7">最近 7 天</option>
+                            <option value="15">最近 15 天</option>
+                            <option value="30">最近 30 天</option>
+                            <option value="90">最近 90 天</option>
+                        </select>
+                    </div>
+
+                    <!-- Owner 筛选 -->
+                    <div class="filter-section">
+                        <div class="filter-label">👤 Owner</div>
+                        <select class="filter-select" id="ownerFilter">
+                            <option value="">全部作者</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 主内容区域 -->
@@ -400,15 +537,29 @@
         const sourceFiles = {{ source_files_json }};
         const embedMode = {{ embed_source }};
 
+        // Git 数据（用于过滤器）
+        const allCommits = {{ all_commits_json }};
+        const allOwners = {{ all_owners_json }};
+
         let currentFilters = {
             severity: 'all',
             path: 'all',
-            type: 'all'
+            type: 'all',
+            // Git 过滤器
+            commit: null,           // null 表示"全部"，否则是 commit hash_full
+            timeRange: null,        // null 或 1/7/15/30/90（天数）
+            owner: null             // null 表示"全部"，否则是 owner email
         };
         let selectedBugIndex = -1;
 
         // 初始化
         function init() {
+            // 如果有 git 数据，显示 git 过滤器并填充选项
+            if (allCommits.length > 0 || allOwners.length > 0) {
+                document.getElementById('gitFilters').style.display = 'block';
+                populateGitFilters();
+            }
+
             generateFilterOptions();
             setupFilterControls();
             renderBugsList();
@@ -495,6 +646,35 @@
                 filtered = filtered.filter(bug => bug.type === currentFilters.type);
             }
 
+            // Git 过滤器
+            // 按 commit 过滤
+            if (currentFilters.commit) {
+                filtered = filtered.filter(bug => {
+                    return bug.git_info && bug.git_info.hash_full === currentFilters.commit;
+                });
+            }
+
+            // 按时间范围过滤
+            if (currentFilters.timeRange) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - currentFilters.timeRange);
+
+                filtered = filtered.filter(bug => {
+                    if (!bug.git_info || !bug.git_info.date) {
+                        return false;
+                    }
+                    const bugDate = new Date(bug.git_info.date);
+                    return bugDate >= cutoffDate;
+                });
+            }
+
+            // 按作者过滤
+            if (currentFilters.owner) {
+                filtered = filtered.filter(bug => {
+                    return bug.git_info && bug.git_info.email === currentFilters.owner;
+                });
+            }
+
             return filtered;
         }
 
@@ -517,6 +697,56 @@
                 currentFilters.type = e.target.value;
                 updateFiltersAndRender();
             });
+
+            // Git 过滤器
+            const commitFilter = document.getElementById('commitFilter');
+            if (commitFilter) {
+                commitFilter.addEventListener('change', (e) => {
+                    currentFilters.commit = e.target.value || null;
+                    updateFiltersAndRender();
+                });
+            }
+
+            const timeRangeFilter = document.getElementById('timeRangeFilter');
+            if (timeRangeFilter) {
+                timeRangeFilter.addEventListener('change', (e) => {
+                    currentFilters.timeRange = e.target.value ? parseInt(e.target.value) : null;
+                    updateFiltersAndRender();
+                });
+            }
+
+            const ownerFilter = document.getElementById('ownerFilter');
+            if (ownerFilter) {
+                ownerFilter.addEventListener('change', (e) => {
+                    currentFilters.owner = e.target.value || null;
+                    updateFiltersAndRender();
+                });
+            }
+        }
+
+        // 填充 Git 过滤器选项
+        function populateGitFilters() {
+            // 填充 Commit 选项
+            const commitSelect = document.getElementById('commitFilter');
+            if (commitSelect && allCommits.length > 0) {
+                allCommits.forEach(commit => {
+                    const option = document.createElement('option');
+                    option.value = commit.hash_full;
+                    option.textContent = `${commit.hash} - ${commit.subject} (${commit.bug_count} bugs) - ${commit.date_relative}`;
+                    commitSelect.appendChild(option);
+                });
+            }
+
+            // 填充 Owner 选项
+            const ownerSelect = document.getElementById('ownerFilter');
+            if (ownerSelect && allOwners.length > 0) {
+                allOwners.forEach(owner => {
+                    const option = document.createElement('option');
+                    option.value = owner.email;
+                    option.textContent = `${owner.name} <${owner.email}> (${owner.bug_count} bugs)`;
+                    ownerSelect.appendChild(option);
+                });
+            }
         }
 
         // 更新筛选器选项并重新渲染列表（联动）
@@ -681,6 +911,32 @@
                     <h3>${bug.id} - ${bug.type} [${bug.severity.toUpperCase()}]</h3>
                     <p>${bug.description}</p>
                     <p><span class="label">Suggestion:</span> ${bug.suggestion}</p>
+                    ${bug.git_info ? `
+                    <div class="git-info-section">
+                        <h4 class="git-section-title">📝 Last Modified</h4>
+                        <div class="git-commit-card">
+                            <div class="git-commit-header">
+                                <span class="git-commit-hash" title="${bug.git_info.hash_full}">
+                                    <code>${bug.git_info.hash}</code>
+                                </span>
+                                <span class="git-commit-date">${bug.git_info.date_relative}</span>
+                            </div>
+                            <div class="git-commit-author">
+                                <span class="git-icon">👤</span>
+                                <span class="git-author-name">${bug.git_info.author}</span>
+                                <span class="git-author-email" title="${bug.git_info.email}">&lt;${bug.git_info.email}&gt;</span>
+                            </div>
+                            <div class="git-commit-subject">${bug.git_info.subject}</div>
+                            ${bug.git_info.url ? `
+                            <a href="${bug.git_info.url}" target="_blank" class="git-commit-link">
+                                <span class="git-icon">🔗</span>
+                                View commit
+                                <span class="git-external-icon">↗</span>
+                            </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="code-header">${bug.function_name} @ ${bug.file_path}</div>
                 <div class="code-content">
