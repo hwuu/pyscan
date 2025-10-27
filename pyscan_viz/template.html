@@ -543,16 +543,6 @@
 
         // 初始化
         function init() {
-            // 如果有 git 数据，填充 git 过滤器选项
-            if (allCommits.length > 0 || allOwners.length > 0) {
-                populateGitFilters();
-            } else {
-                // 没有 git 数据时，禁用 git 过滤器
-                document.getElementById('commitFilter').disabled = true;
-                document.getElementById('timeRangeFilter').disabled = true;
-                document.getElementById('ownerFilter').disabled = true;
-            }
-
             generateFilterOptions();
             setupFilterControls();
             renderBugsList();
@@ -570,13 +560,28 @@
             const stats = {
                 severity: {},
                 path: {},
-                type: {}
+                type: {},
+                commit: {},
+                owner: {},
+                timeRange: {}
             };
 
             currentBugs.forEach(bug => {
                 stats.severity[bug.severity] = (stats.severity[bug.severity] || 0) + 1;
                 stats.path[bug.file_path] = (stats.path[bug.file_path] || 0) + 1;
                 stats.type[bug.type] = (stats.type[bug.type] || 0) + 1;
+
+                // Git 统计
+                if (bug.git_info) {
+                    // Commit 统计
+                    if (bug.git_info.hash_full) {
+                        stats.commit[bug.git_info.hash_full] = (stats.commit[bug.git_info.hash_full] || 0) + 1;
+                    }
+                    // Owner 统计
+                    if (bug.git_info.email) {
+                        stats.owner[bug.git_info.email] = (stats.owner[bug.git_info.email] || 0) + 1;
+                    }
+                }
             });
 
             // 生成 Severity 下拉选项（按数量从大到小排序）
@@ -620,6 +625,99 @@
                     <option value="${t.type}" ${t.type === currentType ? 'selected' : ''}>${t.type} (${t.count})</option>
                 `).join('')}
             `;
+
+            // 生成 Commit 选项（按数量从大到小排序）
+            const commitSelect = document.getElementById('commitFilter');
+            if (commitSelect) {
+                const currentCommit = currentFilters.commit;
+                const commits = Object.entries(stats.commit)
+                    .map(([hash_full, count]) => {
+                        // 从 allCommits 中查找完整信息
+                        const commitInfo = allCommits.find(c => c.hash_full === hash_full);
+                        return {
+                            hash_full: hash_full,
+                            hash: commitInfo ? commitInfo.hash : hash_full.substring(0, 8),
+                            subject: commitInfo ? commitInfo.subject : '',
+                            date_relative: commitInfo ? commitInfo.date_relative : '',
+                            count: count
+                        };
+                    })
+                    .sort((a, b) => b.count - a.count);  // 按数量降序
+
+                commitSelect.innerHTML = `
+                    <option value="" ${!currentCommit ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    ${commits.map(c => `
+                        <option value="${c.hash_full}" ${c.hash_full === currentCommit ? 'selected' : ''}>${c.hash} - ${c.subject} (${c.count}) - ${c.date_relative}</option>
+                    `).join('')}
+                `;
+
+                // 如果没有 git 数据，禁用
+                commitSelect.disabled = commits.length === 0;
+            }
+
+            // 生成 Owner 选项（按数量从大到小排序）
+            const ownerSelect = document.getElementById('ownerFilter');
+            if (ownerSelect) {
+                const currentOwner = currentFilters.owner;
+                const owners = Object.entries(stats.owner)
+                    .map(([email, count]) => {
+                        // 从 allOwners 中查找完整信息
+                        const ownerInfo = allOwners.find(o => o.email === email);
+                        return {
+                            email: email,
+                            name: ownerInfo ? ownerInfo.name : email,
+                            count: count
+                        };
+                    })
+                    .sort((a, b) => b.count - a.count);  // 按数量降序
+
+                ownerSelect.innerHTML = `
+                    <option value="" ${!currentOwner ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    ${owners.map(o => `
+                        <option value="${o.email}" ${o.email === currentOwner ? 'selected' : ''}>${o.name} <${o.email}> (${o.count})</option>
+                    `).join('')}
+                `;
+
+                // 如果没有 git 数据，禁用
+                ownerSelect.disabled = owners.length === 0;
+            }
+
+            // 生成 Time Range 选项（计算每个时间范围的 bug 数量）
+            const timeRangeSelect = document.getElementById('timeRangeFilter');
+            if (timeRangeSelect) {
+                const currentTimeRange = currentFilters.timeRange;
+                const now = new Date();
+
+                const timeRanges = [
+                    { value: 1, label: '1 day' },
+                    { value: 7, label: '7 days' },
+                    { value: 15, label: '15 days' },
+                    { value: 30, label: '30 days' },
+                    { value: 90, label: '90 days' }
+                ].map(range => {
+                    const cutoffDate = new Date();
+                    cutoffDate.setDate(cutoffDate.getDate() - range.value);
+
+                    const count = currentBugs.filter(bug => {
+                        if (!bug.git_info || !bug.git_info.date) return false;
+                        const bugDate = new Date(bug.git_info.date);
+                        return bugDate >= cutoffDate;
+                    }).length;
+
+                    return { ...range, count };
+                });
+
+                timeRangeSelect.innerHTML = `
+                    <option value="" ${!currentTimeRange ? 'selected' : ''}>All (${currentBugs.length})</option>
+                    ${timeRanges.map(r => `
+                        <option value="${r.value}" ${r.value == currentTimeRange ? 'selected' : ''}>Last ${r.label} (${r.count})</option>
+                    `).join('')}
+                `;
+
+                // 如果没有 git 数据，禁用
+                const hasGitData = currentBugs.some(bug => bug.git_info && bug.git_info.date);
+                timeRangeSelect.disabled = !hasGitData;
+            }
         }
 
         // 获取当前筛选条件下的 bugs（用于联动计算，不包括当前正在修改的筛选器）
@@ -713,31 +811,6 @@
                 ownerFilter.addEventListener('change', (e) => {
                     currentFilters.owner = e.target.value || null;
                     updateFiltersAndRender();
-                });
-            }
-        }
-
-        // 填充 Git 过滤器选项
-        function populateGitFilters() {
-            // 填充 Commit 选项
-            const commitSelect = document.getElementById('commitFilter');
-            if (commitSelect && allCommits.length > 0) {
-                allCommits.forEach(commit => {
-                    const option = document.createElement('option');
-                    option.value = commit.hash_full;
-                    option.textContent = `${commit.hash} - ${commit.subject} (${commit.bug_count}) - ${commit.date_relative}`;
-                    commitSelect.appendChild(option);
-                });
-            }
-
-            // 填充 Owner 选项
-            const ownerSelect = document.getElementById('ownerFilter');
-            if (ownerSelect && allOwners.length > 0) {
-                allOwners.forEach(owner => {
-                    const option = document.createElement('option');
-                    option.value = owner.email;
-                    option.textContent = `${owner.name} <${owner.email}> (${owner.bug_count})`;
-                    ownerSelect.appendChild(option);
                 });
             }
         }
