@@ -104,6 +104,11 @@
             outline: none;
         }
 
+        select.filter-select:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         select.filter-select option {
             background: #667eea;
             color: white;
@@ -266,26 +271,26 @@
 
         .git-commit-card {
             background: #1e1e1e;
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 6px;
             border: 1px solid #3e3e3e;
-        }
-
-        .git-commit-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            line-height: 1.5;
         }
 
         .git-commit-hash {
             font-family: 'Monaco', 'Menlo', monospace;
             background: #2a2a2a;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
             color: #ce9178;
             cursor: help;
+            white-space: nowrap;
         }
 
         .git-commit-hash code {
@@ -293,19 +298,16 @@
             background: none;
         }
 
-        .git-commit-date {
-            font-size: 12px;
-            color: #858585;
+        .git-commit-separator {
+            color: #555;
+            font-weight: 300;
         }
 
-        .git-commit-author {
-            margin-bottom: 8px;
-            font-size: 12px;
+        .git-commit-subject {
             color: #cccccc;
-        }
-
-        .git-icon {
-            margin-right: 4px;
+            font-style: italic;
+            flex: 1 1 auto;
+            min-width: 150px;
         }
 
         .git-author-name {
@@ -316,39 +318,30 @@
         .git-author-email {
             font-size: 11px;
             color: #858585;
-            margin-left: 5px;
         }
 
-        .git-commit-subject {
-            margin-bottom: 10px;
-            padding: 8px;
-            background: #2a2a2a;
-            border-radius: 4px;
-            font-size: 12px;
-            line-height: 1.5;
-            color: #cccccc;
-            font-style: italic;
+        .git-commit-date {
+            font-size: 11px;
+            color: #858585;
+            white-space: nowrap;
         }
 
         .git-commit-link {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
+            gap: 3px;
+            padding: 3px 8px;
             background: #0e639c;
             color: white;
             text-decoration: none;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 3px;
+            font-size: 11px;
             transition: background 0.2s;
+            white-space: nowrap;
         }
 
         .git-commit-link:hover {
             background: #1177bb;
-        }
-
-        .git-external-icon {
-            font-size: 10px;
         }
 
         .empty-state {
@@ -445,7 +438,7 @@
         <div class="stats-pane">
             <h1>🔍 PyScan Bug Report</h1>
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 15px;">
                 <!-- Severity 筛选 -->
                 <div class="filter-section">
                     <div class="filter-label">Severity</div>
@@ -472,41 +465,37 @@
                         <!-- 动态生成 -->
                     </select>
                 </div>
-            </div>
 
-            <!-- Git 过滤器 -->
-            <div id="gitFilters" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); display: none;">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                    <!-- Commit 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">📝 Commit</div>
-                        <select class="filter-select" id="commitFilter">
-                            <option value="">全部 Commits</option>
-                            <!-- 动态生成 -->
-                        </select>
-                    </div>
+                <!-- Git 过滤器（始终显示，如果有 git 数据则启用） -->
+                <!-- Commit 筛选 -->
+                <div class="filter-section" id="gitCommitSection">
+                    <div class="filter-label">Commit</div>
+                    <select class="filter-select" id="commitFilter">
+                        <option value="">全部 Commits</option>
+                        <!-- 动态生成 -->
+                    </select>
+                </div>
 
-                    <!-- Time Range 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">⏰ Time Range</div>
-                        <select class="filter-select" id="timeRangeFilter">
-                            <option value="">全部时间</option>
-                            <option value="1">最近 1 天</option>
-                            <option value="7">最近 7 天</option>
-                            <option value="15">最近 15 天</option>
-                            <option value="30">最近 30 天</option>
-                            <option value="90">最近 90 天</option>
-                        </select>
-                    </div>
+                <!-- Owner 筛选 -->
+                <div class="filter-section" id="gitOwnerSection">
+                    <div class="filter-label">Owner</div>
+                    <select class="filter-select" id="ownerFilter">
+                        <option value="">全部作者</option>
+                        <!-- 动态生成 -->
+                    </select>
+                </div>
 
-                    <!-- Owner 筛选 -->
-                    <div class="filter-section">
-                        <div class="filter-label">👤 Owner</div>
-                        <select class="filter-select" id="ownerFilter">
-                            <option value="">全部作者</option>
-                            <!-- 动态生成 -->
-                        </select>
-                    </div>
+                <!-- Time Range 筛选 -->
+                <div class="filter-section" id="gitTimeSection">
+                    <div class="filter-label">Time</div>
+                    <select class="filter-select" id="timeRangeFilter">
+                        <option value="">全部时间</option>
+                        <option value="1">最近 1 天</option>
+                        <option value="7">最近 7 天</option>
+                        <option value="15">最近 15 天</option>
+                        <option value="30">最近 30 天</option>
+                        <option value="90">最近 90 天</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -554,10 +543,14 @@
 
         // 初始化
         function init() {
-            // 如果有 git 数据，显示 git 过滤器并填充选项
+            // 如果有 git 数据，填充 git 过滤器选项
             if (allCommits.length > 0 || allOwners.length > 0) {
-                document.getElementById('gitFilters').style.display = 'block';
                 populateGitFilters();
+            } else {
+                // 没有 git 数据时，禁用 git 过滤器
+                document.getElementById('commitFilter').disabled = true;
+                document.getElementById('timeRangeFilter').disabled = true;
+                document.getElementById('ownerFilter').disabled = true;
             }
 
             generateFilterOptions();
@@ -732,7 +725,7 @@
                 allCommits.forEach(commit => {
                     const option = document.createElement('option');
                     option.value = commit.hash_full;
-                    option.textContent = `${commit.hash} - ${commit.subject} (${commit.bug_count} bugs) - ${commit.date_relative}`;
+                    option.textContent = `${commit.hash} - ${commit.subject} (${commit.bug_count}) - ${commit.date_relative}`;
                     commitSelect.appendChild(option);
                 });
             }
@@ -743,7 +736,7 @@
                 allOwners.forEach(owner => {
                     const option = document.createElement('option');
                     option.value = owner.email;
-                    option.textContent = `${owner.name} <${owner.email}> (${owner.bug_count} bugs)`;
+                    option.textContent = `${owner.name} <${owner.email}> (${owner.bug_count})`;
                     ownerSelect.appendChild(option);
                 });
             }
@@ -913,25 +906,20 @@
                     <p><span class="label">Suggestion:</span> ${bug.suggestion}</p>
                     ${bug.git_info ? `
                     <div class="git-info-section">
-                        <h4 class="git-section-title">📝 Last Modified</h4>
                         <div class="git-commit-card">
-                            <div class="git-commit-header">
-                                <span class="git-commit-hash" title="${bug.git_info.hash_full}">
-                                    <code>${bug.git_info.hash}</code>
-                                </span>
-                                <span class="git-commit-date">${bug.git_info.date_relative}</span>
-                            </div>
-                            <div class="git-commit-author">
-                                <span class="git-icon">👤</span>
-                                <span class="git-author-name">${bug.git_info.author}</span>
-                                <span class="git-author-email" title="${bug.git_info.email}">&lt;${bug.git_info.email}&gt;</span>
-                            </div>
-                            <div class="git-commit-subject">${bug.git_info.subject}</div>
+                            <span class="git-commit-hash" title="${bug.git_info.hash_full}">
+                                <code>${bug.git_info.hash}</code>
+                            </span>
+                            <span class="git-commit-separator">·</span>
+                            <span class="git-commit-subject">${bug.git_info.subject}</span>
+                            <span class="git-commit-separator">·</span>
+                            <span class="git-author-name">${bug.git_info.author}</span>
+                            <span class="git-author-email">&lt;${bug.git_info.email}&gt;</span>
+                            <span class="git-commit-separator">·</span>
+                            <span class="git-commit-date">${bug.git_info.date_relative}</span>
                             ${bug.git_info.url ? `
                             <a href="${bug.git_info.url}" target="_blank" class="git-commit-link">
-                                <span class="git-icon">🔗</span>
-                                View commit
-                                <span class="git-external-icon">↗</span>
+                                View ↗
                             </a>
                             ` : ''}
                         </div>

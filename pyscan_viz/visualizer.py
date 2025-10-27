@@ -239,7 +239,9 @@ class Visualizer:
                 'evidence': bug.get('evidence', {}),
                 'callers': bug.get('callers', []),
                 'callees': bug.get('callees', []),
-                'inferred_callers': bug.get('inferred_callers', [])
+                'inferred_callers': bug.get('inferred_callers', []),
+                # Git 信息
+                'git_info': bug.get('git_info')
             }
 
             # 如果 embedMode，提取 code snippets
