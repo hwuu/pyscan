@@ -589,7 +589,7 @@
             ].sort((a, b) => b.count - a.count);  // 按数量降序
 
             severitySelect.innerHTML = `
-                <option value="all" ${currentSeverity === 'all' ? 'selected' : ''}>All Severities (${currentBugs.length})</option>
+                <option value="all" ${currentSeverity === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
                 ${severities.map(s => `
                     <option value="${s.value}" ${s.value === currentSeverity ? 'selected' : ''}>${s.label} (${s.count})</option>
                 `).join('')}
@@ -602,7 +602,7 @@
                 .sort((a, b) => b[1] - a[1])  // 按数量降序
                 .map(([path, count]) => ({ path, count }));
             pathSelect.innerHTML = `
-                <option value="all" ${currentPath === 'all' ? 'selected' : ''}>All Paths (${currentBugs.length})</option>
+                <option value="all" ${currentPath === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
                 ${paths.map(p => `
                     <option value="${p.path}" ${p.path === currentPath ? 'selected' : ''}>${p.path} (${p.count})</option>
                 `).join('')}
@@ -615,7 +615,7 @@
                 .sort((a, b) => b[1] - a[1])  // 按数量降序
                 .map(([type, count]) => ({ type, count }));
             typeSelect.innerHTML = `
-                <option value="all" ${currentType === 'all' ? 'selected' : ''}>All Types (${currentBugs.length})</option>
+                <option value="all" ${currentType === 'all' ? 'selected' : ''}>All (${currentBugs.length})</option>
                 ${types.map(t => `
                     <option value="${t.type}" ${t.type === currentType ? 'selected' : ''}>${t.type} (${t.count})</option>
                 `).join('')}

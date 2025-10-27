@@ -207,7 +207,7 @@ python -m pyscan /path/to/code
 使用 `pyscan_viz` 将 JSON 报告转换为交互式 HTML:
 
 ```bash
-# 基本用法 (默认嵌入源码)
+# 基本用法 (默认嵌入源码 + 添加 Git 信息)
 python -m pyscan_viz report.json
 
 # 指定输出文件
@@ -215,6 +215,14 @@ python -m pyscan_viz report.json -o visualization.html
 
 # 不嵌入源码,动态加载 (适合大型项目)
 python -m pyscan_viz report.json --no-embed-source
+
+# 禁用 Git 信息 (如果不需要 commit 作者、时间等)
+python -m pyscan_viz report.json --no-git-enrich
+
+# 使用自定义配置文件 (用于 Git 平台配置)
+python -m pyscan_viz report.json -c my_config.yaml
+
+# 默认会查找 config.yaml，如果不存在则使用内置 Git 平台配置
 ```
 
 ## 工作原理
@@ -388,12 +396,15 @@ python -m pyscan ./my_project -c config.yaml -o bugs.json
 # 2. 如果扫描失败(如 API 限流),修复问题后继续
 python -m pyscan ./my_project -c config.yaml -o bugs.json
 
-# 3. 扫描完成后生成可视化报告
+# 3. 扫描完成后生成可视化报告 (默认包含 Git 信息)
 python -m pyscan_viz bugs.json -o bugs.html
 
-# 4. 在浏览器中打开 bugs.html 查看交互式报告
+# 4. 或指定配置文件 (用于自定义 Git 平台)
+python -m pyscan_viz bugs.json -c config.yaml -o bugs.html
 
-# 5. 分享特定 bug 的 URL
+# 5. 在浏览器中打开 bugs.html 查看交互式报告
+
+# 6. 分享特定 bug 的 URL
 # 例如: file:///path/to/bugs.html#BUG-003
 ```
 

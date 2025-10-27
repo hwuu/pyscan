@@ -42,7 +42,22 @@ def main():
     parser.add_argument(
         '--git-enrich',
         action='store_true',
-        help='Add git blame information to all bugs'
+        default=True,
+        help='Add git blame information to all bugs (default: True)'
+    )
+
+    parser.add_argument(
+        '--no-git-enrich',
+        dest='git_enrich',
+        action='store_false',
+        help='Do not add git blame information'
+    )
+
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        default='config.yaml',
+        help='Path to configuration file (default: config.yaml)'
     )
 
     args = parser.parse_args()
@@ -80,13 +95,13 @@ def main():
 
             # 尝试加载 git 平台配置（如果存在）
             custom_platforms = None
-            config_path = Path(git_repo_path) / 'config.yaml'
+            config_path = Path(args.config)
             if config_path.exists():
                 try:
                     config = Config.from_file(str(config_path))
                     custom_platforms = config.git_platforms
                     if custom_platforms:
-                        print(f"Loaded {len(custom_platforms)} custom git platform(s) from config.yaml")
+                        print(f"Loaded {len(custom_platforms)} custom git platform(s) from {config_path}")
                 except ConfigError as e:
                     print(f"Error: Failed to load git config from {config_path}", file=sys.stderr)
                     print(f"       {e}", file=sys.stderr)
