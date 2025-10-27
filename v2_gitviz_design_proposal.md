@@ -1,8 +1,8 @@
 # PyScan v2 Git Visualization 功能设计
 
-**版本**: v1.1
+**版本**: v1.2
 **日期**: 2025-10-27
-**状态**: 设计提案
+**状态**: 实现完成（v1.2）
 
 ---
 
@@ -302,6 +302,278 @@ def extract_owners(bugs: List[Dict]) -> List[Dict]:
 
     return owners
 ```
+
+---
+
+## 3.4 自定义 Git 平台配置
+
+### 3.4.1 功能概述
+
+从 v1.2 开始，pyscan_viz 支持自定义 Git 平台配置，允许用户为企业内部 Git 服务器（如 GitLab 企业版、自托管 GitHub Enterprise、Azure DevOps 等）配置自定义的检测和 URL 生成规则。
+
+**核心能力**：
+- ✅ 在 `config.yaml` 中定义自定义平台规则
+- ✅ 使用正则表达式匹配仓库路径
+- ✅ 使用字符串模板生成 commit URL
+- ✅ 自定义平台覆盖内置平台（支持覆盖 GitHub/GitLab 等默认配置）
+- ✅ 严格配置验证，提供清晰的错误提示
+
+### 3.4.2 配置格式
+
+在 `config.yaml` 中添加 `git` 配置段：
+
+```yaml
+# ... 现有的 llm、scan、detector 配置
+
+git:
+  platforms:
+    # 企业 GitLab 实例
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+
+    # Azure DevOps
+    - name: azure-devops
+      detect_pattern: dev.azure.com
+      repo_path_regex: 'dev\.azure\.com/([^/]+/[^/]+/_git/[^/]+)'
+      commit_url_template: 'https://dev.azure.com/{repo_path}/commit/{hash}'
+
+    # 覆盖内置 GitHub 配置（使用自定义 commit viewer）
+    - name: github
+      detect_pattern: github.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+      commit_url_template: 'https://custom-github-viewer.com/{repo_path}/commits/{hash}'
+```
+
+### 3.4.3 配置字段说明
+
+| 字段 | 必填 | 说明 | 示例 |
+|-----|------|------|------|
+| `name` | ✅ | 平台名称（唯一标识） | `company-gitlab` |
+| `detect_pattern` | ✅ | 用于检测 remote URL 的字符串模式 | `gitlab.company.com` |
+| `repo_path_regex` | ✅ | 从 remote URL 提取仓库路径的正则表达式，**必须包含至少一个捕获组 `(...)`** | `[:/]([^/:]+/[^/]+?)(?:\.git)?$` |
+| `commit_url_template` | ✅ | Commit URL 模板，**必须包含 `{repo_path}` 和 `{hash}` 占位符** | `https://gitlab.company.com/{repo_path}/-/commit/{hash}` |
+
+### 3.4.4 配置验证规则
+
+GitAnalyzer 会在加载配置时进行严格验证：
+
+**1. 字段完整性检查**：
+- 所有必填字段不能为空
+
+**2. 正则表达式验证**：
+- `repo_path_regex` 必须是有效的正则表达式
+- 必须包含**至少一个捕获组 `(...)`** 用于提取 `repo_path`
+
+**3. URL 模板验证**：
+- `commit_url_template` 必须同时包含 `{repo_path}` 和 `{hash}` 占位符
+
+**4. 验证失败示例**：
+
+```python
+# ❌ 错误：缺少捕获组
+repo_path_regex: '[:/][^/:]+/[^/]+?(?:\.git)?$'
+# 错误信息: 'repo_path_regex' must contain at least one capture group (...) to extract repo_path
+
+# ❌ 错误：缺少 {repo_path} 占位符
+commit_url_template: 'https://gitlab.company.com/commit/{hash}'
+# 错误信息: 'commit_url_template' must contain {repo_path} placeholder
+
+# ❌ 错误：无效的正则表达式
+repo_path_regex: '[:/]([^/:]+/[^/]+?(?:\.git)?$'  # 缺少右括号
+# 错误信息: Invalid regex pattern in 'repo_path_regex': ...
+```
+
+### 3.4.5 平台检测优先级
+
+为了确保更具体的模式优先匹配，GitAnalyzer 使用以下策略：
+
+1. **按 `detect_pattern` 长度排序**（降序）
+   - 更长的模式优先匹配
+   - 例如：`gitlab.company.com` 优先于 `gitlab.com`
+
+2. **自定义平台覆盖内置平台**
+   - 如果自定义平台的 `name` 与内置平台相同（如 `github`、`gitlab`），则使用自定义配置
+
+**示例**：
+
+```python
+# 配置
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com  # 长度: 19
+      ...
+    # 内置 gitlab 配置
+    # detect_pattern: gitlab.com  # 长度: 10
+
+# Remote URL: git@gitlab.company.com:team/project.git
+# 匹配结果: company-gitlab (因为 'gitlab.company.com' 长度更长，优先匹配)
+```
+
+### 3.4.6 使用示例
+
+**场景 1：企业 GitLab 实例**
+
+```yaml
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+```
+
+测试：
+```bash
+# Remote URL: git@gitlab.company.com:backend/api-server.git
+# 检测平台: company-gitlab
+# 提取 repo_path: backend/api-server
+# 生成 URL: https://gitlab.company.com/backend/api-server/-/commit/abc123def456
+```
+
+**场景 2：Azure DevOps**
+
+```yaml
+git:
+  platforms:
+    - name: azure-devops
+      detect_pattern: dev.azure.com
+      repo_path_regex: 'dev\.azure\.com/([^/]+/[^/]+/_git/[^/]+)'
+      commit_url_template: 'https://dev.azure.com/{repo_path}/commit/{hash}'
+```
+
+测试：
+```bash
+# Remote URL: https://dev.azure.com/myorg/myproject/_git/myrepo
+# 检测平台: azure-devops
+# 提取 repo_path: myorg/myproject/_git/myrepo
+# 生成 URL: https://dev.azure.com/myorg/myproject/_git/myrepo/commit/abc123def456
+```
+
+**场景 3：覆盖内置 GitHub 配置**
+
+```yaml
+git:
+  platforms:
+    # 使用自定义 GitHub commit viewer
+    - name: github
+      detect_pattern: github.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+      commit_url_template: 'https://custom-github-viewer.com/{repo_path}/commits/{hash}'
+```
+
+测试：
+```bash
+# Remote URL: git@github.com:user/repo.git
+# 检测平台: github
+# 提取 repo_path: user/repo
+# 生成 URL: https://custom-github-viewer.com/user/repo/commits/abc123def456
+# (注意: 使用了自定义 URL 模板，而不是默认的 github.com/user/repo/commit/...)
+```
+
+### 3.4.7 配置加载流程
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. pyscan_viz CLI 启动 (--git-enrich)                  │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ 2. 检查 config.yaml 是否存在                            │
+│    - 存在：尝试加载                                     │
+│    - 不存在：跳过，使用内置平台                         │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ 3. 解析 config.yaml                                     │
+│    - 提取 git.platforms 配置                            │
+│    - 对每个平台进行严格验证                             │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ├─ 验证失败 ──────────────────────┐
+                 │                                  ▼
+                 │                     ┌────────────────────┐
+                 │                     │ 打印详细错误信息   │
+                 │                     │ 退出程序 (exit 1)  │
+                 │                     └────────────────────┘
+                 │
+                 ├─ 验证成功
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ 4. 创建 GitAnalyzer(custom_platforms=...)              │
+│    - 合并自定义平台和内置平台                           │
+│    - 自定义平台覆盖同名内置平台                         │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ 5. 检测 Git 平台                                        │
+│    - 获取 remote URL                                    │
+│    - 按 detect_pattern 长度排序（降序）                │
+│    - 遍历匹配，返回第一个匹配的平台                     │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│ 6. 为每个 bug 生成 git_info                            │
+│    - 使用平台的 repo_path_regex 解析 repo_path         │
+│    - 使用平台的 commit_url_template 生成 URL           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 3.4.8 错误处理
+
+pyscan_viz 在遇到 Git 配置错误时采用**快速失败 (fail-fast)** 策略：
+
+1. **配置验证失败 → 立即退出**
+   ```bash
+   $ python -m pyscan_viz report.json --git-enrich
+
+   Error: Failed to load git config from config.yaml
+          Git platform 'company-gitlab': 'repo_path_regex' must contain at least one capture group (...) to extract repo_path
+
+   # Exit code: 1
+   ```
+
+2. **配置文件不存在 → 使用内置平台**
+   ```bash
+   $ python -m pyscan_viz report.json --git-enrich
+
+   # 没有 config.yaml，使用内置 GitHub/GitLab/Gitee/Bitbucket 平台
+   Enriching 10 bugs with git information...
+   Git information added successfully
+   ```
+
+3. **不是 Git 仓库 → 跳过 Git 集成**
+   ```bash
+   $ python -m pyscan_viz report.json --git-enrich
+
+   Warning: Not a git repository, skipping git integration
+   [OK] Visualization generated: report.html
+   ```
+
+### 3.4.9 技术实现
+
+**核心类**：
+- `pyscan.config.GitPlatformConfig`：Git 平台配置的数据类，包含验证逻辑
+- `pyscan_viz.git_analyzer.GitAnalyzer`：Git 分析器，支持动态平台配置
+
+**关键方法**：
+- `GitAnalyzer._merge_platforms()`：合并自定义和内置平台配置
+- `GitAnalyzer._detect_platform()`：按长度排序后检测平台
+- `GitPlatformConfig.__post_init__()`：配置验证逻辑
+
+**测试覆盖**：
+- ✅ 自定义平台检测（`tests/test_git_analyzer.py::test_custom_platform_detection`）
+- ✅ 自定义平台覆盖内置平台（`tests/test_git_analyzer.py::test_custom_platform_override_builtin`）
+- ✅ 自定义平台 URL 生成（`tests/test_git_analyzer.py::test_custom_platform_parse_repo_path`）
+- ✅ 内置平台仍然工作（`tests/test_git_analyzer.py::test_builtin_platforms_still_work`）
+- ✅ 配置验证（`tests/test_config.py`，包含 7 个 git 配置测试）
 
 ---
 
@@ -1509,10 +1781,11 @@ python -m pyscan_viz report.json -o bugs.html
 
 ---
 
-**文档版本**: v1.1
+**文档版本**: v1.2
 **最后更新**: 2025-10-27
 **作者**: Claude + User
 
 **变更历史**：
 - v1.0 (2025-10-27): 初始版本，包含 Git blame 和 Bug Details 展示
 - v1.1 (2025-10-27): 添加三种过滤功能（按 commit/时间/作者）
+- v1.2 (2025-10-27): 添加自定义 Git 平台配置功能（企业 Git 服务器支持）

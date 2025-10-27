@@ -3,7 +3,7 @@ import os
 import tempfile
 import pytest
 from pathlib import Path
-from pyscan.config import Config, ConfigError
+from pyscan.config import Config, ConfigError, GitPlatformConfig
 
 
 class TestConfig:
@@ -110,4 +110,142 @@ llm:
 """)
 
         with pytest.raises(ConfigError, match="max_tokens"):
+            Config.from_file(str(config_file))
+
+    def test_git_config_valid(self, tmp_path):
+        """测试有效的 Git 配置。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+    - name: github
+      detect_pattern: github.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\\.git)?$'
+      commit_url_template: 'https://github.com/{repo_path}/commit/{hash}'
+""")
+
+        config = Config.from_file(str(config_file))
+
+        assert config.git_platforms is not None
+        assert len(config.git_platforms) == 2
+        assert config.git_platforms[0].name == "company-gitlab"
+        assert config.git_platforms[0].detect_pattern == "gitlab.company.com"
+        assert config.git_platforms[1].name == "github"
+
+    def test_git_config_no_git_section(self, tmp_path):
+        """测试没有 git 配置段时向后兼容。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+""")
+
+        config = Config.from_file(str(config_file))
+
+        assert config.git_platforms is None
+
+    def test_git_config_invalid_regex(self, tmp_path):
+        """测试无效的正则表达式。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?(?:\\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+""")
+
+        with pytest.raises(ConfigError, match="Invalid regex pattern"):
+            Config.from_file(str(config_file))
+
+    def test_git_config_no_capture_group(self, tmp_path):
+        """测试正则表达式缺少捕获组。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/][^/:]+/[^/]+?(?:\\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+""")
+
+        with pytest.raises(ConfigError, match="must contain at least one capture group"):
+            Config.from_file(str(config_file))
+
+    def test_git_config_missing_placeholder(self, tmp_path):
+        """测试 commit URL 模板缺少占位符。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/commit/{hash}'
+""")
+
+        with pytest.raises(ConfigError, match=r"must contain \{repo_path\}"):
+            Config.from_file(str(config_file))
+
+    def test_git_config_missing_required_field(self, tmp_path):
+        """测试 git 平台配置缺少必填字段。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms:
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\\.git)?$'
+""")
+
+        with pytest.raises(ConfigError, match="Missing required field 'commit_url_template'"):
+            Config.from_file(str(config_file))
+
+    def test_git_config_platforms_not_list(self, tmp_path):
+        """测试 git.platforms 不是列表。"""
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test-key"
+  model: "gpt-4"
+
+git:
+  platforms: "not a list"
+""")
+
+        with pytest.raises(ConfigError, match="git.platforms must be a list"):
             Config.from_file(str(config_file))

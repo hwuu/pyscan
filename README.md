@@ -99,6 +99,22 @@ layer1:
 # 建议：设置为 false（默认），让 PyScan 只输出 LLM 发现的深度 bug
 layer4:
   enable_cross_validation: false  # 禁用交叉验证（推荐）
+
+# Git 平台配置（可选）
+# 用于自定义企业内部 Git 服务器的 commit URL 生成规则
+git:
+  platforms:
+    # 企业 GitLab 实例示例
+    - name: company-gitlab
+      detect_pattern: gitlab.company.com
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+
+    # Azure DevOps 示例
+    - name: azure-devops
+      detect_pattern: dev.azure.com
+      repo_path_regex: 'dev\.azure\.com/([^/]+/[^/]+/_git/[^/]+)'
+      commit_url_template: 'https://dev.azure.com/{repo_path}/commit/{hash}'
 ```
 
 ### 配置说明
@@ -129,6 +145,32 @@ layer4:
 - **layer4.enable_cross_validation**: 是否启用交叉验证（默认: false，推荐）
   - `false`（推荐）：PyScan 只输出 LLM 发现的深度 bug
   - `true`：会把 Layer 1 的结果转换成 bug 报告（与产品定位不符，不推荐）
+
+#### Git 平台配置（可选）
+用于 `pyscan_viz --git-enrich` 功能，支持自定义企业内部 Git 服务器的 commit URL 生成规则。
+
+- **git.platforms**: 自定义 Git 平台列表（可选）
+  - **name**: 平台名称（唯一标识）
+  - **detect_pattern**: 用于检测 remote URL 的字符串模式
+  - **repo_path_regex**: 从 remote URL 提取仓库路径的正则表达式
+    - 必须包含至少一个捕获组 `(...)` 用于提取 repo_path
+  - **commit_url_template**: Commit URL 模板
+    - 必须包含 `{repo_path}` 和 `{hash}` 占位符
+
+**支持的内置平台**：GitHub、GitLab、Gitee、Bitbucket
+
+**自定义平台优势**：
+- ✅ 支持企业内部 Git 服务器（如 GitLab 企业版、Azure DevOps）
+- ✅ 可以覆盖内置平台配置（如自定义 GitHub commit viewer URL）
+- ✅ 严格配置验证，快速失败并提供清晰的错误信息
+
+**注意**：
+- 如果不配置 `git` 段，pyscan_viz 会使用内置的 4 大平台配置
+- 配置验证失败会导致程序立即退出（fail-fast）
+- 更具体的 `detect_pattern`（更长）会优先匹配
+
+**配置示例详见上文 `config.yaml` 完整示例**
+
 ```
 
 ## 使用方法

@@ -443,7 +443,7 @@
                 <div class="filter-section">
                     <div class="filter-label">Severity</div>
                     <select class="filter-select" id="severityFilter">
-                        <option value="all">All Severities</option>
+                        <option value="all">All</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -452,7 +452,7 @@
                 <div class="filter-section">
                     <div class="filter-label">File Path</div>
                     <select class="filter-select" id="pathFilter">
-                        <option value="all">All Paths</option>
+                        <option value="all">All</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -461,7 +461,7 @@
                 <div class="filter-section">
                     <div class="filter-label">Bug Type</div>
                     <select class="filter-select" id="typeFilter">
-                        <option value="all">All Types</option>
+                        <option value="all">All</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -471,7 +471,7 @@
                 <div class="filter-section" id="gitCommitSection">
                     <div class="filter-label">Commit</div>
                     <select class="filter-select" id="commitFilter">
-                        <option value="">全部 Commits</option>
+                        <option value="">All</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -480,7 +480,7 @@
                 <div class="filter-section" id="gitOwnerSection">
                     <div class="filter-label">Owner</div>
                     <select class="filter-select" id="ownerFilter">
-                        <option value="">全部作者</option>
+                        <option value="">All</option>
                         <!-- 动态生成 -->
                     </select>
                 </div>
@@ -489,7 +489,7 @@
                 <div class="filter-section" id="gitTimeSection">
                     <div class="filter-label">Time</div>
                     <select class="filter-select" id="timeRangeFilter">
-                        <option value="">全部时间</option>
+                        <option value="">All</option>
                         <option value="1">最近 1 天</option>
                         <option value="7">最近 7 天</option>
                         <option value="15">最近 15 天</option>
@@ -807,6 +807,35 @@
 
             if (currentFilters.type !== 'all') {
                 filtered = filtered.filter(bug => bug.type === currentFilters.type);
+            }
+
+            // Git 过滤器
+            // 按 commit 过滤
+            if (currentFilters.commit) {
+                filtered = filtered.filter(bug => {
+                    return bug.git_info && bug.git_info.hash_full === currentFilters.commit;
+                });
+            }
+
+            // 按时间范围过滤
+            if (currentFilters.timeRange) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - currentFilters.timeRange);
+
+                filtered = filtered.filter(bug => {
+                    if (!bug.git_info || !bug.git_info.date) {
+                        return false;
+                    }
+                    const bugDate = new Date(bug.git_info.date);
+                    return bugDate >= cutoffDate;
+                });
+            }
+
+            // 按作者过滤
+            if (currentFilters.owner) {
+                filtered = filtered.filter(bug => {
+                    return bug.git_info && bug.git_info.email === currentFilters.owner;
+                });
             }
 
             // 按 bug id 升序排序

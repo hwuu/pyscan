@@ -3,6 +3,7 @@ import pytest
 from pathlib import Path
 from datetime import datetime, timedelta
 from pyscan_viz.git_analyzer import GitAnalyzer, BlameInfo
+from pyscan.config import GitPlatformConfig
 
 
 class TestBlameInfo:
@@ -519,3 +520,78 @@ filename test.py
         enriched = analyzer.enrich_bugs_with_git_info(bugs)
         assert len(enriched) == 1
         # Original bugs should be returned (warning logged)
+
+    def test_custom_platform_detection(self):
+        """Test detecting custom platform."""
+        custom_platform = GitPlatformConfig(
+            name='company-gitlab',
+            detect_pattern='gitlab.company.com',
+            repo_path_regex=r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+            commit_url_template='https://gitlab.company.com/{repo_path}/-/commit/{hash}'
+        )
+
+        analyzer = GitAnalyzer('.', custom_platforms=[custom_platform])
+        analyzer.remote_url = 'git@gitlab.company.com:team/project.git'
+
+        # Should detect custom platform
+        platform = analyzer._detect_platform()
+        assert platform == 'company-gitlab'
+
+    def test_custom_platform_override_builtin(self):
+        """Test custom platform overrides builtin platform."""
+        # Override github with custom URL template
+        custom_github = GitPlatformConfig(
+            name='github',
+            detect_pattern='github.com',
+            repo_path_regex=r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+            commit_url_template='https://custom-github-viewer.com/{repo_path}/commits/{hash}'
+        )
+
+        analyzer = GitAnalyzer('.', custom_platforms=[custom_github])
+        analyzer.remote_url = 'git@github.com:user/repo.git'
+        analyzer.platform = 'github'
+
+        # Should use custom template
+        url = analyzer._generate_commit_url('abc123def456')
+        assert url == 'https://custom-github-viewer.com/user/repo/commits/abc123def456'
+        assert 'custom-github-viewer.com' in url
+
+    def test_custom_platform_parse_repo_path(self):
+        """Test custom platform with custom regex."""
+        # Azure DevOps style URL
+        azure_platform = GitPlatformConfig(
+            name='azure-devops',
+            detect_pattern='dev.azure.com',
+            repo_path_regex=r'dev\.azure\.com/([^/]+/[^/]+/_git/[^/]+)',
+            commit_url_template='https://dev.azure.com/{repo_path}/commit/{hash}'
+        )
+
+        analyzer = GitAnalyzer('.', custom_platforms=[azure_platform])
+        analyzer.remote_url = 'https://dev.azure.com/myorg/myproject/_git/myrepo'
+        analyzer.platform = 'azure-devops'
+
+        # Should parse using custom regex
+        repo_path = analyzer._parse_repo_path()
+        assert repo_path == 'myorg/myproject/_git/myrepo'
+
+        # Should generate URL correctly
+        url = analyzer._generate_commit_url('abc123')
+        assert url == 'https://dev.azure.com/myorg/myproject/_git/myrepo/commit/abc123'
+
+    def test_builtin_platforms_still_work(self):
+        """Test that builtin platforms work without custom config."""
+        analyzer = GitAnalyzer('.')
+        analyzer.remote_url = 'git@github.com:user/repo.git'
+
+        # Should detect builtin platform
+        platform = analyzer._detect_platform()
+        assert platform == 'github'
+
+        # Should parse repo path
+        repo_path = analyzer._parse_repo_path()
+        assert repo_path == 'user/repo'
+
+        # Should generate URL
+        analyzer.platform = 'github'
+        url = analyzer._generate_commit_url('abc123')
+        assert url == 'https://github.com/user/repo/commit/abc123'

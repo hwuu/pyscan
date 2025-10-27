@@ -1,13 +1,63 @@
 """Configuration management module."""
 import os
+import re
 from pathlib import Path
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
+from dataclasses import dataclass
 import yaml
 
 
 class ConfigError(Exception):
     """Configuration related errors."""
     pass
+
+
+@dataclass
+class GitPlatformConfig:
+    """Configuration for a Git platform."""
+    name: str
+    detect_pattern: str
+    repo_path_regex: str
+    commit_url_template: str
+
+    def __post_init__(self):
+        """Validate configuration after initialization."""
+        # 验证 name
+        if not self.name or not self.name.strip():
+            raise ConfigError("Git platform 'name' cannot be empty")
+
+        # 验证 detect_pattern
+        if not self.detect_pattern or not self.detect_pattern.strip():
+            raise ConfigError(f"Git platform '{self.name}': 'detect_pattern' cannot be empty")
+
+        # 验证正则表达式
+        if not self.repo_path_regex or not self.repo_path_regex.strip():
+            raise ConfigError(f"Git platform '{self.name}': 'repo_path_regex' cannot be empty")
+
+        try:
+            compiled = re.compile(self.repo_path_regex)
+            if compiled.groups < 1:
+                raise ConfigError(
+                    f"Git platform '{self.name}': 'repo_path_regex' must contain at least one capture group (...) to extract repo_path"
+                )
+        except re.error as e:
+            raise ConfigError(
+                f"Git platform '{self.name}': Invalid regex pattern in 'repo_path_regex': {e}"
+            )
+
+        # 验证模板占位符
+        if not self.commit_url_template or not self.commit_url_template.strip():
+            raise ConfigError(f"Git platform '{self.name}': 'commit_url_template' cannot be empty")
+
+        if '{repo_path}' not in self.commit_url_template:
+            raise ConfigError(
+                f"Git platform '{self.name}': 'commit_url_template' must contain {{repo_path}} placeholder"
+            )
+
+        if '{hash}' not in self.commit_url_template:
+            raise ConfigError(
+                f"Git platform '{self.name}': 'commit_url_template' must contain {{hash}} placeholder"
+            )
 
 
 class Config:
@@ -143,6 +193,34 @@ class Config:
             "exclude_types": filter_config.get("exclude_types", []) or [],
             "exclude_severities": filter_config.get("exclude_severities", []) or [],
         }
+
+        # Git 平台配置（可选）
+        git_config = config_dict.get("git", {})
+        self.git_platforms: Optional[List[GitPlatformConfig]] = None
+        if "platforms" in git_config:
+            platforms_data = git_config["platforms"]
+            if not isinstance(platforms_data, list):
+                raise ConfigError("git.platforms must be a list")
+
+            self.git_platforms = []
+            for i, platform_dict in enumerate(platforms_data):
+                if not isinstance(platform_dict, dict):
+                    raise ConfigError(f"git.platforms[{i}] must be a dictionary")
+
+                # 验证必填字段
+                required_fields = ["name", "detect_pattern", "repo_path_regex", "commit_url_template"]
+                for field in required_fields:
+                    if field not in platform_dict:
+                        raise ConfigError(f"git.platforms[{i}]: Missing required field '{field}'")
+
+                try:
+                    platform = GitPlatformConfig(**platform_dict)
+                    self.git_platforms.append(platform)
+                except ConfigError:
+                    # Re-raise ConfigError as-is
+                    raise
+                except Exception as e:
+                    raise ConfigError(f"git.platforms[{i}]: Failed to create platform config: {e}")
 
     def _validate_values(self) -> None:
         """Validate configuration values."""

@@ -7,6 +7,13 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 import logging
 
+# Import GitPlatformConfig from pyscan.config
+try:
+    from pyscan.config import GitPlatformConfig
+except ImportError:
+    # Fallback if config module not available
+    GitPlatformConfig = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,16 +34,21 @@ class BlameInfo:
 class GitAnalyzer:
     """Analyzer for extracting Git commit information from a repository."""
 
-    def __init__(self, repo_path: str):
+    def __init__(self, repo_path: str, custom_platforms: Optional[List] = None):
         """
         Initialize Git analyzer.
 
         Args:
             repo_path: Path to the repository root directory
+            custom_platforms: Optional list of GitPlatformConfig instances
         """
         self.repo_path = Path(repo_path).resolve()
         self.is_git_repo = self._check_git_repo()
         self.remote_url = self._get_remote_url() if self.is_git_repo else None
+
+        # Merge builtin and custom platforms
+        self.platforms = self._merge_platforms(custom_platforms)
+
         self.platform = self._detect_platform()
         self.blame_cache: Dict[str, Dict[int, BlameInfo]] = {}
 
@@ -84,32 +96,90 @@ class GitAnalyzer:
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
             return None
 
-    def _detect_platform(self) -> Optional[str]:
+    def _get_builtin_platforms(self) -> Dict[str, Dict[str, str]]:
         """
-        Detect Git platform from remote URL.
+        Get builtin platform configurations.
 
         Returns:
-            'github', 'gitlab', 'gitee', 'bitbucket', or None
+            Dictionary mapping platform names to their configurations
+        """
+        return {
+            'github': {
+                'detect_pattern': 'github.com',
+                'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+                'commit_url_template': 'https://github.com/{repo_path}/commit/{hash}'
+            },
+            'gitlab': {
+                'detect_pattern': 'gitlab.com',
+                'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+                'commit_url_template': 'https://gitlab.com/{repo_path}/-/commit/{hash}'
+            },
+            'gitee': {
+                'detect_pattern': 'gitee.com',
+                'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+                'commit_url_template': 'https://gitee.com/{repo_path}/commit/{hash}'
+            },
+            'bitbucket': {
+                'detect_pattern': 'bitbucket.org',
+                'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+                'commit_url_template': 'https://bitbucket.org/{repo_path}/commits/{hash}'
+            },
+        }
+
+    def _merge_platforms(self, custom_platforms: Optional[List] = None) -> Dict[str, Dict[str, str]]:
+        """
+        Merge builtin and custom platform configurations.
+
+        Custom platforms override builtin platforms with the same name.
+
+        Args:
+            custom_platforms: Optional list of GitPlatformConfig instances
+
+        Returns:
+            Dictionary mapping platform names to their configurations
+        """
+        platforms = self._get_builtin_platforms()
+
+        # Merge custom platforms (override builtin)
+        if custom_platforms:
+            for platform in custom_platforms:
+                platforms[platform.name] = {
+                    'detect_pattern': platform.detect_pattern,
+                    'repo_path_regex': platform.repo_path_regex,
+                    'commit_url_template': platform.commit_url_template
+                }
+
+        return platforms
+
+    def _detect_platform(self) -> Optional[str]:
+        """
+        Detect Git platform from remote URL using configured platforms.
+
+        Returns:
+            Platform name, or None if not detected
         """
         if not self.remote_url:
             return None
 
         url_lower = self.remote_url.lower()
 
-        if 'github.com' in url_lower:
-            return 'github'
-        elif 'gitlab.com' in url_lower:
-            return 'gitlab'
-        elif 'gitee.com' in url_lower:
-            return 'gitee'
-        elif 'bitbucket.org' in url_lower:
-            return 'bitbucket'
+        # Sort platforms by detect_pattern length (descending) to match more specific patterns first
+        sorted_platforms = sorted(
+            self.platforms.items(),
+            key=lambda x: len(x[1]['detect_pattern']),
+            reverse=True
+        )
+
+        # Iterate through all configured platforms
+        for name, config in sorted_platforms:
+            if config['detect_pattern'].lower() in url_lower:
+                return name
 
         return None
 
     def _parse_repo_path(self) -> Optional[str]:
         """
-        Parse repository path from remote URL.
+        Parse repository path from remote URL using detected platform's regex.
 
         Examples:
             git@github.com:user/repo.git -> user/repo
@@ -118,20 +188,25 @@ class GitAnalyzer:
         Returns:
             Repository path (user/repo), or None if parsing fails
         """
-        if not self.remote_url:
+        if not self.remote_url or not self.platform:
             return None
 
-        # Match user/repo pattern, with optional .git suffix
-        # Pattern: [:/]([^/:]+/[^/]+?)(?:\.git)?$
-        match = re.search(r'[:/]([^/:]+/[^/]+?)(?:\.git)?$', self.remote_url)
-        if match:
-            return match.group(1)
+        platform_config = self.platforms.get(self.platform)
+        if not platform_config:
+            return None
+
+        try:
+            match = re.search(platform_config['repo_path_regex'], self.remote_url)
+            if match:
+                return match.group(1)
+        except Exception as e:
+            logger.warning(f"Failed to parse repo path for platform {self.platform}: {e}")
 
         return None
 
     def _generate_commit_url(self, commit_hash: str) -> Optional[str]:
         """
-        Generate commit URL for the Git platform.
+        Generate commit URL using detected platform's template.
 
         Args:
             commit_hash: Full commit hash
@@ -143,14 +218,18 @@ class GitAnalyzer:
         if not repo_path or not self.platform:
             return None
 
-        url_templates = {
-            'github': f'https://github.com/{repo_path}/commit/{commit_hash}',
-            'gitlab': f'https://gitlab.com/{repo_path}/-/commit/{commit_hash}',
-            'gitee': f'https://gitee.com/{repo_path}/commit/{commit_hash}',
-            'bitbucket': f'https://bitbucket.org/{repo_path}/commits/{commit_hash}',
-        }
+        platform_config = self.platforms.get(self.platform)
+        if not platform_config:
+            return None
 
-        return url_templates.get(self.platform)
+        try:
+            return platform_config['commit_url_template'].format(
+                repo_path=repo_path,
+                hash=commit_hash
+            )
+        except Exception as e:
+            logger.warning(f"Failed to generate commit URL for platform {self.platform}: {e}")
+            return None
 
     def _format_relative_date(self, commit_date: datetime) -> str:
         """

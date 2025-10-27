@@ -68,6 +68,7 @@ def main():
         enriched_report = None
         if args.git_enrich:
             from pyscan_viz.git_analyzer import GitAnalyzer
+            from pyscan.config import Config, ConfigError
 
             # 获取扫描目录（用于 git repo 检测）
             scan_dir = report.get('scan_directory')
@@ -77,7 +78,26 @@ def main():
                 # 兼容旧格式：使用 report.json 所在目录
                 git_repo_path = str(report_path.parent)
 
-            git_analyzer = GitAnalyzer(git_repo_path)
+            # 尝试加载 git 平台配置（如果存在）
+            custom_platforms = None
+            config_path = Path(git_repo_path) / 'config.yaml'
+            if config_path.exists():
+                try:
+                    config = Config.from_file(str(config_path))
+                    custom_platforms = config.git_platforms
+                    if custom_platforms:
+                        print(f"Loaded {len(custom_platforms)} custom git platform(s) from config.yaml")
+                except ConfigError as e:
+                    print(f"Error: Failed to load git config from {config_path}", file=sys.stderr)
+                    print(f"       {e}", file=sys.stderr)
+                    sys.exit(1)
+                except Exception as e:
+                    print(f"Error: Unexpected error loading config from {config_path}", file=sys.stderr)
+                    print(f"       {e}", file=sys.stderr)
+                    sys.exit(1)
+
+            # 初始化 GitAnalyzer
+            git_analyzer = GitAnalyzer(git_repo_path, custom_platforms=custom_platforms)
 
             if not git_analyzer.is_git_repo:
                 print("Warning: Not a git repository, skipping git integration", file=sys.stderr)
