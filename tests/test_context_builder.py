@@ -43,7 +43,11 @@ class TestContextBuilder:
 
         # simple_function 被 function_with_calls 调用
         assert len(context["callers"]) > 0
-        assert any("function_with_calls" in c for c in context["callers"])
+        # callers 现在是字典结构，包含 code 和 highlight_lines
+        assert any(
+            "function_with_calls" in (c["code"] if isinstance(c, dict) else c)
+            for c in context["callers"]
+        )
 
     def test_context_with_no_calls(self, sample_functions):
         """测试没有调用的函数。"""

@@ -68,7 +68,17 @@ class ContextBuilder:
         # 查找调用者（哪些函数调用了当前函数）
         for func in self.functions:
             if function.name in func.calls:
-                context["callers"].append(func.code)
+                # 找出调用目标函数的行号（相对于 func 的行号，1-based）
+                highlight_lines = []
+                lines = func.code.split('\n')
+                for i, line in enumerate(lines, 1):
+                    if f"{function.name}(" in line:
+                        highlight_lines.append(i)
+
+                context["callers"].append({
+                    "code": func.code,
+                    "highlight_lines": highlight_lines  # 调用点的相对行号（1-based）
+                })
 
         # 查找被调用者（当前函数调用了哪些函数）
         for call_name in function.calls:
@@ -169,6 +179,10 @@ class ContextBuilder:
             if decorator in self.function_map:
                 decorator_func = self.function_map[decorator]
                 hint = f"(推断): @{decorator}装饰器"
+
+                # 装饰器的 highlight_lines 是函数定义行（第1行）
+                highlight_lines = [1]
+
                 context["inferred_callers"].append({
                     "file_path": getattr(decorator_func, 'file_path', ''),
                     "function_name": decorator_func.name,
@@ -177,6 +191,7 @@ class ContextBuilder:
                     "end_line": decorator_func.end_lineno,
                     "start_col": decorator_func.col_offset,
                     "end_col": decorator_func.end_col_offset,
+                    "highlight_lines": highlight_lines,  # 装饰器定义行
                     "hint": hint
                 })
 
@@ -214,6 +229,16 @@ class ContextBuilder:
                         expected_arg_count = self._extract_callable_arg_count(arg_type)
                         if expected_arg_count is None or current_arg_count == expected_arg_count:
                             hint = f"(推断): 可能被作为参数 '{arg_name}: {arg_type}' 传入 {func.name}"
+
+                            # 查找参数定义的行号（相对行号）
+                            highlight_lines = []
+                            lines = func.code.split('\n')
+                            for i, line in enumerate(lines, 1):
+                                if arg_name in line and (":" in line or "def " in line):
+                                    highlight_lines.append(i)
+                            if not highlight_lines:
+                                highlight_lines = [1]  # 默认高亮函数签名
+
                             context["inferred_callers"].append({
                                 "file_path": getattr(func, 'file_path', ''),
                                 "function_name": func.name,
@@ -224,6 +249,7 @@ class ContextBuilder:
                                 "end_col": func.end_col_offset,
                                 "arg_name": arg_name,  # 保存参数名用于高亮
                                 "arg_type": arg_type,  # 保存参数类型用于高亮
+                                "highlight_lines": highlight_lines,  # 参数定义行
                                 "hint": hint
                             })
                             break  # 每个函数只添加一个推断
@@ -301,11 +327,83 @@ class ContextBuilder:
 
         return [code for score, code in caller_scores]
 
+    def _extract_snippet_with_context(
+        self, code: str, highlight_lines: List[int], context_lines: int = 10
+    ) -> str:
+        """
+        提取函数签名和调用点周围的代码片段。
+
+        Args:
+            code: 完整函数代码
+            highlight_lines: 需要高亮的行号列表（1-based，相对于函数）
+            context_lines: 调用点前后保留的行数
+
+        Returns:
+            压缩后的代码片段（包含函数签名 + 调用点上下文）
+        """
+        lines = code.split('\n')
+        if not lines:
+            return code
+
+        # 1. 提取函数签名（第1行到第一个不以空白字符开头的行，或找到 ): 结束）
+        signature_lines = []
+        for i, line in enumerate(lines):
+            signature_lines.append(line)
+            # 检查是否是函数签名结束（找到 ): 或者单独的 ):）
+            stripped = line.strip()
+            if stripped.endswith('):') or stripped == '):':
+                break
+            # 如果已经超过10行还没找到结束，就只保留第一行
+            if i >= 10:
+                signature_lines = [lines[0]]
+                break
+
+        signature = '\n'.join(signature_lines)
+
+        # 2. 提取每个 highlight_line 周围的上下文
+        ranges = []
+        for hl in highlight_lines:
+            start = max(1, hl - context_lines)
+            end = min(len(lines), hl + context_lines)
+            ranges.append((start, end))
+
+        # 3. 合并重叠的范围
+        if ranges:
+            ranges.sort()
+            merged = [ranges[0]]
+            for start, end in ranges[1:]:
+                last_start, last_end = merged[-1]
+                if start <= last_end + 1:  # 重叠或相邻
+                    merged[-1] = (last_start, max(last_end, end))
+                else:
+                    merged.append((start, end))
+        else:
+            merged = []
+
+        # 4. 构建代码片段
+        parts = [signature]
+
+        for start, end in merged:
+            # 如果范围不是从签名开始，添加省略标记
+            if start > len(signature_lines) + 1:
+                parts.append("    ...")
+
+            # 添加代码行
+            for i in range(start - 1, end):
+                if i >= len(lines):
+                    break
+                # 跳过已经在签名中的行
+                if i < len(signature_lines):
+                    continue
+                parts.append(lines[i])
+
+        return '\n'.join(parts)
+
     def _fit_context_to_token_limit(
         self, context: Dict[str, Any], function: FunctionInfo
     ) -> Dict[str, Any]:
         """
-        Fit context to token limit using multi-level compression strategy.
+        Fit context to token limit using 8-level compression strategy.
 
         Args:
             context: Original context.
@@ -322,35 +420,51 @@ class ContextBuilder:
 
         is_public_api = context.get("is_public_api", False)
 
-        # Level 1: 将 callers 转为签名，移除 callees（已在 build_context 中移除）
+        # Level 1: inferred_callers 只保留函数签名和调用点 ±10 行
         logger.info(f"Applying compression level 1 for function {function.name}")
         compressed_context = {
             "current_function": context["current_function"],
-            "callers": [
-                self._extract_signature(code) for code in context.get("callers", [])
-            ],
+            "callers": context.get("callers", []),
             "is_public_api": is_public_api,
-            "inferred_callers": context.get("inferred_callers", [])
+            "inferred_callers": []
         }
 
+        for inferred in context.get("inferred_callers", []):
+            if isinstance(inferred, dict) and "code" in inferred:
+                snippet = self._extract_snippet_with_context(
+                    inferred["code"],
+                    inferred.get("highlight_lines", [1]),
+                    context_lines=10
+                )
+                compressed_context["inferred_callers"].append({
+                    **inferred,
+                    "code": snippet
+                })
+            else:
+                compressed_context["inferred_callers"].append(inferred)
+
         context_text = self._build_context_text(compressed_context)
         current_tokens = self._count_tokens(context_text)
 
         if current_tokens <= self.max_tokens:
             return compressed_context
 
-        # Level 2: 限制 callers 数量 + 优先级排序
+        # Level 2: inferred_callers 只保留函数签名和调用点 ±5 行
         logger.info(f"Applying compression level 2 for function {function.name}")
-        max_callers = self.config.detector_max_callers if self.config else 3
-
-        # 优先级排序
-        callers = self._prioritize_callers(
-            context.get("callers", []),
-            is_public_api
-        )
-        compressed_context["callers"] = [
-            self._extract_signature(code) for code in callers[:max_callers]
-        ]
+        compressed_context["inferred_callers"] = []
+        for inferred in context.get("inferred_callers", []):
+            if isinstance(inferred, dict) and "code" in inferred:
+                snippet = self._extract_snippet_with_context(
+                    inferred["code"],
+                    inferred.get("highlight_lines", [1]),
+                    context_lines=5
+                )
+                compressed_context["inferred_callers"].append({
+                    **inferred,
+                    "code": snippet
+                })
+            else:
+                compressed_context["inferred_callers"].append(inferred)
 
         context_text = self._build_context_text(compressed_context)
         current_tokens = self._count_tokens(context_text)
@@ -358,12 +472,10 @@ class ContextBuilder:
         if current_tokens <= self.max_tokens:
             return compressed_context
 
-        # Level 3: 限制推断的 callers 数量
+        # Level 3: 限制 inferred_callers 数量（默认3）
         logger.info(f"Applying compression level 3 for function {function.name}")
-        max_inferred = self.config.detector_max_inferred if self.config else 2
-        compressed_context["inferred_callers"] = compressed_context.get(
-            "inferred_callers", []
-        )[:max_inferred]
+        max_inferred = self.config.detector_max_inferred if self.config else 3
+        compressed_context["inferred_callers"] = compressed_context["inferred_callers"][:max_inferred]
 
         context_text = self._build_context_text(compressed_context)
         current_tokens = self._count_tokens(context_text)
@@ -371,7 +483,7 @@ class ContextBuilder:
         if current_tokens <= self.max_tokens:
             return compressed_context
 
-        # Level 4: 移除所有推断的 callers
+        # Level 4: 删除所有 inferred_callers
         logger.info(f"Applying compression level 4 for function {function.name}")
         compressed_context["inferred_callers"] = []
 
@@ -381,9 +493,23 @@ class ContextBuilder:
         if current_tokens <= self.max_tokens:
             return compressed_context
 
-        # Level 5: 只保留 1-2 个最重要的 callers
+        # Level 5: callers 只保留函数签名和调用点 ±10 行
         logger.info(f"Applying compression level 5 for function {function.name}")
-        compressed_context["callers"] = compressed_context["callers"][:2]
+        compressed_context["callers"] = []
+        for caller in context.get("callers", []):
+            if isinstance(caller, dict) and "code" in caller:
+                snippet = self._extract_snippet_with_context(
+                    caller["code"],
+                    caller.get("highlight_lines", [1]),
+                    context_lines=10
+                )
+                compressed_context["callers"].append({
+                    **caller,
+                    "code": snippet
+                })
+            else:
+                # 兼容旧格式（纯字符串）
+                compressed_context["callers"].append(caller)
 
         context_text = self._build_context_text(compressed_context)
         current_tokens = self._count_tokens(context_text)
@@ -391,9 +517,43 @@ class ContextBuilder:
         if current_tokens <= self.max_tokens:
             return compressed_context
 
-        # Level 6: 最小化 - 只保留当前函数
+        # Level 6: callers 只保留函数签名和调用点 ±5 行
+        logger.info(f"Applying compression level 6 for function {function.name}")
+        compressed_context["callers"] = []
+        for caller in context.get("callers", []):
+            if isinstance(caller, dict) and "code" in caller:
+                snippet = self._extract_snippet_with_context(
+                    caller["code"],
+                    caller.get("highlight_lines", [1]),
+                    context_lines=5
+                )
+                compressed_context["callers"].append({
+                    **caller,
+                    "code": snippet
+                })
+            else:
+                compressed_context["callers"].append(caller)
+
+        context_text = self._build_context_text(compressed_context)
+        current_tokens = self._count_tokens(context_text)
+
+        if current_tokens <= self.max_tokens:
+            return compressed_context
+
+        # Level 7: 限制 caller 数量（默认3）
+        logger.info(f"Applying compression level 7 for function {function.name}")
+        max_callers = self.config.detector_max_callers if self.config else 3
+        compressed_context["callers"] = compressed_context["callers"][:max_callers]
+
+        context_text = self._build_context_text(compressed_context)
+        current_tokens = self._count_tokens(context_text)
+
+        if current_tokens <= self.max_tokens:
+            return compressed_context
+
+        # Level 8: 删除所有 callers（最小化）
         logger.warning(
-            f"Applying compression level 6 (minimal) for function {function.name}"
+            f"Applying compression level 8 (minimal) for function {function.name}"
         )
         compressed_context = {
             "current_function": context["current_function"],
@@ -423,7 +583,11 @@ class ContextBuilder:
         if context.get("callers"):
             parts.append("调用者函数:\n")
             for caller in context["callers"]:
-                parts.append(caller)
+                # 处理新格式（字典）和旧格式（字符串）
+                if isinstance(caller, dict):
+                    parts.append(caller.get('code', ''))
+                else:
+                    parts.append(caller)
                 parts.append("\n")
             parts.append("\n")
 

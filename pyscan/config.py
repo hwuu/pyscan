@@ -25,7 +25,7 @@ class Config:
     DEFAULT_PUBLIC_API_FILE_PATTERNS = ["*/api/*", "*/endpoints/*", "*/handlers/*", "*/controllers/*", "*/views/*"]
     DEFAULT_PUBLIC_API_NAME_PREFIXES = ["api_", "handle_", "endpoint_"]
     DEFAULT_MAX_CALLERS = 3
-    DEFAULT_MAX_INFERRED = 2
+    DEFAULT_MAX_INFERRED = 3
     DEFAULT_EXCLUDE_PATTERNS = [
         "test_*.py",
         "*_test.py",

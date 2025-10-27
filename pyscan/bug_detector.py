@@ -352,7 +352,11 @@ class BugDetector:
             parts.append("### 调用者函数\n")
             for i, caller in enumerate(context["callers"], 1):
                 parts.append(f"调用者 {i}:\n```python\n")
-                parts.append(caller)
+                # 处理新格式（字典）和旧格式（字符串）
+                if isinstance(caller, dict):
+                    parts.append(caller.get("code", ""))
+                else:
+                    parts.append(caller)
                 parts.append("\n```\n\n")
 
         # callees 已移除 - 假定被调用函数无 bug，不需要在 prompt 中展示
