@@ -48,3 +48,36 @@ layer4:
   confidence_threshold: 0.7       # 最低置信度阈值
   position_tolerance: 2           # 位置匹配容忍度（行数）
   enable_deduplication: true      # 启用去重
+
+# Git 平台配置（可选）
+# 用于 pyscan_viz --git-enrich 功能，支持自定义企业内部 Git 服务器的 commit URL 生成规则
+# 如果不配置此段，pyscan_viz 会使用内置的 GitHub、GitLab、Gitee、Bitbucket 配置
+git:
+  platforms:
+    # 示例 1: 企业 GitLab 实例
+    - name: company-gitlab              # 平台名称（唯一标识）
+      detect_pattern: gitlab.company.com  # 用于检测 remote URL 的字符串模式
+      repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'  # 从 URL 提取 repo_path 的正则（必须包含捕获组）
+      commit_url_template: 'https://gitlab.company.com/{repo_path}/-/commit/{hash}'  # Commit URL 模板
+
+    # 示例 2: Azure DevOps
+    # - name: azure-devops
+    #   detect_pattern: dev.azure.com
+    #   repo_path_regex: 'dev\.azure\.com/([^/]+/[^/]+/_git/[^/]+)'
+    #   commit_url_template: 'https://dev.azure.com/{repo_path}/commit/{hash}'
+
+    # 示例 3: 覆盖内置 GitHub 配置（使用自定义 commit viewer）
+    # - name: github
+    #   detect_pattern: github.com
+    #   repo_path_regex: '[:/]([^/:]+/[^/]+?)(?:\.git)?$'
+    #   commit_url_template: 'https://custom-github-viewer.com/{repo_path}/commits/{hash}'
+
+# 配置字段说明：
+# - name: 平台名称（唯一标识），自定义平台可以覆盖同名内置平台
+# - detect_pattern: 用于检测 remote URL 的字符串模式（更长的模式优先匹配）
+# - repo_path_regex: 从 remote URL 提取仓库路径的正则表达式
+#   * 必须包含至少一个捕获组 (...) 用于提取 repo_path
+# - commit_url_template: Commit URL 模板
+#   * 必须包含 {repo_path} 和 {hash} 占位符
+#
+# 内置支持的平台：GitHub, GitLab, Gitee, Bitbucket
