@@ -119,18 +119,26 @@ class BugDetector:
 2. **复杂数据流问题**：跨函数的数据依赖、间接引用、数据一致性问题
 3. **资源管理**：文件/连接/锁的正确释放（非简单的 with 语句缺失）
 4. **并发问题**：竞态条件、死锁风险
-5. **安全漏洞**：SQL 注入、路径遍历等（静态工具未发现的）
+5. **安全漏洞**：SQL 注入、路径遍历等（**仅当静态工具未发现时**）
 6. **公共 API 参数验证**：仅当函数类型为"公共 API"且缺少必要验证时
 
-**重要限制：**
-1. **不要重复报告**静态工具已发现的问题（类型错误、基础安全问题等）
-2. 对于静态工具已发现的问题，可以补充说明其影响，但不要作为单独的 bug 报告
-3. 不要报告代码风格、命名规范、缺少 docstring 等问题
-4. 不要过度建议防御性编程（如到处检查 None、验证参数类型等）
-5. 信任函数的类型注解（type hints）和调用链中的验证
-6. **假定所有调用者（callers）和被调用函数（callees）都是正确的、无 bug 的**
-7. **尽量少标记为 high 严重程度，只有在确实会导致严重后果时才使用 high**
-8. **bug 的 description 字段必须用中文描述**
+**严格禁止（非常重要）：**
+1. **绝对不要重复报告**静态工具已发现的问题
+2. 如果静态分析结果中已列出某个问题（如"行 184: SQL 注入"），你**必须跳过**该位置（±2行范围内）的相同类型问题
+3. 判断是否重复的标准：
+   - 位置相同或相近（±2行）
+   - 问题类型相关（如 bandit 报告 SQL 注入，你也要报告 SQL 注入）
+   - 即使你认为静态工具分析不够深入，也**不要**在相同位置报告相同类型的问题
+4. 对于静态工具已发现的问题，你可以在报告其他 bug 时**附带提及**其影响，但**绝对不要**作为单独的 bug 报告
+5. 如果函数中所有可疑点都已被静态工具标记，返回 {"has_bug": false}
+
+**其他限制：**
+1. 不要报告代码风格、命名规范、缺少 docstring 等问题
+2. 不要过度建议防御性编程（如到处检查 None、验证参数类型等）
+3. 信任函数的类型注解（type hints）和调用链中的验证
+4. **假定所有调用者（callers）和被调用函数（callees）都是正确的、无 bug 的**
+5. **尽量少标记为 high 严重程度，只有在确实会导致严重后果时才使用 high**
+6. **bug 的 description 字段必须用中文描述**
 
 **参数验证要求（根据函数类型）：**
 - 如果函数是**公共 API/接口**（会被外部或不可信代码调用），检查是否缺少必要验证
@@ -362,6 +370,7 @@ class BugDetector:
         parts.append("### 静态分析结果\n\n")
 
         has_issues = False
+        issue_locations = []  # 收集所有问题的位置
 
         # 类型检查问题
         if facts.type_issues:
@@ -374,6 +383,7 @@ class BugDetector:
                 if issue.code:
                     parts.append(f" [{issue.code}]")
                 parts.append("\n")
+                issue_locations.append(f"行 {issue.line}")
             parts.append("\n")
 
         # 安全扫描问题
@@ -387,6 +397,7 @@ class BugDetector:
                 if issue.code:
                     parts.append(f" [{issue.code}]")
                 parts.append("\n")
+                issue_locations.append(f"行 {issue.line}")
             parts.append("\n")
 
         # 元信息
@@ -396,8 +407,18 @@ class BugDetector:
             parts.append(f"- 复杂度评分: {facts.complexity_score}\n")
         parts.append("\n")
 
+        # 如果有问题，添加明确的过滤指令
+        if has_issues and issue_locations:
+            parts.append(
+                f"**严格要求**：以上 {len(issue_locations)} 个问题"
+                f"（位置：{', '.join(issue_locations)}）"
+                f"已被静态工具发现。\n"
+                f"你**必须跳过**这些位置（±2行范围内）的相同类型问题，"
+                f"不要作为单独的 bug 报告。\n"
+                f"如果函数中没有其他深层次问题，返回 {{\"has_bug\": false}}。\n\n"
+            )
         # 如果没有发现问题，说明一下
-        if not has_issues:
+        elif not has_issues:
             parts.append("*静态工具未发现明显的类型错误或安全问题。*\n\n")
 
         return "".join(parts)
