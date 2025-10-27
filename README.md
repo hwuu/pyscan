@@ -230,9 +230,9 @@ python -m pyscan_viz report.json --no-embed-source
       "severity": "high",
       "type": "ZeroDivisionError",
       "description": "除数可能为零（中文描述）",
-      "location": "第3行",
-      "start_line": 3,
-      "end_line": 3,
+      "location": "第13行",
+      "start_line": 13,
+      "end_line": 13,
       "start_col": 11,
       "end_col": 18,
       "suggestion": "添加除数检查",
@@ -257,10 +257,11 @@ python -m pyscan_viz report.json --no-embed-source
 
 **关键字段说明**：
 - `file_path`: 相对于扫描目录的相对路径（如 `src/utils.py`）
+- `start_line`/`end_line`: Bug 在文件中的绝对行号（从1开始）
 - `callers`: 调用者列表，每个包含：
   - `file_path`: 文件相对路径
   - `function_name`: 函数名
-  - `start_line`/`end_line`: 函数起止行号
+  - `start_line`/`end_line`: 函数在文件中的绝对行号
   - `code`: 完整函数代码（供 LLM 分析）
   - `highlight_lines`: 调用点行号列表（HTML 显示时高亮）
 - `callees`: 被调用函数名列表

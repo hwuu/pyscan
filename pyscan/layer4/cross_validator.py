@@ -57,8 +57,8 @@ class CrossValidator:
                         severity="high",
                         description=issue.message,
                         location=f"行 {issue.line}",
-                        start_line=issue.line - static_facts.function_start_line + 1,  # 转为相对行号
-                        end_line=issue.line - static_facts.function_start_line + 1,
+                        start_line=issue.line,  # 直接使用绝对行号
+                        end_line=issue.line,  # 直接使用绝对行号
                         start_col=issue.column if issue.column else 0,
                         end_col=issue.column if issue.column else 0,
                         suggestion=self._generate_fix_suggestion(issue),
@@ -81,9 +81,8 @@ class CrossValidator:
         """检查 LLM 是否确认了 mypy 发现的问题"""
         for bug in llm_bugs:
             # 位置匹配（允许 ±2 行误差）
-            # bug.start_line 是相对于函数的行号，需要转换为绝对行号进行比较
-            bug_absolute_line = bug.function_start_line + bug.start_line - 1
-            if abs(bug_absolute_line - mypy_issue.line) <= 2:
+            # bug.start_line 已经是绝对行号，直接比较
+            if abs(bug.start_line - mypy_issue.line) <= 2:
                 # 类型检查关键字匹配
                 if 'type' in bug.bug_type.lower() or 'type' in bug.description.lower():
                     return True

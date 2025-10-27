@@ -196,9 +196,9 @@ class Visualizer:
             function_start_col = bug.get('function_start_col', 0)
             function_end_col = bug.get('function_end_col', 0)
 
-            # Bug POI (相对于函数)
-            bug_relative_start = bug.get('start_line', 0)
-            bug_relative_end = bug.get('end_line', 0)
+            # Bug POI (文件中的绝对行号)
+            bug_absolute_start = bug.get('start_line', 0)
+            bug_absolute_end = bug.get('end_line', 0)
             bug_start_col = bug.get('start_col', 0)
             bug_end_col = bug.get('end_col', 0)
 
@@ -219,10 +219,10 @@ class Visualizer:
                     'start_col': function_start_col,
                     'end_col': function_end_col
                 },
-                # Bug POI (relative to function)
+                # Bug POI (absolute line numbers in file)
                 'bug_poi': {
-                    'start_line': bug_relative_start,
-                    'end_line': bug_relative_end,
+                    'start_line': bug_absolute_start,
+                    'end_line': bug_absolute_end,
                     'start_col': bug_start_col,
                     'end_col': bug_end_col
                 },
@@ -239,11 +239,8 @@ class Visualizer:
                 file_content = source_files[file_path]
 
                 # 提取 function snippet（基于 bug POI 而不是整个 function）
-                # 计算 bug 在整个文件中的绝对行号
-                if bug_relative_start > 0:
-                    bug_absolute_start = function_start_line + bug_relative_start - 1
-                    bug_absolute_end = function_start_line + bug_relative_end - 1
-                else:
+                # bug_absolute_start/end 已经是文件中的绝对行号
+                if bug_absolute_start == 0:
                     # 如果没有 bug POI，使用函数起始行
                     bug_absolute_start = function_start_line
                     bug_absolute_end = function_start_line

@@ -695,17 +695,14 @@
                 const bugPoiEnd = snippet.poi_end_line;
 
                 // 计算 bug 在 snippet 中的绝对位置（用于高亮 bug POI）
-                const bugRelativeStart = bug.bug_poi.start_line;
-                const bugRelativeEnd = bug.bug_poi.end_line;
-
-                // bug 在整个文件中的绝对行号
-                const bugAbsoluteStart = bug.function_poi.start_line + bugRelativeStart - 1;
-                const bugAbsoluteEnd = bug.function_poi.start_line + bugRelativeEnd - 1;
+                // bug_poi 中已经是绝对行号
+                const bugAbsoluteStart = bug.bug_poi.start_line;
+                const bugAbsoluteEnd = bug.bug_poi.end_line;
 
                 for (let i = 0; i < snippetLines.length; i++) {
                     const lineNum = snippetStartLine + i;
                     // 高亮 bug POI 行
-                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const isBugLine = bugAbsoluteStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
                     const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
 
                     html += `<div class="${lineClass}"><div class="line-number">${lineNum}</div><div class="line-content">${escapeHtml(snippetLines[i])}</div></div>`;
@@ -715,15 +712,11 @@
                 const lines = sourceCode.split('\n');
                 const functionStartLine = bug.function_poi.start_line;
 
-                // 计算 bug 在整个文件中的绝对行号
-                const bugRelativeStart = bug.bug_poi.start_line;
-                const bugRelativeEnd = bug.bug_poi.end_line;
+                // bug_poi 中已经是绝对行号
+                let bugAbsoluteStart = bug.bug_poi.start_line;
+                let bugAbsoluteEnd = bug.bug_poi.end_line;
 
-                let bugAbsoluteStart, bugAbsoluteEnd;
-                if (bugRelativeStart > 0) {
-                    bugAbsoluteStart = functionStartLine + bugRelativeStart - 1;
-                    bugAbsoluteEnd = functionStartLine + bugRelativeEnd - 1;
-                } else {
+                if (bugAbsoluteStart === 0) {
                     // 如果没有 bug POI，使用函数起始行
                     bugAbsoluteStart = functionStartLine;
                     bugAbsoluteEnd = functionStartLine;
@@ -736,7 +729,7 @@
 
                 for (let i = snippetStart - 1; i < snippetEnd; i++) {
                     const lineNum = i + 1;
-                    const isBugLine = bugRelativeStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
+                    const isBugLine = bugAbsoluteStart > 0 && lineNum >= bugAbsoluteStart && lineNum <= bugAbsoluteEnd;
                     const lineClass = isBugLine ? 'code-line highlighted' : 'code-line';
 
                     html += `<div class="${lineClass}"><div class="line-number">${lineNum}</div><div class="line-content">${escapeHtml(lines[i])}</div></div>`;

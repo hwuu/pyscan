@@ -448,4 +448,110 @@ if has_issues and issue_locations:
 2. **如果效果好**：保持当前方案，记录到最佳实践
 3. **如果效果不理想**：考虑实施代码层面的兜底过滤（参考之前设计的混合方案）
 
+---
+
+## 2025-10-27 统一行号使用绝对行号
+
+### 背景
+系统中行号使用不一致，导致以下问题：
+1. **Prompt 内部混乱**：Layer1 结果显示绝对行号（如"行 184"），但 LLM 被要求输出相对行号
+2. **LLM 理解困难**：需要自己计算绝对行号和相对行号的转换，增加出错风险
+3. **代码复杂**：Layer4、HTML 等多处需要手动转换行号
+4. **使用不便**：用户查看 report.json 需要手动计算绝对位置
+
+### 解决方案
+**统一使用绝对行号**：系统中所有 `start_line`/`end_line` 均表示文件中的绝对行号（1-based）。
+
+### 实施内容
+
+#### 修改 1：更新数据结构注释和 Prompt 指令
+**文件**：`pyscan/bug_detector.py`
+
+1. 更新 `BugReport` 数据类注释：
+   ```python
+   start_line: int = 0  # Bug 起始行（文件中的绝对行号，1-based）
+   end_line: int = 0  # Bug 结束行（文件中的绝对行号，1-based）
+   ```
+
+2. 更新 `SYSTEM_PROMPT` 和 `SYSTEM_PROMPT_WITH_STATIC_ANALYSIS` 中的说明：
+   ```
+   - start_line/end_line 是相对于整个文件的绝对行号，从1开始计数
+   - 当前函数的起始行号会在下方函数代码的行号标注中显示
+   - 例如，如果 bug 在文件的第184行，start_line 应该是 184
+   ```
+
+#### 修改 2：Prompt 构建使用绝对行号
+**文件**：`pyscan/bug_detector.py`
+
+1. `_build_prompt` 方法新增 `function_start_line` 参数
+2. 在函数代码显示中使用绝对行号标注：
+   ```python
+   # 显示函数及其行号范围
+   if function_start_line > 0:
+       parts.append(f"### 当前函数（文件行号 {function_start_line}-{function_end_line}）\n")
+   # 使用绝对行号标注代码
+   for i, line in enumerate(code_lines, start=function_start_line):
+       parts.append(f"{i:4d} | {line}\n")
+   ```
+
+#### 修改 3：移除 Layer4 中的行号转换逻辑
+**文件**：`pyscan/layer4/cross_validator.py`
+
+1. 创建 BugReport 时直接使用绝对行号：
+   ```python
+   start_line=issue.line,  # 直接使用绝对行号
+   end_line=issue.line,
+   ```
+
+2. LLM 确认检查时直接比较绝对行号：
+   ```python
+   # bug.start_line 已经是绝对行号，直接比较
+   if abs(bug.start_line - mypy_issue.line) <= 2:
+   ```
+
+#### 修改 4：简化 HTML 可视化中的行号处理
+**文件**：`pyscan_viz/visualizer.py`
+
+```python
+# Bug POI (文件中的绝对行号)
+bug_absolute_start = bug.get('start_line', 0)
+bug_absolute_end = bug.get('end_line', 0)
+# 不再需要转换计算
+```
+
+**文件**：`pyscan_viz/template.html`
+
+```javascript
+// bug_poi 中已经是绝对行号
+const bugAbsoluteStart = bug.bug_poi.start_line;
+const bugAbsoluteEnd = bug.bug_poi.end_line;
+// 不再需要转换计算
+```
+
+### 测试结果
+
+- ✅ 所有 106 个测试通过
+- ✅ 不影响现有功能
+- ✅ 代码逻辑更简洁
+
+### 影响范围
+
+1. **BugReport 数据结构**：`start_line`/`end_line` 语义改变（相对行号 → 绝对行号）
+2. **report.json 格式**：行号字段含义改变（破坏性变更）
+3. **LLM 输入输出**：Prompt 和响应中均使用绝对行号
+4. **代码简化**：移除了所有行号转换逻辑（~50 行代码）
+
+### 优势
+
+1. **Prompt 一致性**：Layer1 结果和 LLM 输出使用相同的行号体系
+2. **降低 LLM 负担**：无需心算行号转换，减少出错
+3. **代码简化**：移除所有转换逻辑，降低维护成本
+4. **使用便利**：report.json 中的行号可以直接在 IDE 中跳转
+
+### 文档更新
+
+- ✅ `README.md`: 更新报告格式说明，明确行号为绝对行号
+- ✅ `v2_impl_tracking/stage1_result.md`: 添加变更记录
+
+---
 

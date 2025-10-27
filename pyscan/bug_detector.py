@@ -28,8 +28,8 @@ class BugReport:
     bug_type: str = ""  # Bug 类型
     description: str = ""  # Bug 描述（中文）
     location: str = ""  # 位置描述
-    start_line: int = 0  # Bug 起始行（相对于函数）
-    end_line: int = 0  # Bug 结束行（相对于函数）
+    start_line: int = 0  # Bug 起始行（文件中的绝对行号，1-based）
+    end_line: int = 0  # Bug 结束行（文件中的绝对行号，1-based）
     start_col: int = 0  # Bug 起始列
     end_col: int = 0  # Bug 结束列
     suggestion: str = ""  # 修复建议
@@ -92,8 +92,8 @@ class BugDetector:
       "type": "bug类型",
       "description": "问题描述",
       "location": "具体位置描述",
-      "start_line": 相对行号（相对于函数起始行，从1开始），
-      "end_line": 结束行号（相对于函数起始行），
+      "start_line": 文件中的绝对行号（从1开始），
+      "end_line": 文件中的绝对行号，
       "start_col": 起始列号（从0开始，如果无法确定设为0），
       "end_col": 结束列号（如果无法确定设为0），
       "suggestion": "修复建议"
@@ -102,8 +102,9 @@ class BugDetector:
 }
 
 注意：
-- start_line/end_line 是相对于当前函数的第一行代码的行号，从1开始计数
-- 例如，如果 bug 在函数的第3行，start_line 应该是 3
+- start_line/end_line 是相对于整个文件的绝对行号，从1开始计数
+- 当前函数的起始行号会在下方函数代码的行号标注中显示
+- 例如，如果 bug 在文件的第184行，start_line 应该是 184
 - start_col/end_col 是该行内的字符偏移量，从0开始
 - 如果无法精确定位列号，可以设置为 0
 
@@ -153,8 +154,8 @@ class BugDetector:
       "type": "bug类型",
       "description": "问题描述",
       "location": "具体位置描述",
-      "start_line": 相对行号（相对于函数起始行，从1开始），
-      "end_line": 结束行号（相对于函数起始行），
+      "start_line": 文件中的绝对行号（从1开始），
+      "end_line": 文件中的绝对行号，
       "start_col": 起始列号（从0开始，如果无法确定设为0），
       "end_col": 结束列号（如果无法确定设为0），
       "suggestion": "修复建议"
@@ -163,7 +164,9 @@ class BugDetector:
 }
 
 注意：
-- start_line/end_line 是相对于当前函数的第一行代码的行号，从1开始计数
+- start_line/end_line 是相对于整个文件的绝对行号，从1开始计数
+- 当前函数的起始行号会在下方函数代码的行号标注中显示
+- 例如，如果 bug 在文件的第184行，start_line 应该是 184
 - 如果没有发现**真正的深层次 bug**，返回 {"has_bug": false, "severity": "low", "bugs": []}
 """
 
@@ -213,7 +216,7 @@ class BugDetector:
                 - raw_response: The raw response from LLM
             None if failed after retries.
         """
-        prompt = self._build_prompt(function, context, static_facts)
+        prompt = self._build_prompt(function, context, static_facts, function_start_line)
 
         # 根据是否有静态分析结果选择不同的 system prompt
         system_prompt = (
@@ -293,7 +296,8 @@ class BugDetector:
         self,
         function: FunctionInfo,
         context: Dict[str, Any],
-        static_facts: Optional[StaticFacts] = None
+        static_facts: Optional[StaticFacts] = None,
+        function_start_line: int = 0
     ) -> str:
         """
         Build prompt for LLM.
@@ -302,6 +306,7 @@ class BugDetector:
             function: Function to analyze.
             context: Function context.
             static_facts: Static analysis results from Layer 1 (optional).
+            function_start_line: Starting line number of function in file.
 
         Returns:
             Formatted prompt.
@@ -319,12 +324,24 @@ class BugDetector:
         else:
             parts.append("（此函数仅被项目内部代码调用，可以信任调用者已做验证）\n\n")
 
-        parts.append("### 当前函数\n")
-        parts.append("```python\n")
-        # 添加行号以帮助 LLM 定位
+        # 计算函数的行号范围
         code_lines = context["current_function"].split('\n')
-        for i, line in enumerate(code_lines, 1):
-            parts.append(f"{i:3d} | {line}\n")
+        function_end_line = function_start_line + len(code_lines) - 1 if function_start_line > 0 else 0
+
+        # 显示函数及其行号范围
+        if function_start_line > 0:
+            parts.append(f"### 当前函数（文件行号 {function_start_line}-{function_end_line}）\n")
+        else:
+            parts.append("### 当前函数\n")
+        parts.append("```python\n")
+        # 使用绝对行号标注代码
+        if function_start_line > 0:
+            for i, line in enumerate(code_lines, start=function_start_line):
+                parts.append(f"{i:4d} | {line}\n")
+        else:
+            # 如果没有提供起始行号，使用相对行号（兜底）
+            for i, line in enumerate(code_lines, 1):
+                parts.append(f"{i:4d} | {line}\n")
         parts.append("```\n\n")
 
         # 添加静态分析结果（如果有）
