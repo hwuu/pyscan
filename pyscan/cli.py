@@ -426,6 +426,21 @@ def main():
         else:
             logger.warning("Layer 1 static analysis disabled (no tools available)")
 
+        # 保存 SYSTEM_PROMPT 到 .pyscan/prompts/ 目录
+        prompts_dir = progress_dir / "prompts"
+        prompts_dir.mkdir(exist_ok=True)
+
+        # 根据 Layer1 是否启用选择对应的 SYSTEM_PROMPT
+        if layer1_analyzer.is_enabled():
+            system_prompt = detector.SYSTEM_PROMPT_WITH_STATIC_ANALYSIS
+        else:
+            system_prompt = detector.SYSTEM_PROMPT
+
+        prompt_file = prompts_dir / "SYSTEM_PROMPT.md"
+        with open(prompt_file, 'w', encoding='utf-8') as f:
+            f.write(system_prompt)
+        logger.info(f"System prompt saved to: {prompt_file}")
+
         # 初始化检测流水线（集成 Layer 1 + Layer 3 + Layer 4）
         pipeline = DetectionPipeline(config, layer1_analyzer, detector)
 
