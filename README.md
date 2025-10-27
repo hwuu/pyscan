@@ -1,9 +1,26 @@
-# PyScan - Python 代码 Bug 检测工具
+# PyScan - Python 代码深度 Bug 检测工具
 
-PyScan 是一个基于大语言模型(LLM)的 Python 代码静态分析工具,通过 AST 解析和上下文增强来检测潜在的代码bug。
+PyScan 是一个基于大语言模型(LLM)的 Python 代码静态分析工具，**专注于发现传统静态工具无法检测的深层次问题**（业务逻辑错误、复杂数据流问题、并发问题等）。
+
+## 核心理念
+
+- **定位明确**：PyScan 不是静态工具的集合，而是深度 bug 检测的专家
+- **智能增强**：集成 mypy/bandit 等工具为 LLM 提供上下文，引导其专注于深层次分析
+- **报告纯净**：只输出 LLM 发现的深度 bug，不包含简单的类型错误或代码规范问题（这些可以直接用 mypy/pylint 等工具检查）
 
 ## 特性
 
+### 核心能力
+- ✅ **深度分析专家**: LLM 专注于发现静态工具找不到的深层次问题
+  - 业务逻辑错误（边界条件、状态转换、隐式约束）
+  - 复杂数据流问题（跨函数依赖、间接引用）
+  - 资源管理问题（文件/连接/锁的正确释放）
+  - 并发问题（竞态条件、死锁风险）
+- ✅ **智能上下文增强**: 集成 mypy/bandit 为 LLM 提供静态分析事实，引导其专注方向
+  - Layer 1 工具（mypy、bandit）的结果**不会**直接输出到报告
+  - 而是作为"已知事实"融入 LLM prompt，减少重复分析
+
+### 技术特性
 - ✅ **AST 解析**: 深度解析 Python 代码结构,提取函数信息和调用关系
 - ✅ **上下文增强**: 为每个函数构建包含调用者和被调用者的完整上下文
 - ✅ **智能调用分析**: 精简的 caller 信息展示(调用点上下文 ± 5 行,带行号和高亮)
@@ -70,10 +87,23 @@ public_api:
     - "api_"
     - "handle_"
     - "endpoint_"
+
+# Layer 1 静态分析工具配置
+# 作用：为 LLM 提供静态分析上下文，引导其专注于深层次问题
+# 注意：Layer 1 的结果不会直接输出到报告
+layer1:
+  enable_mypy: true      # 启用 mypy 类型检查
+  enable_bandit: true    # 启用 bandit 安全扫描
+
+# Layer 4 交叉验证配置
+# 建议：设置为 false（默认），让 PyScan 只输出 LLM 发现的深度 bug
+layer4:
+  enable_cross_validation: false  # 禁用交叉验证（推荐）
 ```
 
 ### 配置说明
 
+#### 基础配置
 - **llm.base_url**: LLM API 基础 URL
 - **llm.api_key**: API 密钥
 - **llm.model**: 使用的模型名称
@@ -86,6 +116,19 @@ public_api:
 - **detector.use_tiktoken**: 是否使用 tiktoken 精确计算 token 数
   - `false` (默认): 使用简单估算 (1 token ≈ 4 字符)，无需额外依赖
   - `true`: 使用 tiktoken 精确计算，需要安装 tiktoken 包
+
+#### Layer 1 配置（智能上下文增强）
+- **layer1.enable_mypy**: 是否启用 mypy 类型检查（默认: true）
+  - mypy 发现的类型错误会告知 LLM，引导其专注于业务逻辑问题
+  - **重要**：mypy 的结果不会直接输出到报告
+- **layer1.enable_bandit**: 是否启用 bandit 安全扫描（默认: true）
+  - bandit 发现的安全问题会告知 LLM，引导其专注于深层次安全问题
+  - **重要**：bandit 的结果不会直接输出到报告
+
+#### Layer 4 配置（交叉验证）
+- **layer4.enable_cross_validation**: 是否启用交叉验证（默认: false，推荐）
+  - `false`（推荐）：PyScan 只输出 LLM 发现的深度 bug
+  - `true`：会把 Layer 1 的结果转换成 bug 报告（与产品定位不符，不推荐）
 ```
 
 ## 使用方法

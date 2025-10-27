@@ -34,13 +34,17 @@ detector:
   # use_tiktoken: false  # 是否使用 tiktoken 精确计算 token 数 (默认: false, 使用字符估算)
 
 # Layer 1 静态分析工具配置
+# 作用：为 LLM 提供静态分析上下文（类型错误、安全问题），增强 prompt
+# 注意：Layer 1 的结果不会直接输出到报告，只用于引导 LLM 专注于深层次问题
 layer1:
   enable_mypy: true      # 启用 mypy 类型检查
   enable_bandit: true    # 启用 bandit 安全扫描
 
 # Layer 4 交叉验证配置
+# 建议：设置为 false，让 PyScan 只输出 LLM 发现的深度 bug
+# 如果启用，Layer 4 会把 Layer 1 的结果转换成 bug 报告（与产品定位不符）
 layer4:
-  enable_cross_validation: true  # 启用 Layer 4 交叉验证
-  confidence_threshold: 0.7      # 最低置信度阈值
-  position_tolerance: 2          # 位置匹配容忍度（行数）
-  enable_deduplication: true     # 启用去重
+  enable_cross_validation: false  # 禁用 Layer 4 交叉验证（推荐）
+  confidence_threshold: 0.7       # 最低置信度阈值
+  position_tolerance: 2           # 位置匹配容忍度（行数）
+  enable_deduplication: true      # 启用去重
