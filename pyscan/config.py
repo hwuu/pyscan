@@ -88,6 +88,9 @@ class Config:
     # Layer 1 默认值
     DEFAULT_LAYER1_ENABLE_MYPY = True
     DEFAULT_LAYER1_ENABLE_BANDIT = True
+    # Viz 默认值
+    DEFAULT_VIZ_EMBED_SOURCE = True
+    DEFAULT_VIZ_GIT_ENRICH = True
 
     def __init__(self, config_dict: Dict[str, Any]):
         """
@@ -221,6 +224,11 @@ class Config:
                     raise
                 except Exception as e:
                     raise ConfigError(f"git.platforms[{i}]: Failed to create platform config: {e}")
+
+        # Viz 配置（可选）
+        viz_config = config_dict.get("viz", {})
+        self.viz_embed_source = viz_config.get("embed_source", self.DEFAULT_VIZ_EMBED_SOURCE)
+        self.viz_git_enrich = viz_config.get("git_enrich", self.DEFAULT_VIZ_GIT_ENRICH)
 
     def _validate_values(self) -> None:
         """Validate configuration values."""

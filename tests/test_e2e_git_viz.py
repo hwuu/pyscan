@@ -9,7 +9,7 @@ class TestGitVizE2E:
     """End-to-end tests for git visualization."""
 
     def test_git_enrich_with_valid_repo(self, tmp_path):
-        """Test --git-enrich flag with a valid git repository."""
+        """Test git enrichment with a valid git repository (via config)."""
         # Create a temporary git repository
         repo_dir = tmp_path / "test_repo"
         repo_dir.mkdir()
@@ -31,6 +31,19 @@ class TestGitVizE2E:
         subprocess.run(['git', 'add', 'test.py'], cwd=repo_dir, check=True, capture_output=True)
         subprocess.run(['git', 'commit', '-m', 'Add buggy function'],
                       cwd=repo_dir, check=True, capture_output=True)
+
+        # Create a config file with git_enrich enabled
+        config_file = repo_dir / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test"
+  model: "gpt-4"
+
+viz:
+  embed_source: true
+  git_enrich: true
+""")
 
         # Create a mock pyscan report
         report_file = repo_dir / "report.json"
@@ -68,7 +81,7 @@ class TestGitVizE2E:
         output_html = repo_dir / "output.html"
         original_argv = sys.argv
         try:
-            sys.argv = ['pyscan_viz', str(report_file), '-o', str(output_html), '--git-enrich']
+            sys.argv = ['pyscan_viz', str(report_file), '-o', str(output_html), '-c', str(config_file)]
             main()
         except SystemExit:
             pass  # CLI calls sys.exit(0) on success
@@ -85,7 +98,7 @@ class TestGitVizE2E:
             "HTML should contain commit author information"
 
     def test_git_enrich_without_git_repo(self, tmp_path):
-        """Test --git-enrich flag gracefully handles non-git directories."""
+        """Test git enrichment gracefully handles non-git directories."""
         # Create a non-git directory
         non_git_dir = tmp_path / "not_git"
         non_git_dir.mkdir()
@@ -93,6 +106,19 @@ class TestGitVizE2E:
         # Create a test Python file
         test_file = non_git_dir / "test.py"
         test_file.write_text("def test():\n    pass\n")
+
+        # Create a config file with git_enrich enabled
+        config_file = non_git_dir / "config.yaml"
+        config_file.write_text("""
+llm:
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-test"
+  model: "gpt-4"
+
+viz:
+  embed_source: true
+  git_enrich: true
+""")
 
         # Create a mock pyscan report
         report_file = non_git_dir / "report.json"
@@ -130,7 +156,7 @@ class TestGitVizE2E:
         output_html = non_git_dir / "output.html"
         original_argv = sys.argv
         try:
-            sys.argv = ['pyscan_viz', str(report_file), '-o', str(output_html), '--git-enrich']
+            sys.argv = ['pyscan_viz', str(report_file), '-o', str(output_html), '-c', str(config_file)]
             main()
         except SystemExit:
             pass  # CLI calls sys.exit(0) on success
