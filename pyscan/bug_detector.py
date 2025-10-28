@@ -1,6 +1,7 @@
 """Bug detector module using LLM."""
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
@@ -459,6 +460,9 @@ class BugDetector:
         """
         # 尝试提取 JSON（可能包含在 markdown 代码块中）
         content = content.strip()
+
+        # 移除 <think>...</think> 标记（如果存在）
+        content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
 
         # 移除可能的 markdown 代码块标记
         if content.startswith("```"):

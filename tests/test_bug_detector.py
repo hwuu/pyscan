@@ -249,3 +249,56 @@ detector:
         assert 'result = test_func' in bug_report.callers[0]['code_snippet']
         assert len(bug_report.inferred_callers) == 1
         assert bug_report.inferred_callers[0]['hint'] == '(推断): @decorator装饰器'
+
+    def test_parse_response_normal_json(self, mock_config):
+        """测试解析正常的 JSON 响应。"""
+        detector = BugDetector(mock_config)
+        content = '{"has_bug": false, "severity": "low", "bugs": []}'
+
+        result = detector._parse_response(content)
+
+        assert result["has_bug"] is False
+        assert result["severity"] == "low"
+        assert result["bugs"] == []
+
+    def test_parse_response_with_think_tag(self, mock_config):
+        """测试解析包含 <think> 标记的响应。"""
+        detector = BugDetector(mock_config)
+        content = '<think>这是模型的思考过程...</think>{"has_bug": true, "severity": "high", "bugs": [{"type": "Bug", "description": "测试", "location": "line 1", "start_line": 1, "end_line": 1, "start_col": 0, "end_col": 0, "suggestion": "修复"}]}'
+
+        result = detector._parse_response(content)
+
+        assert result["has_bug"] is True
+        assert result["severity"] == "high"
+        assert len(result["bugs"]) == 1
+
+    def test_parse_response_with_multiline_think_tag(self, mock_config):
+        """测试解析包含多行 <think> 标记的响应。"""
+        detector = BugDetector(mock_config)
+        content = '''<think>
+        这是模型的思考过程...
+        可能有多行
+        包含换行符
+        </think>
+        {"has_bug": false, "severity": "low", "bugs": []}'''
+
+        result = detector._parse_response(content)
+
+        assert result["has_bug"] is False
+        assert result["severity"] == "low"
+        assert result["bugs"] == []
+
+    def test_parse_response_with_think_and_markdown(self, mock_config):
+        """测试解析同时包含 <think> 标记和 markdown 代码块的响应。"""
+        detector = BugDetector(mock_config)
+        content = '''<think>分析中...</think>
+```json
+{"has_bug": true, "severity": "medium", "bugs": [{"type": "Error", "description": "错误", "location": "line 2", "start_line": 2, "end_line": 2, "start_col": 0, "end_col": 5, "suggestion": "修改"}]}
+```'''
+
+        result = detector._parse_response(content)
+
+        assert result["has_bug"] is True
+        assert result["severity"] == "medium"
+        assert len(result["bugs"]) == 1
+        assert result["bugs"][0]["type"] == "Error"
