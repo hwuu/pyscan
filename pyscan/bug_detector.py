@@ -240,6 +240,20 @@ class BugDetector:
                 )
 
                 content = response.choices[0].message.content
+                finish_reason = response.choices[0].finish_reason
+
+                # 检查是否因 token 限制被截断
+                if finish_reason == "length":
+                    logger.warning(
+                        f"LLM response truncated for function '{function.name}' "
+                        f"due to max_tokens limit (current: {self.config.llm_max_tokens}). "
+                        f"Response length: {len(content)} chars. "
+                        f"Consider increasing 'llm.max_tokens' in config file."
+                    )
+                    # 记录截断的 response 尾部
+                    tail = content[-200:] if len(content) > 200 else content
+                    logger.debug(f"Truncated response tail: ...{tail}")
+
                 result = self._parse_response(content)
 
                 # 将每个 bug 转换为独立的 BugReport
@@ -517,5 +531,25 @@ class BugDetector:
             return result
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {content}")
+            # 记录详细的解析错误信息
+            content_length = len(content)
+            head = content[:300] if content_length > 300 else content
+            tail = content[-300:] if content_length > 300 else ""
+
+            # 检查是否有不完整的 <think> 标记
+            unclosed_think = "<think>" in content and "</think>" not in content
+
+            logger.error(
+                f"Failed to parse JSON response (length: {content_length} chars). "
+                f"JSON error: {e}"
+            )
+            logger.error(f"Response head (first 300 chars): {head}")
+            if tail:
+                logger.error(f"Response tail (last 300 chars): {tail}")
+            if unclosed_think:
+                logger.error(
+                    "Detected unclosed <think> tag. "
+                    "Response may be truncated due to max_tokens limit."
+                )
+
             raise ValueError(f"Invalid JSON response: {e}")
