@@ -52,15 +52,17 @@ class ProgressManager:
         加载上次的进度。
 
         Returns:
-            (completed_functions, reports): 已完成的函数列表和 bug 报告列表
+            (reports, completed_functions, failed_functions):
+                bug 报告列表、已完成的函数集合、失败的函数集合
         """
         if not self.progress_file.exists():
-            return set(), []
+            return [], set(), set()
 
         try:
             with open(self.progress_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             completed = set(data.get('completed_functions', []))
+            failed = set(data.get('failed_functions', []))
 
             if self.reports_file.exists():
                 with open(self.reports_file, 'r', encoding='utf-8') as f:
@@ -94,26 +96,34 @@ class ProgressManager:
             else:
                 reports = []
 
-            logger.info(f"Loaded progress: {len(completed)} functions completed, {len(reports)} bugs found")
-            return completed, reports
+            logger.info(
+                f"Loaded progress: {len(completed)} functions completed, "
+                f"{len(reports)} bugs found, {len(failed)} functions failed"
+            )
+            return reports, completed, failed
 
         except Exception as e:
             logger.warning(f"Failed to load progress: {e}")
-            return set(), []
+            return [], set(), set()
 
-    def save_progress(self, completed_functions, reports):
+    def save_progress(self, reports, completed_functions, failed_functions=None):
         """
         保存当前进度。
 
         Args:
-            completed_functions: 已完成的函数集合
             reports: Bug 报告列表（每个 bug 一个 report）
+            completed_functions: 已完成的函数集合
+            failed_functions: 失败的函数集合（可选）
         """
+        if failed_functions is None:
+            failed_functions = set()
+
         try:
-            # 保存已完成函数列表
+            # 保存已完成函数列表和失败函数列表
             with open(self.progress_file, 'w', encoding='utf-8') as f:
                 json.dump({
-                    'completed_functions': list(completed_functions)
+                    'completed_functions': list(completed_functions),
+                    'failed_functions': list(failed_functions)
                 }, f, indent=2)
 
             # 保存报告（新格式：每个 bug 一个 report）
@@ -384,7 +394,7 @@ def main():
         progress_manager = ProgressManager(progress_dir)
 
         # 加载之前的进度
-        completed_functions, reports = progress_manager.load_progress()
+        reports, completed_functions, failed_functions = progress_manager.load_progress()
 
         # 如果有之前的进度，应用过滤并生成一次报告
         if reports:
@@ -449,15 +459,21 @@ def main():
             return f"{getattr(func, 'file_path', '')}::{func.name}"
 
         # 过滤出需要检测的函数
-        functions_to_detect = [
+        remaining_functions = [
             f for f in all_functions
             if get_function_id(f) not in completed_functions
         ]
 
+        # 优先扫描之前失败的函数
+        failed_to_retry = [f for f in remaining_functions if get_function_id(f) in failed_functions]
+        other_functions = [f for f in remaining_functions if get_function_id(f) not in failed_functions]
+        functions_to_detect = failed_to_retry + other_functions
+
         if len(functions_to_detect) < len(all_functions):
             logger.info(
                 f"Resuming from previous run: {len(completed_functions)} "
-                f"functions already completed, {len(functions_to_detect)} remaining"
+                f"functions already completed, {len(functions_to_detect)} remaining "
+                f"({len(failed_to_retry)} failed functions to retry)"
             )
 
         # Bug ID 计数器 (从已有的 reports 开始计数)
@@ -544,27 +560,27 @@ def main():
                     bug_id_start=bug_counter
                 )
 
-                if result is None:
-                    # 检测失败,立即退出
+                if not result["success"]:
+                    # 检测失败，记录到 failed_functions，但不退出
                     error_msg = (
                         f"Bug detection failed for function '{func.name}' "
-                        f"in {getattr(func, 'file_path', 'unknown')}. "
-                        f"Aborting scan."
+                        f"in {getattr(func, 'file_path', 'unknown')}: {result.get('error', 'Unknown error')}. "
+                        f"Continuing scan."
                     )
-                    logger.error(error_msg)
+                    logger.warning(error_msg)
+
+                    # 添加到 failed_functions
+                    failed_functions.add(func_id)
 
                     # 保存当前进度和报告
-                    progress_manager.save_progress(completed_functions, reports)
+                    progress_manager.save_progress(reports, completed_functions, failed_functions)
                     # 应用过滤规则
                     filtered_reports = apply_bug_filters(reports, config)
                     reporter = Reporter(filtered_reports, scan_dir)
                     reporter.to_json(args.output)
 
-                    logger.info(
-                        f"Progress saved to {progress_manager.progress_dir}. "
-                        f"Run the command again to resume."
-                    )
-                    sys.exit(1)
+                    # 继续下一个函数
+                    continue
 
                 # 检测成功，提取结果
                 bug_reports = result.reports  # 已去重和标记来源的 bug 列表
@@ -587,32 +603,37 @@ def main():
 
                 completed_functions.add(func_id)
 
+                # 如果之前失败过，从 failed_functions 中移除
+                if func_id in failed_functions:
+                    failed_functions.remove(func_id)
+                    logger.info(f"Function '{func.name}' previously failed, now succeeded and removed from failed list")
+
                 # 每完成一个函数就保存进度和更新报告
-                progress_manager.save_progress(completed_functions, reports)
+                progress_manager.save_progress(reports, completed_functions, failed_functions)
                 # 应用过滤规则
                 filtered_reports = apply_bug_filters(reports, config)
                 reporter = Reporter(filtered_reports, scan_dir)
                 reporter.to_json(args.output)
 
             except Exception as e:
-                # 发生异常,立即退出
+                # 发生异常，记录失败并继续
                 error_msg = (
                     f"Error detecting bugs for function '{func.name}': {e}"
                 )
                 logger.error(error_msg, exc_info=True)
 
+                # 记录到 failed_functions
+                failed_functions.add(func_id)
+
                 # 保存当前进度和报告
-                progress_manager.save_progress(completed_functions, reports)
+                progress_manager.save_progress(reports, completed_functions, failed_functions)
                 # 应用过滤规则
                 filtered_reports = apply_bug_filters(reports, config)
                 reporter = Reporter(filtered_reports, scan_dir)
                 reporter.to_json(args.output)
 
-                logger.info(
-                    f"Progress saved to {progress_manager.progress_dir}. "
-                    f"Run the command again to resume."
-                )
-                sys.exit(1)
+                # 继续下一个函数
+                continue
 
         # 5. 生成报告
         logger.info("Generating report...")

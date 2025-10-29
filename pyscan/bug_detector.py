@@ -195,7 +195,7 @@ class BugDetector:
         inferred_callers: List[Dict[str, str]] = None,
         bug_id_start: int = 1,
         static_facts: Optional[StaticFacts] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Detect bugs in a function.
 
@@ -212,10 +212,11 @@ class BugDetector:
 
         Returns:
             Dictionary containing:
-                - reports: List of BugReport (one per bug found, empty if no bugs)
+                - success: bool, True if detection succeeded, False if failed after retries
+                - reports: List of BugReport (one per bug found, empty if no bugs or failed)
                 - prompt: The full prompt sent to LLM
-                - raw_response: The raw response from LLM
-            None if failed after retries.
+                - raw_response: The raw response from LLM (empty string if failed)
+                - error: Error message (only present if success=False)
         """
         prompt = self._build_prompt(function, context, static_facts, function_start_line)
 
@@ -270,6 +271,7 @@ class BugDetector:
                         reports.append(report)
 
                 return {
+                    "success": True,
                     "reports": reports,
                     "prompt": prompt,
                     "raw_response": content
@@ -285,13 +287,27 @@ class BugDetector:
                     # 等待后重试
                     time.sleep(1)
                 else:
-                    logger.error(
+                    logger.warning(
                         f"Failed to detect bugs for {function.name} "
-                        f"after {self.config.detector_max_retries} attempts"
+                        f"after {self.config.detector_max_retries} attempts: {e}"
                     )
-                    return None
+                    # 返回失败标记（而不是 None）
+                    return {
+                        "success": False,
+                        "error": str(e),
+                        "reports": [],
+                        "prompt": prompt,
+                        "raw_response": ""
+                    }
 
-        return None
+        # 理论上不应该到这里
+        return {
+            "success": False,
+            "error": "Unknown error",
+            "reports": [],
+            "prompt": prompt,
+            "raw_response": ""
+        }
 
     def _build_prompt(
         self,

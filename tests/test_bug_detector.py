@@ -179,8 +179,12 @@ detector:
 
         result = detector.detect(sample_function, context)
 
-        # 应该返回 None（失败）
-        assert result is None
+        # 应该返回失败标记（而不是 None）
+        assert result is not None
+        assert result["success"] is False
+        assert "error" in result
+        assert result["error"] == "API Error"
+        assert result["reports"] == []
 
     def test_bug_report_dataclass(self):
         """测试 BugReport 数据类。"""
