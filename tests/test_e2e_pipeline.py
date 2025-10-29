@@ -78,6 +78,7 @@ def add_numbers(x: int, y: int) -> int:
 
             detector = Mock(spec=BugDetector)
             detector.detect.return_value = {
+                "success": True,
                 "reports": [],  # LLM 没有检测到（模拟场景）
                 "prompt": "test prompt",
                 "raw_response": "{\"has_bug\": false}"
@@ -149,6 +150,7 @@ def add_numbers(x: int, y: int) -> int:
             from unittest.mock import Mock
             detector = Mock(spec=BugDetector)
             detector.detect.return_value = {
+                "success": True,
                 "reports": [],
                 "prompt": "test prompt",
                 "raw_response": "{\"has_bug\": false}"

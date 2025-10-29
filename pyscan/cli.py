@@ -560,11 +560,11 @@ def main():
                     bug_id_start=bug_counter
                 )
 
-                if not result["success"]:
+                if not result.success:
                     # 检测失败，记录到 failed_functions，但不退出
                     error_msg = (
                         f"Bug detection failed for function '{func.name}' "
-                        f"in {getattr(func, 'file_path', 'unknown')}: {result.get('error', 'Unknown error')}. "
+                        f"in {getattr(func, 'file_path', 'unknown')}: {result.error}. "
                         f"Continuing scan."
                     )
                     logger.warning(error_msg)

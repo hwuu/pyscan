@@ -77,6 +77,7 @@ class TestDetectionPipeline:
             end_line=5
         )
         self.bug_detector.detect.return_value = {
+            "success": True,
             "reports": [llm_bug],
             "prompt": "test prompt",
             "raw_response": "test response"
@@ -111,8 +112,14 @@ class TestDetectionPipeline:
         func.lineno = 10
         func.end_lineno = 20
 
-        # LLM 返回 None（失败）
-        self.bug_detector.detect.return_value = None
+        # LLM 返回失败标记
+        self.bug_detector.detect.return_value = {
+            "success": False,
+            "error": "API Error",
+            "reports": [],
+            "prompt": "test prompt",
+            "raw_response": ""
+        }
 
         result = pipeline.detect_bugs(
             function=func,
@@ -126,7 +133,10 @@ class TestDetectionPipeline:
             bug_id_start=1
         )
 
-        assert result is None
+        assert result is not None
+        assert isinstance(result, DetectionResult)
+        assert result.success is False
+        assert result.error == "API Error"
 
     def test_merge_and_deduplicate_no_duplicates(self):
         """测试合并无重复的 bugs"""

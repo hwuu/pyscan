@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DetectionResult:
     """检测结果"""
+    success: bool = True                      # 检测是否成功
     reports: List[BugReport] = field(default_factory=list)  # 去重后的 bug 报告列表
     prompt: str = ""                      # LLM prompt
     raw_response: str = ""                # LLM 原始响应
@@ -27,6 +28,7 @@ class DetectionResult:
     layer3_bug_count: int = 0             # Layer 3 检测到的 bug 数量
     layer4_bug_count: int = 0             # Layer 4 新增的 bug 数量
     deduped_count: int = 0                # 去重数量
+    error: str = ""                       # 错误信息（仅当 success=False 时）
 
 
 class DetectionPipeline:
@@ -74,7 +76,7 @@ class DetectionPipeline:
         callees: List[str],
         inferred_callers: List[Dict[str, Any]],
         bug_id_start: int
-    ) -> Optional[DetectionResult]:
+    ) -> DetectionResult:
         """
         执行完整的 bug 检测流程
 
@@ -96,7 +98,7 @@ class DetectionPipeline:
             bug_id_start: Bug ID 起始编号
 
         Returns:
-            DetectionResult: 检测结果，如果失败返回 None
+            DetectionResult: 检测结果（success 字段标记是否成功）
         """
         # Step 1: Layer 1 静态分析
         static_facts = None
@@ -126,9 +128,14 @@ class DetectionPipeline:
             static_facts=static_facts
         )
 
-        if llm_result is None:
+        if not llm_result["success"]:
             # LLM 检测失败
-            return None
+            return DetectionResult(
+                success=False,
+                error=llm_result.get("error", "Unknown error"),
+                prompt=llm_result.get("prompt", ""),
+                raw_response=llm_result.get("raw_response", "")
+            )
 
         llm_bugs = llm_result["reports"]
         prompt = llm_result["prompt"]
