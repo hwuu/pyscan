@@ -3,7 +3,7 @@ import subprocess
 import re
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import logging
 
@@ -438,6 +438,33 @@ class GitAnalyzer:
         else:
             return bug_blames[0]
 
+    def build_git_info_dict(self, blame_info: BlameInfo) -> Dict[str, Any]:
+        """
+        Build a git_info dictionary from BlameInfo.
+
+        This is a public API method for constructing git_info dictionaries
+        that can be added to bug reports.
+
+        Args:
+            blame_info: BlameInfo object containing commit information
+
+        Returns:
+            Dictionary with git information (hash, author, date, url, etc.)
+        """
+        commit_url = self._generate_commit_url(blame_info.commit_hash)
+        date_relative = self._format_relative_date(blame_info.commit_date)
+
+        return {
+            'hash': blame_info.commit_hash[:8] if len(blame_info.commit_hash) >= 8 else blame_info.commit_hash,
+            'hash_full': blame_info.commit_hash,
+            'author': blame_info.author,
+            'email': blame_info.author_email,
+            'date': blame_info.commit_date.isoformat(),
+            'date_relative': date_relative,
+            'subject': blame_info.subject,
+            'url': commit_url
+        }
+
     def enrich_bugs_with_git_info(self, bugs: List[Dict]) -> List[Dict]:
         """
         Add git_info field to all bugs.
@@ -477,22 +504,7 @@ class GitAnalyzer:
 
             # Add git_info field
             if blame_info:
-                # Generate commit URL
-                commit_url = self._generate_commit_url(blame_info.commit_hash)
-
-                # Format relative date
-                date_relative = self._format_relative_date(blame_info.commit_date)
-
-                bug['git_info'] = {
-                    'hash': blame_info.commit_hash[:8],  # Short hash
-                    'hash_full': blame_info.commit_hash,  # Full hash
-                    'author': blame_info.author,
-                    'email': blame_info.author_email,
-                    'date': blame_info.commit_date.isoformat(),
-                    'date_relative': date_relative,
-                    'subject': blame_info.subject,
-                    'url': commit_url
-                }
+                bug['git_info'] = self.build_git_info_dict(blame_info)
             else:
                 bug['git_info'] = None
 

@@ -743,17 +743,8 @@ def main():
                                 blame_info = git_analyzer_for_bugs.get_bug_blame_info(bug_dict)
 
                                 if blame_info:
-                                    # 构造 git_info 字典
-                                    bug_report.git_info = {
-                                        'hash': blame_info.commit_hash[:8] if len(blame_info.commit_hash) >= 8 else blame_info.commit_hash,
-                                        'hash_full': blame_info.commit_hash,
-                                        'author': blame_info.author,
-                                        'email': blame_info.author_email,
-                                        'date': blame_info.commit_date.isoformat(),
-                                        'date_relative': git_analyzer_for_bugs._format_relative_date(blame_info.commit_date),
-                                        'subject': blame_info.subject,
-                                        'url': git_analyzer_for_bugs._generate_commit_url(blame_info.commit_hash)
-                                    }
+                                    # 构造 git_info 字典（使用公开方法）
+                                    bug_report.git_info = git_analyzer_for_bugs.build_git_info_dict(blame_info)
 
                                     # 时间过滤：检查 bug 的时间是否在范围内
                                     if args.before or args.after:
