@@ -750,7 +750,7 @@ def main():
                                         'author': blame_info.author,
                                         'email': blame_info.author_email,
                                         'date': blame_info.commit_date.isoformat(),
-                                        'date_relative': git_analyzer_for_bugs._get_relative_time(blame_info.commit_date),
+                                        'date_relative': git_analyzer_for_bugs._format_relative_date(blame_info.commit_date),
                                         'subject': blame_info.subject,
                                         'url': git_analyzer_for_bugs.get_commit_url(blame_info.commit_hash)
                                     }
