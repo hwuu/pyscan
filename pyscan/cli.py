@@ -752,7 +752,7 @@ def main():
                                         'date': blame_info.commit_date.isoformat(),
                                         'date_relative': git_analyzer_for_bugs._format_relative_date(blame_info.commit_date),
                                         'subject': blame_info.subject,
-                                        'url': git_analyzer_for_bugs.get_commit_url(blame_info.commit_hash)
+                                        'url': git_analyzer_for_bugs._generate_commit_url(blame_info.commit_hash)
                                     }
 
                                     # 时间过滤：检查 bug 的时间是否在范围内
