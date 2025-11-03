@@ -39,6 +39,7 @@ class BugReport:
     inferred_callers: List[Dict[str, Any]] = field(default_factory=list)  # Inferred Caller POIs
     confidence: float = 1.0  # 置信度 (0.0-1.0)，默认为 1.0
     evidence: Dict[str, Any] = field(default_factory=dict)  # 证据链（用于 Layer 4 交叉验证）
+    git_info: Optional[Dict[str, Any]] = None  # Git blame 信息（commit hash, author, date 等）
 
 
 class BugDetector:

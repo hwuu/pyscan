@@ -81,30 +81,39 @@ def main():
         # Git 集成
         enriched_report = None
         if git_enrich:
-            from pyscan_viz.git_analyzer import GitAnalyzer
+            from pyscan.git_analyzer import GitAnalyzer
 
-            # 获取扫描目录（用于 git repo 检测）
-            scan_dir = report.get('scan_directory')
-            if scan_dir:
-                git_repo_path = scan_dir
+            bugs = report.get('bugs', [])
+
+            # 检查 bugs 是否已经有 git_info（由 pyscan 添加）
+            has_git_info = any(bug.get('git_info') is not None for bug in bugs)
+
+            if has_git_info:
+                print(f"Git information already present in report (added by pyscan), skipping enrichment")
+                enriched_report = report  # 直接使用现有 report
             else:
-                # 兼容旧格式：使用 report.json 所在目录
-                git_repo_path = str(report_path.parent)
+                # 向后兼容：如果没有 git_info，进行 enrichment
+                # 获取扫描目录（用于 git repo 检测）
+                scan_dir = report.get('scan_directory')
+                if scan_dir:
+                    git_repo_path = scan_dir
+                else:
+                    # 兼容旧格式：使用 report.json 所在目录
+                    git_repo_path = str(report_path.parent)
 
-            # 初始化 GitAnalyzer
-            git_analyzer = GitAnalyzer(git_repo_path, custom_platforms=custom_platforms)
+                # 初始化 GitAnalyzer
+                git_analyzer = GitAnalyzer(git_repo_path, custom_platforms=custom_platforms)
 
-            if not git_analyzer.is_git_repo:
-                print("Warning: Not a git repository, skipping git integration", file=sys.stderr)
-            else:
-                bugs = report.get('bugs', [])
-                print(f"Enriching {len(bugs)} bugs with git information...")
-                enriched_bugs = git_analyzer.enrich_bugs_with_git_info(bugs)
+                if not git_analyzer.is_git_repo:
+                    print("Warning: Not a git repository, skipping git integration", file=sys.stderr)
+                else:
+                    print(f"Enriching {len(bugs)} bugs with git information (legacy mode)...")
+                    enriched_bugs = git_analyzer.enrich_bugs_with_git_info(bugs)
 
-                # 更新 report
-                enriched_report = report.copy()
-                enriched_report['bugs'] = enriched_bugs
-                print("Git information added successfully")
+                    # 更新 report
+                    enriched_report = report.copy()
+                    enriched_report['bugs'] = enriched_bugs
+                    print("Git information added successfully")
 
         # 生成可视化 HTML
         visualizer = Visualizer()

@@ -2,7 +2,7 @@
 import pytest
 from pathlib import Path
 from datetime import datetime, timedelta
-from pyscan_viz.git_analyzer import GitAnalyzer, BlameInfo
+from pyscan.git_analyzer import GitAnalyzer, BlameInfo
 from pyscan.config import GitPlatformConfig
 
 

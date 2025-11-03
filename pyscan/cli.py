@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
 
@@ -89,7 +90,8 @@ class ProgressManager:
                         suggestion=r['suggestion'],
                         callers=r.get('callers', []),
                         callees=r.get('callees', []),
-                        inferred_callers=r.get('inferred_callers', [])
+                        inferred_callers=r.get('inferred_callers', []),
+                        git_info=r.get('git_info')
                     )
                     for r in reports_data
                 ]
@@ -149,7 +151,8 @@ class ProgressManager:
                     'evidence': r.evidence,
                     'callers': r.callers,
                     'callees': r.callees,
-                    'inferred_callers': r.inferred_callers
+                    'inferred_callers': r.inferred_callers,
+                    'git_info': r.git_info  # Git blame 信息
                 }
                 for r in reports
             ]
@@ -337,12 +340,30 @@ def main():
         help='Force scan from scratch (delete existing .pyscan directory and restart)'
     )
 
+    parser.add_argument(
+        '--before',
+        type=str,
+        default=None,
+        help='Only scan functions last modified before this date (format: YYYY-MM-DD)'
+    )
+
+    parser.add_argument(
+        '--after',
+        type=str,
+        default=None,
+        help='Only scan functions last modified after this date (format: YYYY-MM-DD)'
+    )
+
     args = parser.parse_args()
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
     try:
+        # 初始化时间过滤变量
+        before_date = None
+        after_date = None
+
         # 1. 加载配置
         logger.info(f"Loading configuration from {args.config}")
         config = Config.from_file(args.config)
@@ -382,7 +403,104 @@ def main():
 
         logger.info(f"Found {len(all_functions)} functions")
 
-        # 4. 初始化进度管理器
+        # 4. 函数时间过滤（基于 git blame）
+        if args.before or args.after:
+            logger.info("Time filtering enabled, analyzing git history...")
+
+            # 解析日期参数
+            before_date = None
+            after_date = None
+            try:
+                if args.before:
+                    before_date = datetime.strptime(args.before, '%Y-%m-%d')
+                    logger.info(f"Filtering functions modified before: {args.before}")
+                if args.after:
+                    after_date = datetime.strptime(args.after, '%Y-%m-%d')
+                    logger.info(f"Filtering functions modified after: {args.after}")
+            except ValueError as e:
+                logger.error(f"Invalid date format: {e}. Expected format: YYYY-MM-DD")
+                sys.exit(1)
+
+            # 初始化 GitAnalyzer
+            from pyscan.git_analyzer import GitAnalyzer
+            git_analyzer = GitAnalyzer(scan_dir)
+
+            if not git_analyzer.is_git_repo:
+                logger.warning(
+                    "Not a git repository. Time filtering disabled. "
+                    "Scanning all functions."
+                )
+            else:
+                # 对每个文件进行 git blame，计算函数的最后修改时间
+                filtered_functions = []
+                skipped_count = 0
+
+                # 按文件分组，避免重复 blame 同一个文件
+                from collections import defaultdict
+                functions_by_file = defaultdict(list)
+                for func in all_functions:
+                    file_path = getattr(func, 'file_path', '')
+                    if file_path:
+                        functions_by_file[file_path].append(func)
+
+                for file_path, funcs in tqdm(functions_by_file.items(), desc="Filtering functions by time"):
+                    # 获取文件的绝对路径
+                    absolute_file_path = os.path.join(scan_dir, file_path)
+
+                    # Git blame 该文件
+                    try:
+                        blame_map = git_analyzer.blame_file(absolute_file_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to blame file {file_path}: {e}. Skipping time filter for this file.")
+                        filtered_functions.extend(funcs)
+                        continue
+
+                    # 对该文件中的每个函数进行过滤
+                    for func in funcs:
+                        # 计算函数所有行的最后修改时间的最大值
+                        func_start = func.lineno
+                        func_end = func.end_lineno
+
+                        max_commit_date = None
+                        for line_num in range(func_start, func_end + 1):
+                            if line_num in blame_map:
+                                blame_info = blame_map[line_num]
+                                commit_date = blame_info.commit_date  # datetime 对象
+                                if max_commit_date is None or commit_date > max_commit_date:
+                                    max_commit_date = commit_date
+
+                        if max_commit_date is None:
+                            # 无法获取 commit 时间，保留该函数
+                            logger.debug(f"No commit date for function {func.name} in {file_path}, keeping it")
+                            filtered_functions.append(func)
+                            continue
+
+                        # 检查是否在时间范围内
+                        if before_date and max_commit_date > before_date:
+                            logger.debug(f"Skipping {func.name} (last modified: {max_commit_date.date()}, after --before)")
+                            skipped_count += 1
+                            continue
+
+                        if after_date and max_commit_date < after_date:
+                            logger.debug(f"Skipping {func.name} (last modified: {max_commit_date.date()}, before --after)")
+                            skipped_count += 1
+                            continue
+
+                        # 在时间范围内，保留
+                        filtered_functions.append(func)
+
+                # 替换 all_functions
+                logger.info(
+                    f"Time filtering: {len(filtered_functions)} functions matched, "
+                    f"{skipped_count} functions skipped"
+                )
+                all_functions = filtered_functions
+
+        if not all_functions:
+            logger.warning("No functions to scan after filtering!")
+            return
+
+        # 5. 初始化进度管理器
         progress_dir = Path(args.directory) / ".pyscan"
 
         # 如果使用 --force 参数，删除现有的 .pyscan 目录
@@ -478,6 +596,23 @@ def main():
 
         # Bug ID 计数器 (从已有的 reports 开始计数)
         bug_counter = len(reports) + 1
+
+        # 初始化 GitAnalyzer（用于 bug git enrichment）
+        git_analyzer_for_bugs = None
+        if args.before or args.after:
+            # 如果有时间过滤，复用之前的 git_analyzer
+            from pyscan.git_analyzer import GitAnalyzer
+            git_analyzer_for_bugs = GitAnalyzer(scan_dir)
+            if not git_analyzer_for_bugs.is_git_repo:
+                git_analyzer_for_bugs = None
+                logger.warning("Not a git repository, skipping bug git enrichment")
+        else:
+            # 没有时间过滤，但仍然需要 git enrichment
+            from pyscan.git_analyzer import GitAnalyzer
+            git_analyzer_for_bugs = GitAnalyzer(scan_dir)
+            if not git_analyzer_for_bugs.is_git_repo:
+                git_analyzer_for_bugs = None
+                logger.info("Not a git repository, bug git enrichment disabled")
 
         for func in tqdm(functions_to_detect, desc="Detecting bugs"):
             func_id = get_function_id(func)
@@ -591,6 +726,60 @@ def main():
                 if bug_reports:
                     # 为每个 bug 保存 LLM 交互
                     for bug_report in bug_reports:
+                        # Git enrichment: 添加 git_info
+                        if git_analyzer_for_bugs is not None:
+                            try:
+                                # 获取文件的绝对路径
+                                absolute_file_path = os.path.join(scan_dir, bug_report.file_path)
+
+                                # 创建临时 bug 字典用于 get_bug_blame_info()
+                                bug_dict = {
+                                    'file_path': bug_report.file_path,
+                                    'start_line': bug_report.start_line,
+                                    'end_line': bug_report.end_line
+                                }
+
+                                # 获取 blame 信息
+                                blame_info = git_analyzer_for_bugs.get_bug_blame_info(bug_dict)
+
+                                if blame_info:
+                                    # 构造 git_info 字典
+                                    bug_report.git_info = {
+                                        'hash': blame_info.commit_hash[:8] if len(blame_info.commit_hash) >= 8 else blame_info.commit_hash,
+                                        'hash_full': blame_info.commit_hash,
+                                        'author': blame_info.author,
+                                        'email': blame_info.author_email,
+                                        'date': blame_info.commit_date.isoformat(),
+                                        'date_relative': git_analyzer_for_bugs._get_relative_time(blame_info.commit_date),
+                                        'subject': blame_info.subject,
+                                        'url': git_analyzer_for_bugs.get_commit_url(blame_info.commit_hash)
+                                    }
+
+                                    # 时间过滤：检查 bug 的时间是否在范围内
+                                    if args.before or args.after:
+                                        bug_date = blame_info.commit_date
+
+                                        # 检查是否在时间范围内
+                                        if before_date and bug_date > before_date:
+                                            logger.debug(
+                                                f"Skipping bug {bug_report.bug_id} "
+                                                f"(last modified: {bug_date.date()}, after --before)"
+                                            )
+                                            continue  # 跳过这个 bug
+
+                                        if after_date and bug_date < after_date:
+                                            logger.debug(
+                                                f"Skipping bug {bug_report.bug_id} "
+                                                f"(last modified: {bug_date.date()}, before --after)"
+                                            )
+                                            continue  # 跳过这个 bug
+
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to get git info for bug {bug_report.bug_id}: {e}. "
+                                    f"Bug will be included without git info."
+                                )
+
                         progress_manager.save_llm_interaction(
                             bug_id=bug_report.bug_id,
                             file_path=getattr(func, 'file_path', ''),
