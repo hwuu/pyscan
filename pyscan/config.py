@@ -88,6 +88,17 @@ class Config:
     # Layer 1 默认值
     DEFAULT_LAYER1_ENABLE_MYPY = True
     DEFAULT_LAYER1_ENABLE_BANDIT = True
+    # Layer 2 默认值
+    DEFAULT_LAYER2_ENABLE = True
+    DEFAULT_LAYER2_DIRECT_REPORT = True
+    DEFAULT_LAYER2_CONFIDENCE_THRESHOLD = 0.9
+    DEFAULT_LAYER2_SUSPICIOUS_THRESHOLD = 0.5
+    DEFAULT_LAYER2_PASS_TO_LAYER3 = True
+    DEFAULT_LAYER2_MAX_PATH_DEPTH = 10
+    DEFAULT_LAYER2_MAX_PATHS_PER_FUNCTION = 100
+    DEFAULT_LAYER2_TIMEOUT_PER_FUNCTION = 5
+    DEFAULT_LAYER2_VERBOSE = False
+    DEFAULT_LAYER2_VISUALIZE_CFG = False
     # Viz 默认值
     DEFAULT_VIZ_EMBED_SOURCE = True
     DEFAULT_VIZ_GIT_ENRICH = True
@@ -179,6 +190,30 @@ class Config:
         self.layer1 = {
             "enable_mypy": layer1_config.get("enable_mypy", self.DEFAULT_LAYER1_ENABLE_MYPY),
             "enable_bandit": layer1_config.get("enable_bandit", self.DEFAULT_LAYER1_ENABLE_BANDIT),
+        }
+
+        # Layer 2 符号分析配置
+        layer2_config = config_dict.get("layer2", {})
+        self.layer2 = {
+            "enable": layer2_config.get("enable", self.DEFAULT_LAYER2_ENABLE),
+            "direct_report": layer2_config.get("direct_report", self.DEFAULT_LAYER2_DIRECT_REPORT),
+            "confidence_threshold": layer2_config.get("confidence_threshold", self.DEFAULT_LAYER2_CONFIDENCE_THRESHOLD),
+            "suspicious_threshold": layer2_config.get("suspicious_threshold", self.DEFAULT_LAYER2_SUSPICIOUS_THRESHOLD),
+            "pass_to_layer3": layer2_config.get("pass_to_layer3", self.DEFAULT_LAYER2_PASS_TO_LAYER3),
+            "max_path_depth": layer2_config.get("max_path_depth", self.DEFAULT_LAYER2_MAX_PATH_DEPTH),
+            "max_paths_per_function": layer2_config.get("max_paths_per_function", self.DEFAULT_LAYER2_MAX_PATHS_PER_FUNCTION),
+            "timeout_per_function": layer2_config.get("timeout_per_function", self.DEFAULT_LAYER2_TIMEOUT_PER_FUNCTION),
+            "verbose": layer2_config.get("verbose", self.DEFAULT_LAYER2_VERBOSE),
+            "visualize_cfg": layer2_config.get("visualize_cfg", self.DEFAULT_LAYER2_VISUALIZE_CFG),
+        }
+
+        # Layer 2 检测器配置
+        layer2_detectors = layer2_config.get("detectors", {})
+        self.layer2["detectors"] = {
+            "resource_leak": layer2_detectors.get("resource_leak", True),
+            "control_flow": layer2_detectors.get("control_flow", False),
+            "concurrency": layer2_detectors.get("concurrency", False),
+            "none_propagation": layer2_detectors.get("none_propagation", False),
         }
 
         # Layer 4 交叉验证配置

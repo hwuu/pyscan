@@ -1,7 +1,7 @@
 """
 Bug 检测流水线
 
-负责协调 Layer 1（静态分析）、Layer 3（LLM 检测）、Layer 4（交叉验证）的完整流程。
+负责协调 Layer 1（静态分析）、Layer 2（符号分析）、Layer 3（LLM 检测）、Layer 4（交叉验证）的完整流程。
 """
 
 import logging
@@ -13,6 +13,8 @@ from pyscan.ast_parser import FunctionInfo
 from pyscan.bug_detector import BugDetector, BugReport
 from pyscan.layer1.analyzer import Layer1Analyzer
 from pyscan.layer1.base import StaticFacts
+from pyscan.layer2 import Layer2Result
+from pyscan.layer2.detectors.resource_leak import ResourceLeakDetector
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ class DetectionResult:
     prompt: str = ""                      # LLM prompt
     raw_response: str = ""                # LLM 原始响应
     layer1_facts: Optional[StaticFacts] = None  # Layer 1 分析结果
+    layer2_result: Optional[Layer2Result] = None  # Layer 2 分析结果
     layer3_bug_count: int = 0             # Layer 3 检测到的 bug 数量
     layer4_bug_count: int = 0             # Layer 4 新增的 bug 数量
     deduped_count: int = 0                # 去重数量
@@ -51,6 +54,33 @@ class DetectionPipeline:
         self.config = config
         self.layer1_analyzer = layer1_analyzer
         self.bug_detector = bug_detector
+
+        # Layer 2 检测器（可选）
+        self.layer2_detectors = []
+        layer2_config = getattr(config, 'layer2', {})
+        if isinstance(layer2_config, dict):
+            layer2_enable = layer2_config.get('enable', True)
+            layer2_detectors_config = layer2_config.get('detectors', {})
+            confidence_threshold = layer2_config.get('confidence_threshold', 0.9)
+            suspicious_threshold = layer2_config.get('suspicious_threshold', 0.5)
+        else:
+            layer2_enable = getattr(layer2_config, 'enable', True)
+            layer2_detectors_config = {}
+            confidence_threshold = 0.9
+            suspicious_threshold = 0.5
+
+        if layer2_enable:
+            # 根据配置启用检测器
+            if layer2_detectors_config.get('resource_leak', True):
+                resource_leak_detector = ResourceLeakDetector(
+                    confidence_threshold=confidence_threshold,
+                    suspicious_threshold=suspicious_threshold
+                )
+                self.layer2_detectors.append(resource_leak_detector)
+                logger.info("Layer 2: Resource leak detector enabled")
+
+        if self.layer2_detectors:
+            logger.info(f"Layer 2 enabled with {len(self.layer2_detectors)} detectors")
 
         # Layer 4 交叉验证器（可选）
         self.cross_validator = None
@@ -82,9 +112,10 @@ class DetectionPipeline:
 
         流程：
         1. Layer 1: 静态分析 (mypy + bandit)
-        2. Layer 3: LLM 检测
-        3. Layer 4: 交叉验证 (如果启用)
-        4. 合并结果（去重 + 标记来源）
+        2. Layer 2: 符号分析 (资源泄漏等)
+        3. Layer 3: LLM 检测
+        4. Layer 4: 交叉验证 (如果启用)
+        5. 合并结果（去重 + 标记来源）
 
         Args:
             function: 函数信息
@@ -115,7 +146,61 @@ class DetectionPipeline:
             except Exception as e:
                 logger.warning(f"Layer 1 analysis failed for {function.name}: {e}")
 
-        # Step 2: Layer 3 LLM 检测
+        # Step 2: Layer 2 符号分析
+        layer2_result = None
+        layer2_bugs = []
+        if self.layer2_detectors:
+            try:
+                # 从函数代码重新解析 AST 节点
+                import ast
+                try:
+                    func_tree = ast.parse(function.code)
+                    if func_tree.body and isinstance(func_tree.body[0], ast.FunctionDef):
+                        func_node = func_tree.body[0]
+                    else:
+                        raise ValueError("Failed to parse function AST")
+                except Exception as parse_error:
+                    logger.warning(f"Failed to parse function {function.name} for Layer 2: {parse_error}")
+                    func_node = None
+
+                if func_node:
+                    # 合并所有 Layer 2 检测器的结果
+                    all_confirmed_bugs = []
+                    all_suspicious_findings = []
+
+                    for detector in self.layer2_detectors:
+                        result = detector.detect(
+                            func_node,
+                            context={'file_path': file_path}
+                        )
+                        all_confirmed_bugs.extend(result.confirmed_bugs)
+                        all_suspicious_findings.extend(result.suspicious_findings)
+
+                    # 创建合并的 Layer2Result
+                    from pyscan.layer2 import Layer2Result
+                    layer2_result = Layer2Result(
+                        confirmed_bugs=all_confirmed_bugs,
+                        suspicious_findings=all_suspicious_findings
+                    )
+
+                    # 转换 confirmed_bugs 为 BugReport
+                    for confirmed_bug in all_confirmed_bugs:
+                        bug_report = self._convert_layer2_bug_to_report(
+                            confirmed_bug,
+                            function,
+                            file_path,
+                            function_start_line
+                        )
+                        layer2_bugs.append(bug_report)
+
+                    logger.debug(
+                        f"Layer 2 detected {len(all_confirmed_bugs)} confirmed bugs, "
+                        f"{len(all_suspicious_findings)} suspicious findings for {function.name}"
+                    )
+            except Exception as e:
+                logger.warning(f"Layer 2 analysis failed for {function.name}: {e}")
+
+        # Step 3: Layer 3 LLM 检测
         llm_result = self.bug_detector.detect(
             function,
             context,
@@ -153,10 +238,11 @@ class DetectionPipeline:
             except Exception as e:
                 logger.warning(f"Layer 4 validation failed for {function.name}: {e}")
 
-        # Step 4: 合并和去重
+        # Step 5: 合并和去重
         merged_reports, dedup_count = self._merge_and_deduplicate(
             llm_bugs,
             layer4_bugs,
+            layer2_bugs,
             bug_id_start
         )
 
@@ -165,6 +251,7 @@ class DetectionPipeline:
             prompt=prompt,
             raw_response=raw_response,
             layer1_facts=static_facts,
+            layer2_result=layer2_result,
             layer3_bug_count=len(llm_bugs),
             layer4_bug_count=len(layer4_bugs),
             deduped_count=dedup_count
@@ -174,28 +261,31 @@ class DetectionPipeline:
         self,
         llm_bugs: List[BugReport],
         layer4_bugs: List[BugReport],
+        layer2_bugs: List[BugReport],
         bug_id_start: int
     ) -> tuple[List[BugReport], int]:
         """
-        合并 LLM bugs 和 Layer 4 bugs，去重并标记来源
+        合并 LLM bugs、Layer 2 bugs 和 Layer 4 bugs，去重并标记来源
 
         去重规则（选项B - 宽松匹配）：
         - 位置相近（±2行）AND (类型完全相同 OR 都是类型相关)
-        - 如果匹配，使用 Layer 4 的信息（选项A - 优先 Layer 4）
-        - 保留 LLM 的原始信息在 evidence 中
+        - 优先级：Layer 4 > Layer 2 > LLM
+        - 如果匹配，使用高优先级的信息
+        - 保留低优先级的原始信息在 evidence 中
 
         来源标记：
         evidence = {
             'llm_detected': True/False,
+            'layer2_detected': True/False,
             'mypy_detected': True/False,
-            'llm_confirmed': True/False,
-            'detection_source': 'llm' | 'layer4' | 'both',
+            'detection_source': 'llm' | 'layer2' | 'layer4' | 'both',
             'llm_description': <original LLM description>  # 如果重复
         }
 
         Args:
             llm_bugs: LLM 检测到的 bugs
             layer4_bugs: Layer 4 验证的 bugs
+            layer2_bugs: Layer 2 检测到的 bugs
             bug_id_start: Bug ID 起始编号
 
         Returns:
@@ -206,8 +296,18 @@ class DetectionPipeline:
             if not bug.evidence:
                 bug.evidence = {}
             bug.evidence['llm_detected'] = True
+            bug.evidence['layer2_detected'] = False
             bug.evidence['mypy_detected'] = False
             bug.evidence['detection_source'] = 'llm'
+
+        # 标记 Layer 2 bugs 的来源
+        for bug in layer2_bugs:
+            if not bug.evidence:
+                bug.evidence = {}
+            bug.evidence['llm_detected'] = False
+            bug.evidence['layer2_detected'] = True
+            bug.evidence['mypy_detected'] = False
+            bug.evidence['detection_source'] = 'layer2'
 
         # 检查是否启用去重
         layer4_config = getattr(self.config, 'layer4', {})
@@ -218,7 +318,7 @@ class DetectionPipeline:
 
         if not enable_dedup:
             # 不去重，直接合并
-            all_bugs = llm_bugs + layer4_bugs
+            all_bugs = layer2_bugs + llm_bugs + layer4_bugs
             # 重新分配 bug_id
             for i, bug in enumerate(all_bugs):
                 bug.bug_id = f"BUG_{bug_id_start + i:04d}"
@@ -228,11 +328,13 @@ class DetectionPipeline:
         merged = []
         dedup_count = 0
         used_layer4_indices = set()
+        used_layer2_indices = set()
 
-        # 遍历 LLM bugs，检查是否与 Layer 4 bugs 重复
+        # 遍历 LLM bugs，检查是否与 Layer 4 或 Layer 2 bugs 重复
         for llm_bug in llm_bugs:
             matched = False
 
+            # 优先与 Layer 4 匹配
             for i, layer4_bug in enumerate(layer4_bugs):
                 if i in used_layer4_indices:
                     continue
@@ -252,10 +354,35 @@ class DetectionPipeline:
                     break
 
             if not matched:
+                # 再与 Layer 2 匹配
+                for i, layer2_bug in enumerate(layer2_bugs):
+                    if i in used_layer2_indices:
+                        continue
+
+                    if self._is_duplicate(llm_bug, layer2_bug):
+                        # 重复，使用 Layer 2 的信息（优先 Layer 2）
+                        dedup_count += 1
+                        used_layer2_indices.add(i)
+                        matched = True
+
+                        # 保留 LLM 的原始描述在 evidence 中
+                        layer2_bug.evidence['llm_description'] = llm_bug.description
+                        layer2_bug.evidence['llm_detected'] = True
+                        layer2_bug.evidence['detection_source'] = 'both'
+
+                        merged.append(layer2_bug)
+                        break
+
+            if not matched:
                 # LLM bug 没有匹配，直接添加，标记来源
                 if 'detection_source' not in llm_bug.evidence:
                     llm_bug.evidence['detection_source'] = 'llm'
                 merged.append(llm_bug)
+
+        # 添加未匹配的 Layer 2 bugs
+        for i, layer2_bug in enumerate(layer2_bugs):
+            if i not in used_layer2_indices:
+                merged.append(layer2_bug)
 
         # 添加未匹配的 Layer 4 bugs
         for i, layer4_bug in enumerate(layer4_bugs):
@@ -267,8 +394,8 @@ class DetectionPipeline:
             bug.bug_id = f"BUG_{bug_id_start + i:04d}"
 
         logger.debug(
-            f"Merged {len(llm_bugs)} LLM bugs + {len(layer4_bugs)} Layer4 bugs "
-            f"= {len(merged)} bugs (deduped {dedup_count})"
+            f"Merged {len(layer2_bugs)} Layer2 bugs + {len(llm_bugs)} LLM bugs + "
+            f"{len(layer4_bugs)} Layer4 bugs = {len(merged)} bugs (deduped {dedup_count})"
         )
 
         return merged, dedup_count
@@ -314,3 +441,61 @@ class DetectionPipeline:
             return True
 
         return False
+
+    def _convert_layer2_bug_to_report(
+        self,
+        confirmed_bug,
+        function: FunctionInfo,
+        file_path: str,
+        function_start_line: int
+    ) -> BugReport:
+        """
+        将 Layer 2 的 ConfirmedBug 转换为 BugReport
+
+        Args:
+            confirmed_bug: Layer 2 的 ConfirmedBug 对象
+            function: 函数信息
+            file_path: 文件路径
+            function_start_line: 函数起始行号
+
+        Returns:
+            BugReport 对象
+        """
+        from pyscan.bug_detector import BugReport
+
+        # 从 location 中提取位置信息
+        location = confirmed_bug.location
+
+        # Layer 2 的行号是相对于重新解析的函数代码的（从 1 开始）
+        # 需要转换为文件的绝对行号
+        # 公式：绝对行号 = function.lineno + 相对行号 - 1
+        # 例如：function.lineno=9, 相对行号=3 => 绝对行号=9+3-1=11
+        relative_start_line = location.get('start_line', 1)
+        relative_end_line = location.get('end_line', relative_start_line)
+
+        start_line = function.lineno + relative_start_line - 1
+        end_line = function.lineno + relative_end_line - 1
+        start_col = location.get('start_col', 0)
+        end_col = location.get('end_col', 0)
+
+        # 创建 BugReport
+        return BugReport(
+            bug_id="",  # 将在合并时重新分配
+            function_name=function.name,
+            file_path=file_path,
+            function_start_line=function.lineno,
+            function_end_line=function.end_lineno,
+            function_start_col=function.col_offset,
+            function_end_col=function.end_col_offset,
+            severity=confirmed_bug.severity,
+            bug_type=confirmed_bug.type,
+            description=confirmed_bug.description,
+            location=f"第 {start_line} 行",
+            start_line=start_line,
+            end_line=end_line,
+            start_col=start_col,
+            end_col=end_col,
+            suggestion=confirmed_bug.suggestion,
+            confidence=confirmed_bug.confidence,
+            evidence=confirmed_bug.evidence.copy() if confirmed_bug.evidence else {}
+        )
