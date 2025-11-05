@@ -8,16 +8,18 @@ from pyscan.bug_detector import BugReport
 class Reporter:
     """Reporter for bug detection results."""
 
-    def __init__(self, reports: List[BugReport], scan_directory: str = ""):
+    def __init__(self, reports: List[BugReport], scan_directory: str = "", git_branch: str = None):
         """
         Initialize reporter.
 
         Args:
             reports: List of bug reports (one per bug).
             scan_directory: Absolute path to scanned directory.
+            git_branch: Current git branch (optional).
         """
         self.reports = reports
         self.scan_directory = scan_directory
+        self.git_branch = git_branch
 
     def to_json(self, output_path: str) -> None:
         """
@@ -38,6 +40,7 @@ class Reporter:
         data = {
             "timestamp": datetime.now().isoformat(),
             "scan_directory": self.scan_directory,
+            "git_branch": self.git_branch,
             "summary": {
                 "total_bugs": total_bugs,
                 "affected_functions": unique_functions,
@@ -88,7 +91,8 @@ class Reporter:
                             "inference_lines": ic.get("highlight_lines", [])
                         }
                         for ic in r.inferred_callers
-                    ]
+                    ],
+                    "git_info": r.git_info
                 }
                 for r in self.reports
             ]

@@ -16,6 +16,7 @@ from pyscan.bug_detector import BugDetector
 from pyscan.reporter import Reporter
 from pyscan.layer1.analyzer import Layer1Analyzer
 from pyscan.pipeline import DetectionPipeline
+from pyscan.git_analyzer import GitAnalyzer
 
 
 # 设置日志
@@ -815,11 +816,52 @@ def main():
                 # 继续下一个函数
                 continue
 
-        # 5. 生成报告
+        # 5. 添加 Git 信息（如果是 git 仓库）
+        logger.info("Adding git information...")
+        git_branch = None
+        try:
+            import subprocess
+
+            git_analyzer = GitAnalyzer(scan_dir)
+            if git_analyzer.is_git_repo:
+                # 获取当前分支
+                try:
+                    result = subprocess.run(
+                        ['git', 'branch', '--show-current'],
+                        cwd=scan_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        git_branch = result.stdout.strip() or None
+                except Exception as e:
+                    logger.warning(f"Failed to get git branch: {e}")
+
+                # 为每个 bug 添加 git_info
+                for bug_report in tqdm(filtered_reports, desc="Adding git info"):
+                    # 构建临时字典用于调用 get_bug_blame_info
+                    bug_dict = {
+                        'file_path': bug_report.file_path,
+                        'start_line': bug_report.start_line,
+                        'end_line': bug_report.end_line
+                    }
+
+                    blame_info = git_analyzer.get_bug_blame_info(bug_dict)
+                    if blame_info:
+                        bug_report.git_info = git_analyzer.build_git_info_dict(blame_info)
+                    else:
+                        bug_report.git_info = None
+
+                logger.info("Git information added successfully")
+            else:
+                logger.info("Not a git repository, skipping git enrichment")
+        except Exception as e:
+            logger.warning(f"Failed to add git information: {e}")
+
+        # 6. 生成报告
         logger.info("Generating report...")
-        # 应用过滤规则
-        filtered_reports = apply_bug_filters(reports, config)
-        reporter = Reporter(filtered_reports, scan_dir)
+        reporter = Reporter(filtered_reports, scan_dir, git_branch)
         reporter.to_json(args.output)
         logger.info(f"Report generated: {args.output}")
 
