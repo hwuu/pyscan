@@ -526,6 +526,28 @@
         const sourceFiles = {{ source_files_json }};
         const embedMode = {{ embed_source }};
 
+        // 解码 base64 编码的源文件内容
+        function decodeSourceFile(filePath) {
+            if (!sourceFiles[filePath]) {
+                return null;
+            }
+            try {
+                // base64 解码，然后 UTF-8 解码
+                const base64Str = sourceFiles[filePath];
+                const binaryStr = atob(base64Str);
+                // 将 binary string 转换为 UTF-8
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                    bytes[i] = binaryStr.charCodeAt(i);
+                }
+                const decoder = new TextDecoder('utf-8');
+                return decoder.decode(bytes);
+            } catch (e) {
+                console.error(`Failed to decode source file ${filePath}:`, e);
+                return `// Error decoding source file: ${e.message}`;
+            }
+        }
+
         // Git 数据（用于过滤器）
         const allCommits = {{ all_commits_json }};
         const allOwners = {{ all_owners_json }};
@@ -969,8 +991,8 @@
             let sourceCode;
 
             if (embedMode) {
-                // 嵌入模式：从 sourceFiles 对象获取源码
-                sourceCode = sourceFiles[bug.file_path];
+                // 嵌入模式：从 sourceFiles 对象获取源码（需要解码 base64）
+                sourceCode = decodeSourceFile(bug.file_path);
                 if (!sourceCode) {
                     sourceCode = `// Source file not found in embedded data: ${bug.file_path}`;
                 }
@@ -1128,8 +1150,8 @@
                             html += `<div class="${lineClass}"><div class="line-number">${lineNum}</div><div class="line-content">${escapeHtml(snippetLines[j])}</div></div>`;
                         }
                     } else {
-                        // 非 embedMode: 从 sourceFiles 动态提取 caller POI snippet
-                        const callerSourceCode = sourceFiles[filePath];
+                        // 非 embedMode: 从 sourceFiles 动态提取 caller POI snippet（需要解码 base64）
+                        const callerSourceCode = decodeSourceFile(filePath);
                         if (callerSourceCode) {
                             const lines = callerSourceCode.split('\n');
 
@@ -1200,8 +1222,8 @@
                             html += `<div class="${lineClass}"><div class="line-number">${lineNum}</div><div class="line-content">${escapeHtml(snippetLines[j])}</div></div>`;
                         }
                     } else {
-                        // 非 embedMode: 从 sourceFiles 动态提取 inferred caller POI snippet
-                        const inferredSourceCode = sourceFiles[filePath];
+                        // 非 embedMode: 从 sourceFiles 动态提取 inferred caller POI snippet（需要解码 base64）
+                        const inferredSourceCode = decodeSourceFile(filePath);
                         if (inferredSourceCode) {
                             const lines = inferredSourceCode.split('\n');
 

@@ -1,5 +1,6 @@
 """Visualizer for converting JSON reports to interactive HTML."""
 import json
+import base64
 from pathlib import Path
 from typing import Dict, List, Any
 from jinja2 import Environment, FileSystemLoader
@@ -157,6 +158,15 @@ class Visualizer:
         all_commits = self._extract_commits(report.get('bugs', []))
         all_owners = self._extract_owners(report.get('bugs', []))
 
+        # 将 source_files 的值用 base64 编码
+        source_files_b64 = {}
+        if embed_source:
+            for file_path, content in source_files.items():
+                # 将字符串编码为 UTF-8 bytes，然后 base64 编码
+                content_bytes = content.encode('utf-8')
+                content_b64 = base64.b64encode(content_bytes).decode('ascii')
+                source_files_b64[file_path] = content_b64
+
         # 使用 Jinja2 渲染模板
         template_dir = Path(__file__).parent
         env = Environment(loader=FileSystemLoader(template_dir))
@@ -165,7 +175,7 @@ class Visualizer:
         html = template.render(
             timestamp=report.get('timestamp', ''),
             bugs_json=json.dumps(bugs_list, ensure_ascii=False),
-            source_files_json=json.dumps(source_files, ensure_ascii=False) if embed_source else "{}",
+            source_files_json=json.dumps(source_files_b64, ensure_ascii=False) if embed_source else "{}",
             embed_source='true' if embed_source else 'false',
             all_commits_json=json.dumps(all_commits, ensure_ascii=False),
             all_owners_json=json.dumps(all_owners, ensure_ascii=False)
