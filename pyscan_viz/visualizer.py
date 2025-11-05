@@ -1,6 +1,5 @@
 """Visualizer for converting JSON reports to interactive HTML."""
 import json
-import base64
 from pathlib import Path
 from typing import Dict, List, Any
 from jinja2 import Environment, FileSystemLoader
@@ -27,10 +26,9 @@ class Visualizer:
         # 获取 report.json 所在的目录，用于解析相对路径
         report_dir = Path(report_json_path).parent.absolute()
 
-        # 如果需要嵌入源码，读取所有源文件
+        # embedMode 不再需要加载完整源文件（所有 snippet 已在 JSON 中）
+        # 非 embedMode 下也不需要（由浏览器动态加载）
         source_files = {}
-        if embed_source:
-            source_files = self._load_source_files(report, report_dir)
 
         # 生成 HTML
         html_content = self._build_html(report, source_files, embed_source)
@@ -158,14 +156,9 @@ class Visualizer:
         all_commits = self._extract_commits(report.get('bugs', []))
         all_owners = self._extract_owners(report.get('bugs', []))
 
-        # 将 source_files 的值用 base64 编码
-        source_files_b64 = {}
-        if embed_source:
-            for file_path, content in source_files.items():
-                # 将字符串编码为 UTF-8 bytes，然后 base64 编码
-                content_bytes = content.encode('utf-8')
-                content_b64 = base64.b64encode(content_bytes).decode('ascii')
-                source_files_b64[file_path] = content_b64
+        # embedMode: 所有代码 snippet 已在 bugs_list 中，不需要 source_files
+        # 非 embedMode: 浏览器通过 file:/// 动态加载，也不需要 source_files
+        # 因此 source_files_json 始终为空对象
 
         # 使用 Jinja2 渲染模板
         template_dir = Path(__file__).parent
@@ -175,7 +168,7 @@ class Visualizer:
         html = template.render(
             timestamp=report.get('timestamp', ''),
             bugs_json=json.dumps(bugs_list, ensure_ascii=False),
-            source_files_json=json.dumps(source_files_b64, ensure_ascii=False) if embed_source else "{}",
+            source_files_json="{}",  # 始终为空，所有 snippet 已在 bugs_json 中
             embed_source='true' if embed_source else 'false',
             all_commits_json=json.dumps(all_commits, ensure_ascii=False),
             all_owners_json=json.dumps(all_owners, ensure_ascii=False)
