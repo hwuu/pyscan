@@ -171,6 +171,7 @@ class TestDetectionPipeline:
         merged, dedup_count = pipeline._merge_and_deduplicate(
             [llm_bug],
             [layer4_bug],
+            [],  # layer2_bugs
             bug_id_start=1
         )
 
@@ -218,6 +219,7 @@ class TestDetectionPipeline:
         merged, dedup_count = pipeline._merge_and_deduplicate(
             [llm_bug],
             [layer4_bug],
+            [],  # layer2_bugs
             bug_id_start=1
         )
 
@@ -379,6 +381,7 @@ class TestDetectionPipeline:
         merged, dedup_count = pipeline._merge_and_deduplicate(
             [llm_bug],
             [layer4_bug],
+            [],  # layer2_bugs
             bug_id_start=1
         )
 

@@ -47,6 +47,10 @@ class BenchmarkEvaluator:
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
+        # False Positive Rate: FP / (TP + FP) = 1 - Precision
+        # 或者更直观的定义：FP / all_detected_bugs
+        fpr = fp / (tp + fp) if (tp + fp) > 0 else 0.0
+
         # 按类别分析
         by_category = self._analyze_by_category(matches)
 
@@ -55,6 +59,9 @@ class BenchmarkEvaluator:
 
         # 按难度分析
         by_difficulty = self._analyze_by_difficulty(matches)
+
+        # 按检测难度分析 (Shallow vs Deep)
+        by_detection_difficulty = self._analyze_by_detection_difficulty(matches)
 
         # False positives 详情
         fp_details = self._get_false_positives(matches)
@@ -67,6 +74,7 @@ class BenchmarkEvaluator:
                 'precision': round(precision, 4),
                 'recall': round(recall, 4),
                 'f1_score': round(f1, 4),
+                'false_positive_rate': round(fpr, 4),  # 新增
                 'true_positives': tp,
                 'false_positives': fp,
                 'false_negatives': fn,
@@ -76,6 +84,7 @@ class BenchmarkEvaluator:
             'by_category': by_category,
             'by_severity': by_severity,
             'by_difficulty': by_difficulty,
+            'by_detection_difficulty': by_detection_difficulty,  # 新增
             'false_positives': fp_details,
             'false_negatives': fn_details,
             'matches': matches
@@ -260,6 +269,54 @@ class BenchmarkEvaluator:
 
         return by_difficulty
 
+    def _analyze_by_detection_difficulty(self, matches: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        按检测难度分析 (Shallow vs Deep)
+
+        Shallow: Layer 1 可检测的 bug（mypy, bandit 等静态工具）
+        Deep: 需要 Layer 2/3 的 bug（数据流分析、符号执行、LLM）
+        """
+        by_detection_difficulty = {}
+        total_fps = 0  # 统计所有 FP（不区分 detection_difficulty）
+
+        for match in matches:
+            if match['type'] in ['TP', 'FN']:
+                bug = match.get('gt_bug')
+                detection_difficulty = bug.get('detection_difficulty', 'unknown')
+
+                if detection_difficulty not in by_detection_difficulty:
+                    by_detection_difficulty[detection_difficulty] = {'TP': 0, 'FN': 0}
+
+                by_detection_difficulty[detection_difficulty][match['type']] += 1
+
+            elif match['type'] == 'FP':
+                # FP 没有 ground truth，无法按 detection_difficulty 分类
+                total_fps += 1
+
+        # 计算每个难度的指标
+        for difficulty, counts in by_detection_difficulty.items():
+            tp = counts['TP']
+            fn = counts['FN']
+            # 注意：FP 不按 detection_difficulty 分类，所以这里设为 0
+            fp = 0
+
+            precision = tp / (tp + fp) if (tp + fp) > 0 else (1.0 if tp > 0 else 0.0)
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+            counts.update({
+                'precision': round(precision, 4),
+                'recall': round(recall, 4),
+                'f1_score': round(f1, 4),
+                'total_gt': tp + fn,
+                'FP': fp  # 每个 difficulty 的 FP 为 0
+            })
+
+        # 添加总体 FP 统计
+        by_detection_difficulty['_all_false_positives'] = total_fps
+
+        return by_detection_difficulty
+
     def _get_false_positives(self, matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """获取 False Positives 详情"""
         fps = []
@@ -317,9 +374,39 @@ def main():
     print(f"\nPrecision: {results['summary']['precision']:.2%}")
     print(f"Recall:    {results['summary']['recall']:.2%}")
     print(f"F1 Score:  {results['summary']['f1_score']:.4f}")
+    print(f"False Positive Rate: {results['summary']['false_positive_rate']:.2%}")
     print(f"\nTrue Positives:  {results['summary']['true_positives']}")
     print(f"False Positives: {results['summary']['false_positives']}")
     print(f"False Negatives: {results['summary']['false_negatives']}")
+    print(f"\nTotal Ground Truth Bugs: {results['summary']['total_ground_truth_bugs']}")
+    print(f"Total Detected Bugs:     {results['summary']['total_detected_bugs']}")
+
+    # 按检测难度分析 (Shallow vs Deep)
+    if 'by_detection_difficulty' in results:
+        print("\n" + "=" * 80)
+        print("按检测难度分析 (Shallow vs Deep)")
+        print("=" * 80)
+        by_difficulty = results['by_detection_difficulty']
+
+        # 提取 FP 总数
+        total_fps = by_difficulty.get('_all_false_positives', 0)
+
+        for difficulty in sorted(by_difficulty.keys()):
+            if difficulty == '_all_false_positives':
+                continue  # 跳过 FP 统计项
+
+            stats = by_difficulty[difficulty]
+            print(f"\n[{difficulty.upper()}] (Total GT: {stats['total_gt']} bugs)")
+            print(f"  Precision: {stats['precision']:.2%}")
+            print(f"  Recall:    {stats['recall']:.2%}")
+            print(f"  F1 Score:  {stats['f1_score']:.4f}")
+            print(f"  TP: {stats['TP']}, FN: {stats['FN']}")
+
+        # 显示总体 FP 统计
+        if total_fps > 0:
+            print(f"\n[ALL FALSE POSITIVES] (不区分 detection_difficulty)")
+            print(f"  Total FP: {total_fps}")
+            print(f"  注：FP 无法按 detection_difficulty 分类（因为不在 ground truth 中）")
 
     print(f"\n详细报告已保存到: {args.output}")
 

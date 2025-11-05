@@ -23,7 +23,13 @@
       "easy": 36,
       "medium": 43,
       "hard": 26
-    }
+    },
+    "by_detection_difficulty": {
+      "shallow": 19,
+      "deep": 86,
+      "unknown": 0
+    },
+    "bandit_detected": 7
   },
   "bugs": [
     {
@@ -46,7 +52,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B301",
+      "bandit_issue": "B301: Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue."
     },
     {
       "id": "API-DANGER-002",
@@ -68,7 +78,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py"
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example1_pickle_yaml.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B506",
+      "bandit_issue": "B506: Use of unsafe yaml load. Allows instantiation of arbitrary objects. Consider yaml.safe_load()."
     },
     {
       "id": "API-DANGER-003",
@@ -90,7 +104,10 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\dangerous_api\\positive\\example2_security_api.py"
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example2_security_api.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_issue": "B311: Standard pseudo-random generators are not suitable for security/cryptographic purposes."
     },
     {
       "id": "API-DANGER-004",
@@ -111,8 +128,9 @@
       "cwe_id": "CWE-617",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\dangerous_api\\positive\\example2_security_api.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "08_api_usage\\dangerous_api\\positive\\example2_security_api.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "API-DEP-001",
@@ -135,8 +153,9 @@
       "related_bugs": [
         "BUG_0006"
       ],
-      "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "API-DEP-002",
@@ -160,7 +179,10 @@
         "BUG_0006"
       ],
       "detection_layer": "Layer 1",
-      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py"
+      "relative_path": "08_api_usage\\deprecated_api\\positive\\example1_deprecated.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Cannot find implementation or library stub for module named \"imp\""
     },
     {
       "id": "TYPE-API-001",
@@ -181,8 +203,9 @@
       "cwe_id": "CWE-1174",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "TYPE-API-002",
@@ -203,8 +226,11 @@
       "cwe_id": "CWE-685",
       "difficulty": "medium",
       "related_bugs": [],
-      "detection_layer": "Layer 2",
-      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py"
+      "detection_layer": "Layer 1",
+      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Argument 1 of \"handle\" is incompatible with supertype \"BaseHandler\"; supertype defines the argument type as \"dict[Any, Any]\""
     },
     {
       "id": "TYPE-API-003",
@@ -225,8 +251,9 @@
       "cwe_id": "CWE-477",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "TYPE-API-004",
@@ -248,7 +275,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py"
+      "relative_path": "07_type_safety\\api_contract\\positive\\example1_api_contract.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "TYPE-MIS-001",
@@ -269,8 +297,9 @@
       "cwe_id": "CWE-704",
       "difficulty": "hard",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "TYPE-MIS-002",
@@ -292,7 +321,10 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Incompatible return value type (got \"dict[Any, Any]\", expected \"str\")"
     },
     {
       "id": "TYPE-MIS-003",
@@ -314,7 +346,10 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py"
+      "relative_path": "07_type_safety\\type_mismatch\\positive\\example1_type_errors.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "List item 2 has incompatible type \"str\"; expected \"int\""
     },
     {
       "id": "DATA-FLOW-001",
@@ -335,8 +370,9 @@
       "cwe_id": "CWE-561",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-FLOW-002",
@@ -357,8 +393,9 @@
       "cwe_id": "CWE-570",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1/2",
-      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-FLOW-003",
@@ -380,7 +417,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 3",
-      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-FLOW-004",
@@ -402,7 +440,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2/3",
-      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py"
+      "relative_path": "06_data_flow_issues\\control_flow\\positive\\example1_dead_code.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-NULL-001",
@@ -423,8 +462,11 @@
       "cwe_id": "CWE-476",
       "difficulty": "hard",
       "related_bugs": [],
-      "detection_layer": "Layer 1/2",
-      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+      "detection_layer": "Layer 1",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Value of type \"dict[Any, Any] | None\" is not indexable"
     },
     {
       "id": "DATA-NULL-002",
@@ -445,8 +487,11 @@
       "cwe_id": "CWE-476",
       "difficulty": "hard",
       "related_bugs": [],
-      "detection_layer": "Layer 2/3",
-      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+      "detection_layer": "Layer 1",
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Item \"None\" of \"Any | None\" has no attribute \"upper\""
     },
     {
       "id": "DATA-NULL-003",
@@ -468,7 +513,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-NULL-004",
@@ -490,7 +536,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-NULL-005",
@@ -512,7 +559,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2/3",
-      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py"
+      "relative_path": "06_data_flow_issues\\none_dereference\\positive\\example1_none_access.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-001",
@@ -534,7 +582,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-002",
@@ -556,7 +605,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-003",
@@ -578,7 +628,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-004",
@@ -599,8 +650,9 @@
       "cwe_id": "CWE-457",
       "difficulty": "hard",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-005",
@@ -622,7 +674,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "DATA-INIT-006",
@@ -644,7 +697,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py"
+      "relative_path": "06_data_flow_issues\\variable_initialization\\positive\\example1_uninitialized.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "INJ-CMD-001",
@@ -665,8 +719,12 @@
       "cwe_id": "CWE-78",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1/2",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "detection_layer": "Layer 1",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B605",
+      "bandit_issue": "B605: Starting a process with a shell, possible injection detected, security issue."
     },
     {
       "id": "INJ-CMD-002",
@@ -688,7 +746,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B602",
+      "bandit_issue": "B404: Consider possible security implications associated with the subprocess module."
     },
     {
       "id": "INJ-CMD-003",
@@ -710,7 +772,10 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_issue": "B307: Use of possibly insecure function - consider using safer ast.literal_eval."
     },
     {
       "id": "INJ-CMD-004",
@@ -732,7 +797,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B605",
+      "bandit_issue": "B605: Starting a process with a shell, possible injection detected, security issue."
     },
     {
       "id": "INJ-CMD-005",
@@ -753,8 +822,9 @@
       "cwe_id": "CWE-94",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "INJ-CMD-006",
@@ -775,8 +845,9 @@
       "cwe_id": "CWE-94",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "05_injection_flaws\\command_injection\\positive\\example1_os_system.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "INJ-PATH-001",
@@ -799,7 +870,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-002",
@@ -822,7 +895,11 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py",
+      "detection_difficulty": "shallow",
+      "detection_layer": "Layer 1",
+      "mypy_detected": true,
+      "mypy_issue": "Cannot find implementation or library stub for module named \"flask\""
     },
     {
       "id": "INJ-PATH-003",
@@ -845,7 +922,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-004",
@@ -868,7 +947,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-005",
@@ -891,7 +972,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example1_path_injection.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-006",
@@ -914,7 +997,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-007",
@@ -937,7 +1022,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-008",
@@ -960,7 +1047,9 @@
       "related_bugs": [
         "BUG_0014"
       ],
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INJ-PATH-009",
@@ -980,7 +1069,9 @@
       "root_cause": "TOCTOU：检查和删除之间存在竞态窗口",
       "cwe_id": "CWE-367",
       "difficulty": "hard",
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example2_symlink_attack.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "INPUT-PATH-003",
@@ -1002,7 +1093,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example3_zip_traversal.py"
+      "relative_path": "05_injection_flaws\\path_traversal\\positive\\example3_zip_traversal.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "INJ-SQL-001",
@@ -1024,7 +1116,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py"
+      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B608",
+      "bandit_issue": "B608: Possible SQL injection vector through string-based query construction."
     },
     {
       "id": "INJ-SQL-002",
@@ -1046,7 +1142,11 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py"
+      "relative_path": "05_injection_flaws\\sql_injection\\positive\\example1_sql_injection.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_test_id": "B608",
+      "bandit_issue": "B608: Possible SQL injection vector through string-based query construction."
     },
     {
       "id": "VAL-INPUT-001",
@@ -1069,7 +1169,9 @@
       "related_bugs": [
         "BUG_0012"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-002",
@@ -1092,7 +1194,9 @@
       "related_bugs": [
         "BUG_0012"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-003",
@@ -1116,7 +1220,9 @@
         "BUG_0012",
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-004",
@@ -1139,7 +1245,9 @@
       "related_bugs": [
         "BUG_0012"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-005",
@@ -1162,7 +1270,9 @@
       "related_bugs": [
         "BUG_0012"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example1_missing_validation.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-006",
@@ -1185,7 +1295,9 @@
       "related_bugs": [
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-007",
@@ -1208,7 +1320,9 @@
       "related_bugs": [
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-008",
@@ -1231,7 +1345,9 @@
       "related_bugs": [
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-009",
@@ -1254,7 +1370,9 @@
       "related_bugs": [
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "VAL-INPUT-010",
@@ -1277,7 +1395,9 @@
       "related_bugs": [
         "BUG_0013"
       ],
-      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py"
+      "relative_path": "04_input_validation\\api_input_validation\\positive\\example2_inconsistent_return.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 3"
     },
     {
       "id": "EXC-CATCH-001",
@@ -1300,7 +1420,9 @@
       "related_bugs": [
         "BUG_0008"
       ],
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CATCH-002",
@@ -1323,7 +1445,9 @@
       "related_bugs": [
         "BUG_0008"
       ],
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CATCH-003",
@@ -1346,7 +1470,9 @@
       "related_bugs": [
         "BUG_0008"
       ],
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CATCH-004",
@@ -1369,7 +1495,11 @@
       "related_bugs": [
         "BUG_0008"
       ],
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "shallow",
+      "detection_layer": "Layer 1",
+      "bandit_detected": true,
+      "bandit_issue": "B307: Use of possibly insecure function - consider using safer ast.literal_eval."
     },
     {
       "id": "EXC-CATCH-005",
@@ -1391,7 +1521,10 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "shallow",
+      "bandit_detected": true,
+      "bandit_issue": "B110: Try, Except, Pass detected."
     },
     {
       "id": "EXC-CATCH-006",
@@ -1412,8 +1545,9 @@
       "cwe_id": "CWE-391",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "EXC-CATCH-007",
@@ -1434,8 +1568,9 @@
       "cwe_id": "CWE-396",
       "difficulty": "medium",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "EXC-CATCH-008",
@@ -1456,8 +1591,9 @@
       "cwe_id": "CWE-561",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "EXC-CATCH-009",
@@ -1479,7 +1615,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py"
+      "relative_path": "03_error_handling\\exception_catching\\positive\\example2_exception_type.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "EXC-CLEAN-001",
@@ -1502,7 +1639,9 @@
       "related_bugs": [
         "BUG_0007"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CLEAN-002",
@@ -1525,7 +1664,9 @@
       "related_bugs": [
         "BUG_0007"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CLEAN-003",
@@ -1548,7 +1689,9 @@
       "related_bugs": [
         "BUG_0007"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example1_resource_cleanup.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CLEAN-004",
@@ -1571,7 +1714,9 @@
       "related_bugs": [
         "BUG_0009"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CLEAN-005",
@@ -1594,7 +1739,9 @@
       "related_bugs": [
         "BUG_0009"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "EXC-CLEAN-006",
@@ -1617,7 +1764,9 @@
       "related_bugs": [
         "BUG_0009"
       ],
-      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py"
+      "relative_path": "03_error_handling\\resource_cleanup\\positive\\example3_finally_missing.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "CONC-ASYNC-001",
@@ -1640,8 +1789,9 @@
       "related_bugs": [
         "BUG_0004"
       ],
-      "detection_layer": "Layer 1/2",
-      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-ASYNC-002",
@@ -1663,7 +1813,8 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-ASYNC-003",
@@ -1685,7 +1836,10 @@
       "difficulty": "easy",
       "related_bugs": [],
       "detection_layer": "Layer 1",
-      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py",
+      "detection_difficulty": "shallow",
+      "mypy_detected": true,
+      "mypy_issue": "Library stubs not installed for \"requests\""
     },
     {
       "id": "CONC-ASYNC-004",
@@ -1707,7 +1861,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-ASYNC-005",
@@ -1729,7 +1884,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py"
+      "relative_path": "02_concurrency\\async_await_misuse\\positive\\example1_missing_await.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-DEAD-001",
@@ -1753,7 +1909,8 @@
         "BUG_0003"
       ],
       "detection_layer": "Layer 3",
-      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example1_nested_locks.py"
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example1_nested_locks.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-DEAD-002",
@@ -1775,7 +1932,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-DEAD-003",
@@ -1797,7 +1955,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py"
+      "relative_path": "02_concurrency\\deadlock_risk\\positive\\example2_callback_wait_deadlock.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-RACE-001",
@@ -1817,7 +1976,9 @@
       "root_cause": "全局变量写入未使用锁保护",
       "cwe_id": "CWE-362",
       "difficulty": "easy",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-002",
@@ -1837,7 +1998,9 @@
       "root_cause": "字典操作在多线程环境未同步",
       "cwe_id": "CWE-362",
       "difficulty": "easy",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-003",
@@ -1857,7 +2020,9 @@
       "root_cause": "非原子复合操作",
       "cwe_id": "CWE-362",
       "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example1_global_var.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-004",
@@ -1880,7 +2045,9 @@
       "related_bugs": [
         "BUG_0005"
       ],
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-005",
@@ -1900,7 +2067,9 @@
       "root_cause": "嵌套属性访问的字典操作未加锁",
       "cwe_id": "CWE-362",
       "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-006",
@@ -1920,7 +2089,9 @@
       "root_cause": "实例变量修改未考虑多线程共享场景",
       "cwe_id": "CWE-362",
       "difficulty": "medium",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example2_class_member.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2/3"
     },
     {
       "id": "CONC-RACE-007",
@@ -1942,7 +2113,8 @@
       "difficulty": "hard",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-RACE-008",
@@ -1964,7 +2136,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "CONC-RACE-009",
@@ -1985,8 +2158,9 @@
       "cwe_id": "CWE-362",
       "difficulty": "easy",
       "related_bugs": [],
-      "detection_layer": "Layer 1",
-      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py"
+      "detection_layer": "Layer 2",
+      "relative_path": "02_concurrency\\race_condition\\positive\\example4_extended_races.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-FILE-001",
@@ -2006,7 +2180,9 @@
       "root_cause": "open() 调用后未使用 with 语句或显式 close()",
       "cwe_id": "CWE-404",
       "difficulty": "easy",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-002",
@@ -2026,7 +2202,9 @@
       "root_cause": "open() 调用后未使用 with 语句或显式 close()",
       "cwe_id": "CWE-404",
       "difficulty": "easy",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example1_simple_leak.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-003",
@@ -2046,7 +2224,9 @@
       "root_cause": "try-except 块中异常发生时未释放资源",
       "cwe_id": "CWE-404",
       "difficulty": "medium",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-004",
@@ -2066,7 +2246,9 @@
       "root_cause": "提前 return 导致 close() 未执行",
       "cwe_id": "CWE-404",
       "difficulty": "medium",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example2_exception_path.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-005",
@@ -2086,7 +2268,9 @@
       "root_cause": "未保存文件句柄引用，依赖垃圾回收",
       "cwe_id": "CWE-404",
       "difficulty": "medium",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-006",
@@ -2106,7 +2290,9 @@
       "root_cause": "未保存文件句柄引用，依赖垃圾回收",
       "cwe_id": "CWE-404",
       "difficulty": "medium",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-FILE-007",
@@ -2126,7 +2312,9 @@
       "root_cause": "未保存文件句柄引用，依赖垃圾回收",
       "cwe_id": "CWE-404",
       "difficulty": "medium",
-      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py"
+      "relative_path": "01_resource_management\\file_leak\\positive\\example3_direct_use.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-SYNC-001",
@@ -2148,7 +2336,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-SYNC-002",
@@ -2170,7 +2359,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-SYNC-003",
@@ -2192,7 +2382,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py"
+      "relative_path": "01_resource_management\\lock_leak\\positive\\example1_lock_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-NET-001",
@@ -2216,7 +2407,8 @@
         "BUG_0015"
       ],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py"
+      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-NET-002",
@@ -2240,7 +2432,8 @@
         "BUG_0015"
       ],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py"
+      "relative_path": "01_resource_management\\network_leak\\positive\\example1_socket_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-NET-003",
@@ -2262,7 +2455,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\network_leak\\positive\\example2_database_leak.py"
+      "relative_path": "01_resource_management\\network_leak\\positive\\example2_database_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-NET-004",
@@ -2284,7 +2478,8 @@
       "difficulty": "medium",
       "related_bugs": [],
       "detection_layer": "Layer 2",
-      "relative_path": "01_resource_management\\network_leak\\positive\\example3_smtp_leak.py"
+      "relative_path": "01_resource_management\\network_leak\\positive\\example3_smtp_leak.py",
+      "detection_difficulty": "deep"
     },
     {
       "id": "RM-POOL-001",
@@ -2304,7 +2499,9 @@
       "root_cause": "未使用 with 语句或显式 shutdown()",
       "cwe_id": "CWE-404",
       "difficulty": "easy",
-      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-POOL-002",
@@ -2324,7 +2521,9 @@
       "root_cause": "未使用 with 语句或显式 shutdown()",
       "cwe_id": "CWE-404",
       "difficulty": "easy",
-      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py"
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example1_no_shutdown.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     },
     {
       "id": "RM-POOL-003",
@@ -2347,7 +2546,9 @@
       "related_bugs": [
         "BUG_0010"
       ],
-      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example2_async_leak.py"
+      "relative_path": "01_resource_management\\thread_pool_leak\\positive\\example2_async_leak.py",
+      "detection_difficulty": "deep",
+      "detection_layer": "Layer 2"
     }
   ]
 }

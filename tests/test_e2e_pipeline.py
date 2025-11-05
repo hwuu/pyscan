@@ -229,6 +229,7 @@ def add_numbers(x: int, y: int) -> int:
         merged, dedup_count = pipeline._merge_and_deduplicate(
             llm_bugs,
             layer4_bugs,
+            [],  # layer2_bugs
             bug_id_start=1
         )
 
