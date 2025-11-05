@@ -26,9 +26,11 @@ class Visualizer:
         # 获取 report.json 所在的目录，用于解析相对路径
         report_dir = Path(report_json_path).parent.absolute()
 
-        # embedMode 不再需要加载完整源文件（所有 snippet 已在 JSON 中）
-        # 非 embedMode 下也不需要（由浏览器动态加载）
+        # embedMode 需要加载源文件来提取 snippet（但不会传给 HTML）
+        # 非 embedMode 不需要（浏览器动态加载）
         source_files = {}
+        if embed_source:
+            source_files = self._load_source_files(report, report_dir)
 
         # 生成 HTML
         html_content = self._build_html(report, source_files, embed_source)
