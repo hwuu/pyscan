@@ -162,12 +162,30 @@ class Visualizer:
         # 非 embedMode: 浏览器通过 file:/// 动态加载，也不需要 source_files
         # 因此 source_files_json 始终为空对象
 
+        # 准备标题信息
+        # 格式：PyScan - <folder_name> [- <branch_name>] - YYYY-MM-DD
+        scan_directory = report.get('scan_directory', '')
+        folder_name = Path(scan_directory).name if scan_directory else 'Unknown'
+
+        # 提取日期部分（YYYY-MM-DD）
+        timestamp_str = report.get('timestamp', '')
+        date_str = timestamp_str.split('T')[0] if 'T' in timestamp_str else timestamp_str[:10]
+
+        # 构建标题
+        title_parts = ['PyScan', folder_name]
+        git_branch = report.get('git_branch')
+        if git_branch and git_branch != 'N/A':
+            title_parts.append(git_branch)
+        title_parts.append(date_str)
+        page_title = ' - '.join(title_parts)
+
         # 使用 Jinja2 渲染模板
         template_dir = Path(__file__).parent
         env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template('template.html')
 
         html = template.render(
+            page_title=page_title,
             timestamp=report.get('timestamp', ''),
             bugs_json=json.dumps(bugs_list, ensure_ascii=False),
             source_files_json="{}",  # 始终为空，所有 snippet 已在 bugs_json 中
