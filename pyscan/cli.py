@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
@@ -901,46 +901,69 @@ def main():
         git_lock = threading.Lock()
 
         # 并发执行检测
-        with ThreadPoolExecutor(max_workers=concurrency) as executor:
-            # 提交所有任务
-            future_to_func = {
-                executor.submit(
-                    detect_single_function,
-                    func,
-                    context_builder,
-                    all_functions,
-                    pipeline,
-                    scan_dir,
-                    git_analyzer_for_bugs,
-                    git_lock,
-                    progress_manager,
-                    before_date,
-                    after_date,
-                    safe_progress
-                ): func
-                for func in functions_to_detect
-            }
+        try:
+            with ThreadPoolExecutor(max_workers=concurrency) as executor:
+                # 提交所有任务
+                future_to_func = {
+                    executor.submit(
+                        detect_single_function,
+                        func,
+                        context_builder,
+                        all_functions,
+                        pipeline,
+                        scan_dir,
+                        git_analyzer_for_bugs,
+                        git_lock,
+                        progress_manager,
+                        before_date,
+                        after_date,
+                        safe_progress
+                    ): func
+                    for func in functions_to_detect
+                }
 
-            # 处理完成的任务
-            with tqdm(total=len(functions_to_detect), desc="Detecting bugs") as pbar:
-                for future in as_completed(future_to_func):
-                    func = future_to_func[future]
-                    func_id = get_function_id(func)
+                # 处理完成的任务
+                completed_count = 0
+                total_tasks = len(functions_to_detect)
+                with tqdm(total=total_tasks, desc="Detecting bugs") as pbar:
+                    while completed_count < total_tasks:
+                        # 使用短 timeout 让循环定期检查 KeyboardInterrupt
+                        done = set()
+                        try:
+                            # timeout=1 使得每秒检查一次，可以响应 Ctrl+C
+                            done, pending = wait(future_to_func.keys(), timeout=1, return_when='FIRST_COMPLETED')
+                        except KeyboardInterrupt:
+                            logger.info("\nScan interrupted by user, cancelling tasks...")
+                            # 取消所有未完成的任务
+                            for future in future_to_func.keys():
+                                future.cancel()
+                            raise
 
-                    try:
-                        success, returned_func_id, bug_reports = future.result()
+                        # 处理已完成的 futures
+                        for future in done:
+                            func = future_to_func[future]
+                            func_id = get_function_id(func)
 
-                        if success:
-                            safe_progress.add_success(bug_reports, func_id)
-                        else:
-                            safe_progress.add_failure(func_id)
+                            try:
+                                success, returned_func_id, bug_reports = future.result()
 
-                    except Exception as e:
-                        logger.error(f"Error processing function '{func.name}': {e}", exc_info=True)
-                        safe_progress.add_failure(func_id)
+                                if success:
+                                    safe_progress.add_success(bug_reports, func_id)
+                                else:
+                                    safe_progress.add_failure(func_id)
 
-                    finally:
-                        pbar.update(1)
+                            except Exception as e:
+                                logger.error(f"Error processing function '{func.name}': {e}", exc_info=True)
+                                safe_progress.add_failure(func_id)
+
+                            finally:
+                                completed_count += 1
+                                pbar.update(1)
+
+        except KeyboardInterrupt:
+            logger.info("\nScan interrupted by user")
+            # 外层也捕获，确保能够传播
+            raise
 
         # 更新外层变量
         reports = safe_progress.reports
