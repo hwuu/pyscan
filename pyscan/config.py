@@ -241,8 +241,8 @@ class Config:
         if self.detector_max_retries < 0:
             raise ConfigError("detector.max_retries must be non-negative")
 
-        if self.detector_concurrency <= 0:
-            raise ConfigError("detector.concurrency must be positive")
+        if not (1 <= self.detector_concurrency <= 32):
+            raise ConfigError("detector.concurrency must be between 1 and 32")
 
         if self.detector_context_token_limit <= 0:
             raise ConfigError("detector.context_token_limit must be positive")

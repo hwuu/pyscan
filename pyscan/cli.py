@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
@@ -208,6 +210,80 @@ class ProgressManager:
             logger.error(f"Failed to save LLM interaction for {function_name}: {e}")
 
 
+class ThreadSafeProgressManager:
+    """线程安全的进度管理器，用于并发扫描。"""
+
+    def __init__(self, progress_manager: ProgressManager, initial_bug_counter: int):
+        """
+        初始化线程安全的进度管理器。
+
+        Args:
+            progress_manager: 底层的进度管理器
+            initial_bug_counter: 初始 bug 计数器
+        """
+        self.progress_manager = progress_manager
+        self.lock = threading.Lock()
+        self.reports = []
+        self.completed_functions = set()
+        self.failed_functions = set()
+        self.bug_counter = initial_bug_counter
+
+    def allocate_bug_ids(self, count: int) -> int:
+        """
+        线程安全地分配 bug IDs。
+
+        Args:
+            count: 需要分配的 bug 数量
+
+        Returns:
+            起始 bug ID
+        """
+        with self.lock:
+            start_id = self.bug_counter
+            self.bug_counter += count
+            return start_id
+
+    def add_success(self, reports, func_id: str):
+        """
+        线程安全地添加成功检测的结果。
+
+        Args:
+            reports: Bug 报告列表
+            func_id: 函数 ID
+        """
+        with self.lock:
+            self.reports.extend(reports)
+            self.completed_functions.add(func_id)
+
+            # 如果之前失败过，从 failed_functions 中移除
+            if func_id in self.failed_functions:
+                self.failed_functions.remove(func_id)
+
+            # 立即保存进度
+            self.progress_manager.save_progress(
+                self.reports,
+                self.completed_functions,
+                self.failed_functions
+            )
+
+    def add_failure(self, func_id: str):
+        """
+        线程安全地添加失败检测的结果。
+
+        Args:
+            func_id: 函数 ID
+        """
+        with self.lock:
+            self.failed_functions.add(func_id)
+
+            # 立即保存进度
+            self.progress_manager.save_progress(
+                self.reports,
+                self.completed_functions,
+                self.failed_functions
+            )
+
+
 def extract_caller_snippet(caller_code: str, target_func_name: str, context_lines: int = 5) -> str:
     """
     提取调用者函数的签名和调用目标函数的代码片段。
@@ -256,6 +332,202 @@ def extract_caller_snippet(caller_code: str, target_func_name: str, context_line
                 snippets.append(lines[i])
 
     return '\n'.join(snippets)
+
+
+def get_function_id(func):
+    """生成函数的唯一标识符"""
+    return f"{getattr(func, 'file_path', '')}::{func.name}"
+
+
+def detect_single_function(
+    func,
+    context_builder,
+    all_functions,
+    pipeline,
+    scan_dir,
+    git_analyzer_for_bugs,
+    git_lock,
+    progress_manager,
+    before_date,
+    after_date,
+    safe_progress
+):
+    """
+    检测单个函数的 bug（线程安全）。
+
+    Args:
+        func: 函数信息
+        context_builder: 上下文构建器
+        all_functions: 所有函数列表
+        pipeline: 检测管道
+        scan_dir: 扫描目录
+        git_analyzer_for_bugs: Git 分析器（可选）
+        git_lock: Git 操作锁
+        progress_manager: 进度管理器
+        before_date: 时间过滤（before）
+        after_date: 时间过滤（after）
+        safe_progress: 线程安全的进度管理器
+
+    Returns:
+        (success, func_id, reports): 是否成功、函数ID、bug报告列表
+    """
+    func_id = get_function_id(func)
+
+    try:
+        # 构建上下文
+        context = context_builder.build_context(func)
+
+        # 提取 callers 信息：文件路径 + 函数名 + 调用点周围代码
+        callers = []
+        callees = []
+
+        # 从context中提取实际的函数调用关系
+        for func_obj in all_functions:
+            if func.name in func_obj.calls:
+                # 找出调用目标函数的行号
+                highlight_lines = []
+                lines = func_obj.code.split('\n')
+
+                for i, line in enumerate(lines):
+                    if f"{func.name}(" in line:
+                        absolute_line = func_obj.lineno + i
+                        highlight_lines.append(absolute_line)
+
+                callers.append({
+                    'file_path': getattr(func_obj, 'file_path', ''),
+                    'function_name': func_obj.name,
+                    'start_line': func_obj.lineno,
+                    'end_line': func_obj.end_lineno,
+                    'start_col': func_obj.col_offset,
+                    'end_col': func_obj.end_col_offset,
+                    'code': func_obj.code,
+                    'highlight_lines': highlight_lines
+                })
+
+        for call_name in func.calls:
+            if call_name in [f.name for f in all_functions]:
+                callees.append(call_name)
+
+        # 提取 inferred_callers 并处理代码片段
+        inferred_callers = []
+        for inferred in context.get("inferred_callers", []):
+            # 找出需要高亮的行（包含类型注解的行）
+            highlight_lines = []
+            if 'arg_name' in inferred:
+                # 查找包含 Callable 类型注解的行
+                arg_name = inferred.get('arg_name', '')
+                lines = inferred.get("code", "").split('\n')
+                start_line = inferred.get('start_line', 1)
+                for i, line in enumerate(lines, start=start_line):
+                    # 查找函数签名中包含该参数的行
+                    if arg_name in line and 'Callable' in line:
+                        highlight_lines.append(i)
+                        break
+
+            inferred_callers.append({
+                'file_path': inferred.get('file_path', ''),
+                'function_name': inferred.get('function_name', ''),
+                'start_line': inferred.get('start_line', 1),
+                'end_line': inferred.get('end_line', 1),
+                'start_col': inferred.get('start_col', 0),
+                'end_col': inferred.get('end_col', 0),
+                'code': inferred.get('code', ''),
+                'highlight_lines': highlight_lines,
+                'hint': inferred.get('hint', '')
+            })
+
+        # 使用 Pipeline 执行完整检测流程（Layer 1 + Layer 3 + Layer 4）
+        # 获取文件的绝对路径（Layer1 需要真实文件路径）
+        absolute_file_path = os.path.join(scan_dir, getattr(func, 'file_path', ''))
+
+        # 注意：这里先用临时 bug_id_start=0，稍后重新分配
+        result = pipeline.detect_bugs(
+            function=func,
+            context=context,
+            file_path=getattr(func, 'file_path', ''),
+            absolute_file_path=absolute_file_path,
+            function_start_line=func.lineno,
+            callers=callers,
+            callees=callees,
+            inferred_callers=inferred_callers,
+            bug_id_start=0  # 临时值，稍后重新分配
+        )
+
+        if not result.success:
+            # 检测失败
+            return (False, func_id, [])
+
+        # 检测成功，提取结果
+        bug_reports = result.reports
+        prompt = result.prompt
+        raw_response = result.raw_response
+
+        # 重新分配正确的 bug IDs（线程安全）
+        if bug_reports:
+            start_id = safe_progress.allocate_bug_ids(len(bug_reports))
+            for i, bug in enumerate(bug_reports):
+                bug.bug_id = f"BUG_{start_id + i:04d}"
+
+        # Git enrichment（使用锁保护）
+        if git_analyzer_for_bugs and bug_reports:
+            for bug_report in bug_reports:
+                try:
+                    # 创建临时 bug 字典用于 get_bug_blame_info()
+                    bug_dict = {
+                        'file_path': bug_report.file_path,
+                        'start_line': bug_report.start_line,
+                        'end_line': bug_report.end_line
+                    }
+
+                    # 使用锁保护 git blame 操作
+                    with git_lock:
+                        blame_info = git_analyzer_for_bugs.get_bug_blame_info(bug_dict)
+
+                    if blame_info:
+                        # 构造 git_info 字典（使用公开方法）
+                        bug_report.git_info = git_analyzer_for_bugs.build_git_info_dict(blame_info)
+
+                        # 时间过滤：检查 bug 的时间是否在范围内
+                        if before_date or after_date:
+                            bug_date = blame_info.commit_date
+
+                            # 检查是否在时间范围内
+                            if before_date and bug_date > before_date:
+                                logger.debug(
+                                    f"Skipping bug {bug_report.bug_id} "
+                                    f"(last modified: {bug_date.date()}, after --before)"
+                                )
+                                continue  # 跳过这个 bug
+
+                            if after_date and bug_date < after_date:
+                                logger.debug(
+                                    f"Skipping bug {bug_report.bug_id} "
+                                    f"(last modified: {bug_date.date()}, before --after)"
+                                )
+                                continue  # 跳过这个 bug
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get git info for bug {bug_report.bug_id}: {e}. "
+                        f"Bug will be included without git info."
+                    )
+
+        # 保存 LLM 交互
+        if bug_reports:
+            for bug_report in bug_reports:
+                progress_manager.save_llm_interaction(
+                    bug_id=bug_report.bug_id,
+                    file_path=getattr(func, 'file_path', ''),
+                    function_name=func.name,
+                    prompt=prompt,
+                    raw_response=raw_response
+                )
+
+        return (True, func_id, bug_reports)
+
+    except Exception as e:
+        logger.error(f"Error detecting bugs in {func.name}: {e}")
+        return (False, func_id, [])
 
 
 def apply_bug_filters(reports, config):
@@ -615,206 +887,68 @@ def main():
                 git_analyzer_for_bugs = None
                 logger.info("Not a git repository, bug git enrichment disabled")
 
-        for func in tqdm(functions_to_detect, desc="Detecting bugs"):
-            func_id = get_function_id(func)
+        # 读取并发配置
+        concurrency = config.detector_concurrency
+        logger.info(f"Using concurrency: {concurrency}")
 
-            try:
-                context = context_builder.build_context(func)
+        # 初始化线程安全的进度管理器
+        safe_progress = ThreadSafeProgressManager(progress_manager, bug_counter)
+        safe_progress.reports = reports
+        safe_progress.completed_functions = completed_functions
+        safe_progress.failed_functions = failed_functions
 
-                # 提取 callers 信息：文件路径 + 函数名 + 调用点周围代码
-                callers = []
-                callees = []
+        # Git 操作锁
+        git_lock = threading.Lock()
 
-                # 从context中提取实际的函数调用关系
-                for func_obj in all_functions:
-                    if func.name in func_obj.calls:
-                        # 找出调用目标函数的行号
-                        highlight_lines = []
-                        lines = func_obj.code.split('\n')
+        # 并发执行检测
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            # 提交所有任务
+            future_to_func = {
+                executor.submit(
+                    detect_single_function,
+                    func,
+                    context_builder,
+                    all_functions,
+                    pipeline,
+                    scan_dir,
+                    git_analyzer_for_bugs,
+                    git_lock,
+                    progress_manager,
+                    before_date,
+                    after_date,
+                    safe_progress
+                ): func
+                for func in functions_to_detect
+            }
 
-                        for i, line in enumerate(lines):
-                            if f"{func.name}(" in line:
-                                absolute_line = func_obj.lineno + i
-                                highlight_lines.append(absolute_line)
+            # 处理完成的任务
+            with tqdm(total=len(functions_to_detect), desc="Detecting bugs") as pbar:
+                for future in as_completed(future_to_func):
+                    func = future_to_func[future]
+                    func_id = get_function_id(func)
 
-                        callers.append({
-                            'file_path': getattr(func_obj, 'file_path', ''),
-                            'function_name': func_obj.name,
-                            'start_line': func_obj.lineno,
-                            'end_line': func_obj.end_lineno,
-                            'start_col': func_obj.col_offset,
-                            'end_col': func_obj.end_col_offset,
-                            'code': func_obj.code,
-                            'highlight_lines': highlight_lines
-                        })
+                    try:
+                        success, returned_func_id, bug_reports = future.result()
 
-                for call_name in func.calls:
-                    if call_name in [f.name for f in all_functions]:
-                        callees.append(call_name)
+                        if success:
+                            safe_progress.add_success(bug_reports, func_id)
+                        else:
+                            safe_progress.add_failure(func_id)
 
-                # 提取 inferred_callers 并处理代码片段
-                inferred_callers = []
-                for inferred in context.get("inferred_callers", []):
-                    # 找出需要高亮的行（包含类型注解的行）
-                    highlight_lines = []
-                    if 'arg_name' in inferred:
-                        # 查找包含 Callable 类型注解的行
-                        arg_name = inferred.get('arg_name', '')
-                        lines = inferred.get("code", "").split('\n')
-                        start_line = inferred.get('start_line', 1)
-                        for i, line in enumerate(lines, start=start_line):
-                            # 查找函数签名中包含该参数的行
-                            if arg_name in line and 'Callable' in line:
-                                highlight_lines.append(i)
-                                break
+                    except Exception as e:
+                        logger.error(f"Error processing function '{func.name}': {e}", exc_info=True)
+                        safe_progress.add_failure(func_id)
 
-                    inferred_callers.append({
-                        'file_path': inferred.get('file_path', ''),
-                        'function_name': inferred.get('function_name', ''),
-                        'start_line': inferred.get('start_line', 1),
-                        'end_line': inferred.get('end_line', 1),
-                        'start_col': inferred.get('start_col', 0),
-                        'end_col': inferred.get('end_col', 0),
-                        'code': inferred.get('code', ''),
-                        'highlight_lines': highlight_lines,
-                        'hint': inferred.get('hint', '')
-                    })
+                    finally:
+                        pbar.update(1)
 
-                # 使用 Pipeline 执行完整检测流程（Layer 1 + Layer 3 + Layer 4）
-                # 获取文件的绝对路径（Layer1 需要真实文件路径）
-                absolute_file_path = os.path.join(scan_dir, getattr(func, 'file_path', ''))
+        # 更新外层变量
+        reports = safe_progress.reports
+        completed_functions = safe_progress.completed_functions
+        failed_functions = safe_progress.failed_functions
 
-                result = pipeline.detect_bugs(
-                    function=func,
-                    context=context,
-                    file_path=getattr(func, 'file_path', ''),
-                    absolute_file_path=absolute_file_path,
-                    function_start_line=func.lineno,
-                    callers=callers,
-                    callees=callees,
-                    inferred_callers=inferred_callers,
-                    bug_id_start=bug_counter
-                )
-
-                if not result.success:
-                    # 检测失败，记录到 failed_functions，但不退出
-                    error_msg = (
-                        f"Bug detection failed for function '{func.name}' "
-                        f"in {getattr(func, 'file_path', 'unknown')}: {result.error}. "
-                        f"Continuing scan."
-                    )
-                    logger.warning(error_msg)
-
-                    # 添加到 failed_functions
-                    failed_functions.add(func_id)
-
-                    # 保存当前进度和报告
-                    progress_manager.save_progress(reports, completed_functions, failed_functions)
-                    # 应用过滤规则
-                    filtered_reports = apply_bug_filters(reports, config)
-                    reporter = Reporter(filtered_reports, scan_dir)
-                    reporter.to_json(args.output)
-
-                    # 继续下一个函数
-                    continue
-
-                # 检测成功，提取结果
-                bug_reports = result.reports  # 已去重和标记来源的 bug 列表
-                prompt = result.prompt
-                raw_response = result.raw_response
-
-                # 如果有 bug，保存 LLM 交互并添加到 reports
-                if bug_reports:
-                    # 为每个 bug 保存 LLM 交互
-                    for bug_report in bug_reports:
-                        # Git enrichment: 添加 git_info
-                        if git_analyzer_for_bugs is not None:
-                            try:
-                                # 获取文件的绝对路径
-                                absolute_file_path = os.path.join(scan_dir, bug_report.file_path)
-
-                                # 创建临时 bug 字典用于 get_bug_blame_info()
-                                bug_dict = {
-                                    'file_path': bug_report.file_path,
-                                    'start_line': bug_report.start_line,
-                                    'end_line': bug_report.end_line
-                                }
-
-                                # 获取 blame 信息
-                                blame_info = git_analyzer_for_bugs.get_bug_blame_info(bug_dict)
-
-                                if blame_info:
-                                    # 构造 git_info 字典（使用公开方法）
-                                    bug_report.git_info = git_analyzer_for_bugs.build_git_info_dict(blame_info)
-
-                                    # 时间过滤：检查 bug 的时间是否在范围内
-                                    if args.before or args.after:
-                                        bug_date = blame_info.commit_date
-
-                                        # 检查是否在时间范围内
-                                        if before_date and bug_date > before_date:
-                                            logger.debug(
-                                                f"Skipping bug {bug_report.bug_id} "
-                                                f"(last modified: {bug_date.date()}, after --before)"
-                                            )
-                                            continue  # 跳过这个 bug
-
-                                        if after_date and bug_date < after_date:
-                                            logger.debug(
-                                                f"Skipping bug {bug_report.bug_id} "
-                                                f"(last modified: {bug_date.date()}, before --after)"
-                                            )
-                                            continue  # 跳过这个 bug
-
-                            except Exception as e:
-                                logger.warning(
-                                    f"Failed to get git info for bug {bug_report.bug_id}: {e}. "
-                                    f"Bug will be included without git info."
-                                )
-
-                        progress_manager.save_llm_interaction(
-                            bug_id=bug_report.bug_id,
-                            file_path=getattr(func, 'file_path', ''),
-                            function_name=func.name,
-                            prompt=prompt,
-                            raw_response=raw_response
-                        )
-                        reports.append(bug_report)
-                        bug_counter += 1
-
-                completed_functions.add(func_id)
-
-                # 如果之前失败过，从 failed_functions 中移除
-                if func_id in failed_functions:
-                    failed_functions.remove(func_id)
-                    logger.info(f"Function '{func.name}' previously failed, now succeeded and removed from failed list")
-
-                # 每完成一个函数就保存进度和更新报告
-                progress_manager.save_progress(reports, completed_functions, failed_functions)
-                # 应用过滤规则
-                filtered_reports = apply_bug_filters(reports, config)
-                reporter = Reporter(filtered_reports, scan_dir)
-                reporter.to_json(args.output)
-
-            except Exception as e:
-                # 发生异常，记录失败并继续
-                error_msg = (
-                    f"Error detecting bugs for function '{func.name}': {e}"
-                )
-                logger.error(error_msg, exc_info=True)
-
-                # 记录到 failed_functions
-                failed_functions.add(func_id)
-
-                # 保存当前进度和报告
-                progress_manager.save_progress(reports, completed_functions, failed_functions)
-                # 应用过滤规则
-                filtered_reports = apply_bug_filters(reports, config)
-                reporter = Reporter(filtered_reports, scan_dir)
-                reporter.to_json(args.output)
-
-                # 继续下一个函数
-                continue
+        # 应用过滤规则
+        filtered_reports = apply_bug_filters(reports, config)
 
         # 5. 添加 Git 信息（如果是 git 仓库）
         logger.info("Adding git information...")
