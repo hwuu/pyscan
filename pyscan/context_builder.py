@@ -2,7 +2,6 @@
 from typing import List, Dict, Any
 from pyscan.ast_parser import FunctionInfo
 from pyscan.config import Config
-import tiktoken
 import fnmatch
 import logging
 
@@ -37,10 +36,16 @@ class ContextBuilder:
         # Initialize tokenizer if requested
         if self.use_tiktoken:
             try:
-                self.tokenizer = tiktoken.encoding_for_model("gpt-4")
-            except Exception:
-                # Fallback to cl100k_base encoding
-                self.tokenizer = tiktoken.get_encoding("cl100k_base")
+                import tiktoken
+                try:
+                    self.tokenizer = tiktoken.encoding_for_model("gpt-4")
+                except Exception:
+                    # Fallback to cl100k_base encoding
+                    self.tokenizer = tiktoken.get_encoding("cl100k_base")
+            except ImportError:
+                logger.warning("tiktoken not installed, falling back to simple character-based estimation")
+                self.use_tiktoken = False
+                self.tokenizer = None
 
         # Build decorator map (decorator_name -> list of decorated functions)
         self.decorator_map: Dict[str, List[FunctionInfo]] = {}
