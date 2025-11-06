@@ -922,20 +922,24 @@ def main():
                     for func in functions_to_detect
                 }
 
+                # 维护待处理的 futures 集合
+                pending_futures = set(future_to_func.keys())
+
                 # 处理完成的任务
                 completed_count = 0
                 total_tasks = len(functions_to_detect)
                 with tqdm(total=total_tasks, desc="Detecting bugs") as pbar:
-                    while completed_count < total_tasks:
+                    while pending_futures:
                         # 使用短 timeout 让循环定期检查 KeyboardInterrupt
                         done = set()
                         try:
-                            # timeout=1 使得每秒检查一次，可以响应 Ctrl+C
-                            done, pending = wait(future_to_func.keys(), timeout=1, return_when='FIRST_COMPLETED')
+                            # timeout=0.1 使得每 100ms 检查一次，快速响应 Ctrl+C
+                            # 只传入未完成的 futures
+                            done, still_pending = wait(pending_futures, timeout=0.1, return_when='FIRST_COMPLETED')
                         except KeyboardInterrupt:
                             logger.info("\nScan interrupted by user, cancelling tasks...")
                             # 取消所有未完成的任务
-                            for future in future_to_func.keys():
+                            for future in pending_futures:
                                 future.cancel()
                             raise
 
@@ -959,6 +963,8 @@ def main():
                             finally:
                                 completed_count += 1
                                 pbar.update(1)
+                                # 从待处理集合中移除
+                                pending_futures.discard(future)
 
         except KeyboardInterrupt:
             logger.info("\nScan interrupted by user")
