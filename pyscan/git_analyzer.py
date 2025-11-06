@@ -119,6 +119,11 @@ class GitAnalyzer:
                 'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
                 'commit_url_template': 'https://gitee.com/{repo_path}/commit/{hash}'
             },
+            'gitcode': {
+                'detect_pattern': 'gitcode.com',
+                'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
+                'commit_url_template': 'https://gitcode.com/{repo_path}/commit/{hash}'
+            },
             'bitbucket': {
                 'detect_pattern': 'bitbucket.org',
                 'repo_path_regex': r'[:/]([^/:]+/[^/]+?)(?:\.git)?$',
