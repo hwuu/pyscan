@@ -213,13 +213,17 @@ class ProgressManager:
 class ThreadSafeProgressManager:
     """线程安全的进度管理器，用于并发扫描。"""
 
-    def __init__(self, progress_manager: ProgressManager, initial_bug_counter: int):
+    def __init__(self, progress_manager: ProgressManager, initial_bug_counter: int,
+                 config, scan_dir: str, output_path: str):
         """
         初始化线程安全的进度管理器。
 
         Args:
             progress_manager: 底层的进度管理器
             initial_bug_counter: 初始 bug 计数器
+            config: 配置对象（用于过滤）
+            scan_dir: 扫描目录（用于生成报告）
+            output_path: 输出文件路径
         """
         self.progress_manager = progress_manager
         self.lock = threading.Lock()
@@ -227,6 +231,9 @@ class ThreadSafeProgressManager:
         self.completed_functions = set()
         self.failed_functions = set()
         self.bug_counter = initial_bug_counter
+        self.config = config
+        self.scan_dir = scan_dir
+        self.output_path = output_path
 
     def allocate_bug_ids(self, count: int) -> int:
         """
@@ -266,6 +273,9 @@ class ThreadSafeProgressManager:
                 self.failed_functions
             )
 
+            # 更新主报告文件
+            self._update_report()
+
     def add_failure(self, func_id: str):
         """
         线程安全地添加失败检测的结果。
@@ -282,6 +292,20 @@ class ThreadSafeProgressManager:
                 self.completed_functions,
                 self.failed_functions
             )
+
+            # 更新主报告文件
+            self._update_report()
+
+    def _update_report(self):
+        """更新主报告文件（内部方法，调用时已持有锁）"""
+        try:
+            # 应用过滤规则
+            filtered_reports = apply_bug_filters(self.reports, self.config)
+            # 生成报告
+            reporter = Reporter(filtered_reports, self.scan_dir)
+            reporter.to_json(self.output_path)
+        except Exception as e:
+            logger.error(f"Failed to update report: {e}")
 
 
 def extract_caller_snippet(caller_code: str, target_func_name: str, context_lines: int = 5) -> str:
@@ -892,7 +916,9 @@ def main():
         logger.info(f"Using concurrency: {concurrency}")
 
         # 初始化线程安全的进度管理器
-        safe_progress = ThreadSafeProgressManager(progress_manager, bug_counter)
+        safe_progress = ThreadSafeProgressManager(
+            progress_manager, bug_counter, config, scan_dir, args.output
+        )
         safe_progress.reports = reports
         safe_progress.completed_functions = completed_functions
         safe_progress.failed_functions = failed_functions
