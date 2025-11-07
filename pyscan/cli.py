@@ -3,6 +3,7 @@ import argparse
 import json
 import logging
 import os
+import signal
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
@@ -30,6 +31,19 @@ logger = logging.getLogger(__name__)
 
 # 屏蔽 httpx 的 INFO 级别日志
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# 全局中断事件（线程安全）
+_interrupted = threading.Event()
+
+def _signal_handler(sig, frame):
+    """处理 SIGINT 信号（Ctrl+C）"""
+    if not _interrupted.is_set():
+        _interrupted.set()
+        logger.info("\n⚠️  Interruption requested, cleaning up...")
+    else:
+        # 第二次 Ctrl+C 强制退出
+        logger.info("\n🛑 Force quit")
+        sys.exit(130)
 
 
 class ProgressManager:
@@ -369,7 +383,7 @@ def detect_single_function(
     all_functions,
     pipeline,
     scan_dir,
-    git_analyzer_for_bugs,
+    git_analyzer,
     git_lock,
     progress_manager,
     before_date,
@@ -385,7 +399,7 @@ def detect_single_function(
         all_functions: 所有函数列表
         pipeline: 检测管道
         scan_dir: 扫描目录
-        git_analyzer_for_bugs: Git 分析器（可选）
+        git_analyzer: Git 分析器（可选）
         git_lock: Git 操作锁
         progress_manager: 进度管理器
         before_date: 时间过滤（before）
@@ -493,7 +507,7 @@ def detect_single_function(
                 bug.bug_id = f"BUG_{start_id + i:04d}"
 
         # Git enrichment（使用锁保护）
-        if git_analyzer_for_bugs and bug_reports:
+        if git_analyzer and bug_reports:
             for bug_report in bug_reports:
                 try:
                     # 创建临时 bug 字典用于 get_bug_blame_info()
@@ -505,11 +519,11 @@ def detect_single_function(
 
                     # 使用锁保护 git blame 操作
                     with git_lock:
-                        blame_info = git_analyzer_for_bugs.get_bug_blame_info(bug_dict)
+                        blame_info = git_analyzer.get_bug_blame_info(bug_dict)
 
                     if blame_info:
                         # 构造 git_info 字典（使用公开方法）
-                        bug_report.git_info = git_analyzer_for_bugs.build_git_info_dict(blame_info)
+                        bug_report.git_info = git_analyzer.build_git_info_dict(blame_info)
 
                         # 时间过滤：检查 bug 的时间是否在范围内
                         if before_date or after_date:
@@ -656,6 +670,9 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    # 注册 SIGINT 处理器，优雅处理 Ctrl+C
+    signal.signal(signal.SIGINT, _signal_handler)
+
     try:
         # 初始化时间过滤变量
         before_date = None
@@ -700,7 +717,17 @@ def main():
 
         logger.info(f"Found {len(all_functions)} functions")
 
-        # 4. 函数时间过滤（基于 git blame）
+        # 4. 初始化 Git Analyzer（如果是 git 仓库）
+        git_analyzer = None
+        if os.path.exists(os.path.join(scan_dir, '.git')):
+            git_analyzer = GitAnalyzer(scan_dir, config.git_platforms)
+            if git_analyzer.is_git_repo:
+                logger.info("Git repository detected, git enrichment enabled")
+            else:
+                git_analyzer = None
+                logger.info("Not a valid git repository, git enrichment disabled")
+
+        # 5. 函数时间过滤（基于 git blame）
         if args.before or args.after:
             logger.info("Time filtering enabled, analyzing git history...")
 
@@ -718,11 +745,8 @@ def main():
                 logger.error(f"Invalid date format: {e}. Expected format: YYYY-MM-DD")
                 sys.exit(1)
 
-            # 初始化 GitAnalyzer
-            from pyscan.git_analyzer import GitAnalyzer
-            git_analyzer = GitAnalyzer(scan_dir)
-
-            if not git_analyzer.is_git_repo:
+            # 检查是否为 git 仓库
+            if not git_analyzer or not git_analyzer.is_git_repo:
                 logger.warning(
                     "Not a git repository. Time filtering disabled. "
                     "Scanning all functions."
@@ -741,6 +765,11 @@ def main():
                         functions_by_file[file_path].append(func)
 
                 for file_path, funcs in tqdm(functions_by_file.items(), desc="Filtering functions by time"):
+                    # 检查中断标志
+                    if _interrupted.is_set():
+                        logger.info("Time filtering interrupted by user")
+                        break
+
                     # 获取文件的绝对路径
                     absolute_file_path = os.path.join(scan_dir, file_path)
 
@@ -894,23 +923,6 @@ def main():
         # Bug ID 计数器 (从已有的 reports 开始计数)
         bug_counter = len(reports) + 1
 
-        # 初始化 GitAnalyzer（用于 bug git enrichment）
-        git_analyzer_for_bugs = None
-        if args.before or args.after:
-            # 如果有时间过滤，复用之前的 git_analyzer
-            from pyscan.git_analyzer import GitAnalyzer
-            git_analyzer_for_bugs = GitAnalyzer(scan_dir)
-            if not git_analyzer_for_bugs.is_git_repo:
-                git_analyzer_for_bugs = None
-                logger.warning("Not a git repository, skipping bug git enrichment")
-        else:
-            # 没有时间过滤，但仍然需要 git enrichment
-            from pyscan.git_analyzer import GitAnalyzer
-            git_analyzer_for_bugs = GitAnalyzer(scan_dir)
-            if not git_analyzer_for_bugs.is_git_repo:
-                git_analyzer_for_bugs = None
-                logger.info("Not a git repository, bug git enrichment disabled")
-
         # 读取并发配置
         concurrency = config.detector_concurrency
         logger.info(f"Using concurrency: {concurrency}")
@@ -938,7 +950,7 @@ def main():
                         all_functions,
                         pipeline,
                         scan_dir,
-                        git_analyzer_for_bugs,
+                        git_analyzer,
                         git_lock,
                         progress_manager,
                         before_date,
@@ -956,10 +968,14 @@ def main():
                 total_tasks = len(functions_to_detect)
                 with tqdm(total=total_tasks, desc="Detecting bugs") as pbar:
                     while pending_futures:
-                        # 使用短 timeout 让循环定期检查 KeyboardInterrupt
+                        # 检查中断标志
+                        if _interrupted.is_set():
+                            raise KeyboardInterrupt
+
+                        # 使用短 timeout 让循环定期检查中断标志
                         done = set()
                         try:
-                            # timeout=0.1 使得每 100ms 检查一次，快速响应 Ctrl+C
+                            # timeout=0.1 使得每 100ms 检查一次中断标志
                             # 只传入未完成的 futures
                             done, still_pending = wait(pending_futures, timeout=0.1, return_when='FIRST_COMPLETED')
                         except KeyboardInterrupt:
@@ -1011,8 +1027,7 @@ def main():
         try:
             import subprocess
 
-            git_analyzer = GitAnalyzer(scan_dir)
-            if git_analyzer.is_git_repo:
+            if git_analyzer and git_analyzer.is_git_repo:
                 # 获取当前分支
                 try:
                     result = subprocess.run(
@@ -1029,6 +1044,11 @@ def main():
 
                 # 为每个 bug 添加 git_info
                 for bug_report in tqdm(filtered_reports, desc="Adding git info"):
+                    # 检查中断标志
+                    if _interrupted.is_set():
+                        logger.info("Git enrichment interrupted by user")
+                        break
+
                     # 构建临时字典用于调用 get_bug_blame_info
                     bug_dict = {
                         'file_path': bug_report.file_path,
