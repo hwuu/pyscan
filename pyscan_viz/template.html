@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
             background: #f5f5f5;
             color: #333;
         }
@@ -23,41 +23,20 @@
             height: 100vh;
         }
 
-        /* 顶部统计面板 */
-        .stats-pane {
+        /* 顶部标题栏 */
+        .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 15px 20px;
+            padding: 12px 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .stats-pane h1 {
-            font-size: 20px;
-            margin-bottom: 10px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.1);
-            padding: 10px 12px;
-            border-radius: 6px;
-            backdrop-filter: blur(10px);
-        }
-
-        .stat-label {
-            font-size: 11px;
-            opacity: 0.9;
-            margin-bottom: 3px;
-        }
-
-        .stat-value {
-            font-size: 22px;
-            font-weight: bold;
+        .header h1 {
+            font-size: 16px;
+            margin: 0;
         }
 
         /* 主内容区域 */
@@ -67,23 +46,40 @@
             overflow: hidden;
         }
 
-        /* 左侧 Bug 列表 */
-        .bugs-pane {
-            width: 40%;
+        /* 左侧过滤面板 */
+        .filters-pane {
+            width: 15%;
+            min-width: 180px;
             background: white;
             border-right: 1px solid #e0e0e0;
             overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .filters-content {
+            padding: 15px;
+        }
+
+        /* 中间 Bug 列表 */
+        .bugs-pane {
+            width: 25%;
+            min-width: 280px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .filter-section {
-            margin-bottom: 0;
+            margin-bottom: 20px;
         }
 
         .filter-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            color: rgba(255,255,255,0.9);
-            margin-bottom: 6px;
+            color: #333;
+            margin-bottom: 8px;
+            display: block;
         }
 
         .filter-buttons {
@@ -94,28 +90,35 @@
 
         select.filter-select {
             width: 100%;
-            padding: 5px 10px;
-            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 10px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 12px;
-            background: rgba(255,255,255,0.1);
-            color: white;
+            font-size: 13px;
+            background: white;
+            color: #333;
             cursor: pointer;
             outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select.filter-select:hover {
+            border-color: #667eea;
         }
 
         select.filter-select:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+            background: #f5f5f5;
         }
 
         select.filter-select option {
-            background: #667eea;
-            color: white;
+            background: white;
+            color: #333;
         }
 
         select.filter-select:focus {
-            border-color: rgba(255,255,255,0.5);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .bugs-list {
@@ -184,6 +187,12 @@
             font-size: 12px;
             color: #666;
             font-family: 'Courier New', monospace;
+        }
+
+        .bug-folder {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
         }
 
         /* 右侧代码面板 */
@@ -434,75 +443,80 @@
 </head>
 <body>
     <div class="container">
-        <!-- 顶部过滤/排序面板 -->
-        <div class="stats-pane">
+        <!-- 顶部标题栏 -->
+        <div class="header">
             <h1>{{ page_title }}</h1>
-
-            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 15px;">
-                <!-- Severity 筛选 -->
-                <div class="filter-section">
-                    <div class="filter-label">Severity</div>
-                    <select class="filter-select" id="severityFilter">
-                        <option value="all">All</option>
-                        <!-- 动态生成 -->
-                    </select>
-                </div>
-
-                <!-- File Path 筛选 -->
-                <div class="filter-section">
-                    <div class="filter-label">File Path</div>
-                    <select class="filter-select" id="pathFilter">
-                        <option value="all">All</option>
-                        <!-- 动态生成 -->
-                    </select>
-                </div>
-
-                <!-- Bug Type 筛选 -->
-                <div class="filter-section">
-                    <div class="filter-label">Bug Type</div>
-                    <select class="filter-select" id="typeFilter">
-                        <option value="all">All</option>
-                        <!-- 动态生成 -->
-                    </select>
-                </div>
-
-                <!-- Git 过滤器（始终显示，如果有 git 数据则启用） -->
-                <!-- Commit 筛选 -->
-                <div class="filter-section" id="gitCommitSection">
-                    <div class="filter-label">Commit</div>
-                    <select class="filter-select" id="commitFilter">
-                        <option value="">All</option>
-                        <!-- 动态生成 -->
-                    </select>
-                </div>
-
-                <!-- Owner 筛选 -->
-                <div class="filter-section" id="gitOwnerSection">
-                    <div class="filter-label">Owner</div>
-                    <select class="filter-select" id="ownerFilter">
-                        <option value="">All</option>
-                        <!-- 动态生成 -->
-                    </select>
-                </div>
-
-                <!-- Time Range 筛选 -->
-                <div class="filter-section" id="gitTimeSection">
-                    <div class="filter-label">Time</div>
-                    <select class="filter-select" id="timeRangeFilter">
-                        <option value="">All</option>
-                        <option value="1">最近 1 天</option>
-                        <option value="7">最近 7 天</option>
-                        <option value="15">最近 15 天</option>
-                        <option value="30">最近 30 天</option>
-                        <option value="90">最近 90 天</option>
-                    </select>
-                </div>
-            </div>
         </div>
+
+        <!-- 展开按钮（当左侧栏折叠时显示） -->
+        <button class="expand-btn" id="expandBtn" onclick="toggleFilters()" style="display: none;">过滤器</button>
 
         <!-- 主内容区域 -->
         <div class="main-content">
-            <!-- 左侧 Bug 列表 -->
+            <!-- 左侧过滤面板 -->
+            <div class="filters-pane" id="filtersPane">
+                <div class="filters-content">
+                    <!-- 严重程度筛选 -->
+                    <div class="filter-section">
+                        <label class="filter-label">严重程度</label>
+                        <select class="filter-select" id="severityFilter">
+                            <option value="all">全部</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- 文件路径筛选 -->
+                    <div class="filter-section">
+                        <label class="filter-label">文件路径</label>
+                        <select class="filter-select" id="pathFilter">
+                            <option value="all">全部</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- Bug 类型筛选 -->
+                    <div class="filter-section">
+                        <label class="filter-label">Bug 类型</label>
+                        <select class="filter-select" id="typeFilter">
+                            <option value="all">全部</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- Commit 筛选 -->
+                    <div class="filter-section" id="gitCommitSection">
+                        <label class="filter-label">提交</label>
+                        <select class="filter-select" id="commitFilter">
+                            <option value="">全部</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- 作者筛选 -->
+                    <div class="filter-section" id="gitOwnerSection">
+                        <label class="filter-label">作者</label>
+                        <select class="filter-select" id="ownerFilter">
+                            <option value="">全部</option>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+
+                    <!-- 时间范围筛选 -->
+                    <div class="filter-section" id="gitTimeSection">
+                        <label class="filter-label">时间范围</label>
+                        <select class="filter-select" id="timeRangeFilter">
+                            <option value="">全部</option>
+                            <option value="1">最近 1 天</option>
+                            <option value="7">最近 7 天</option>
+                            <option value="15">最近 15 天</option>
+                            <option value="30">最近 30 天</option>
+                            <option value="90">最近 90 天</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间 Bug 列表 -->
             <div class="bugs-pane">
                 <div class="bugs-list" id="bugsList">
                     <!-- Bug items will be inserted here by JavaScript -->
@@ -512,7 +526,7 @@
             <!-- 右侧代码面板 -->
             <div class="code-pane">
                 <div class="empty-state">
-                    👈 Select a bug from the list to view details
+                    👈 从列表中选择一个 bug 查看详情
                 </div>
             </div>
         </div>
@@ -588,13 +602,13 @@
             const severitySelect = document.getElementById('severityFilter');
             const currentSeverity = currentFilters.severity;
             const severities = [
-                { value: 'high', label: 'High', count: stats.severity.high || 0 },
-                { value: 'medium', label: 'Medium', count: stats.severity.medium || 0 },
-                { value: 'low', label: 'Low', count: stats.severity.low || 0 }
+                { value: 'high', label: '高', count: stats.severity.high || 0 },
+                { value: 'medium', label: '中', count: stats.severity.medium || 0 },
+                { value: 'low', label: '低', count: stats.severity.low || 0 }
             ].sort((a, b) => b.count - a.count);  // 按数量降序
 
             // 当选择了具体选项时，All 不显示数字
-            const severityAllText = currentSeverity === 'all' ? `All (${currentBugs.length})` : 'All';
+            const severityAllText = currentSeverity === 'all' ? `全部 (${currentBugs.length})` : '全部';
             severitySelect.innerHTML = `
                 <option value="all" ${currentSeverity === 'all' ? 'selected' : ''}>${severityAllText}</option>
                 ${severities.map(s => `
@@ -610,7 +624,7 @@
                 .map(([path, count]) => ({ path, count }));
 
             // 当选择了具体选项时，All 不显示数字
-            const pathAllText = currentPath === 'all' ? `All (${currentBugs.length})` : 'All';
+            const pathAllText = currentPath === 'all' ? `全部 (${currentBugs.length})` : '全部';
             pathSelect.innerHTML = `
                 <option value="all" ${currentPath === 'all' ? 'selected' : ''}>${pathAllText}</option>
                 ${paths.map(p => `
@@ -626,7 +640,7 @@
                 .map(([type, count]) => ({ type, count }));
 
             // 当选择了具体选项时，All 不显示数字
-            const typeAllText = currentType === 'all' ? `All (${currentBugs.length})` : 'All';
+            const typeAllText = currentType === 'all' ? `全部 (${currentBugs.length})` : '全部';
             typeSelect.innerHTML = `
                 <option value="all" ${currentType === 'all' ? 'selected' : ''}>${typeAllText}</option>
                 ${types.map(t => `
@@ -653,7 +667,7 @@
                     .sort((a, b) => b.count - a.count);  // 按数量降序
 
                 // 当选择了具体选项时，All 不显示数字
-                const commitAllText = !currentCommit ? `All (${currentBugs.length})` : 'All';
+                const commitAllText = !currentCommit ? `全部 (${currentBugs.length})` : '全部';
                 commitSelect.innerHTML = `
                     <option value="" ${!currentCommit ? 'selected' : ''}>${commitAllText}</option>
                     ${commits.map(c => `
@@ -682,7 +696,7 @@
                     .sort((a, b) => b.count - a.count);  // 按数量降序
 
                 // 当选择了具体选项时，All 不显示数字
-                const ownerAllText = !currentOwner ? `All (${currentBugs.length})` : 'All';
+                const ownerAllText = !currentOwner ? `全部 (${currentBugs.length})` : '全部';
                 ownerSelect.innerHTML = `
                     <option value="" ${!currentOwner ? 'selected' : ''}>${ownerAllText}</option>
                     ${owners.map(o => `
@@ -701,11 +715,11 @@
                 const now = new Date();
 
                 const timeRanges = [
-                    { value: 1, label: '1 day' },
-                    { value: 7, label: '7 days' },
-                    { value: 15, label: '15 days' },
-                    { value: 30, label: '30 days' },
-                    { value: 90, label: '90 days' }
+                    { value: 1, label: '1 天' },
+                    { value: 7, label: '7 天' },
+                    { value: 15, label: '15 天' },
+                    { value: 30, label: '30 天' },
+                    { value: 90, label: '90 天' }
                 ].map(range => {
                     const cutoffDate = new Date();
                     cutoffDate.setDate(cutoffDate.getDate() - range.value);
@@ -720,11 +734,11 @@
                 });
 
                 // 当选择了具体选项时，All 不显示数字
-                const timeRangeAllText = !currentTimeRange ? `All (${currentBugs.length})` : 'All';
+                const timeRangeAllText = !currentTimeRange ? `全部 (${currentBugs.length})` : '全部';
                 timeRangeSelect.innerHTML = `
                     <option value="" ${!currentTimeRange ? 'selected' : ''}>${timeRangeAllText}</option>
                     ${timeRanges.map(r => `
-                        <option value="${r.value}" ${r.value == currentTimeRange ? 'selected' : ''}>Last ${r.label} (${r.count})</option>
+                        <option value="${r.value}" ${r.value == currentTimeRange ? 'selected' : ''}>最近 ${r.label} (${r.count})</option>
                     `).join('')}
                 `;
 
@@ -861,22 +875,31 @@
             const filteredBugs = filterAndSortBugs();
 
             if (filteredBugs.length === 0) {
-                bugsList.innerHTML = '<div class="empty-state">No bugs found</div>';
+                bugsList.innerHTML = '<div class="empty-state">未找到 bug</div>';
                 return;
             }
 
-            bugsList.innerHTML = filteredBugs.map((bug, index) => `
+            bugsList.innerHTML = filteredBugs.map((bug, index) => {
+                // 分离文件名和文件夹路径（支持 / 和 \ 两种分隔符）
+                const pathParts = bug.file_path.replace(/\\/g, '/').split('/');
+                const fileName = pathParts.pop();
+                const folderPath = pathParts.join('/');
+
+                return `
                 <div class="bug-item" onclick="selectBug(${index})" data-index="${index}" data-bug-id="${bug.id}" data-severity="${bug.severity}">
                     <div class="bug-id">${bug.id}</div>
                     <div class="bug-severity ${bug.severity}">${bug.severity}</div>
                     <div class="bug-type">${bug.type}</div>
-                    <div class="bug-location">${bug.file_path}:${bug.function_name}</div>
+                    <div class="bug-location">
+                        <div>${bug.function_name} @ ${fileName}</div>
+                        ${folderPath ? `<div class="bug-folder">${folderPath}</div>` : ''}
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
 
             // 如果有选中的 bug，清除选中状态
             selectedBugIndex = -1;
-            document.querySelector('.code-pane').innerHTML = '<div class="empty-state">👈 Select a bug from the list to view details</div>';
+            document.querySelector('.code-pane').innerHTML = '<div class="empty-state">👈 从列表中选择一个 bug 查看详情</div>';
         }
 
         // 筛选和排序 Bug
@@ -937,7 +960,7 @@
         }
 
         // 选择 Bug
-        function selectBug(index) {
+        function selectBug(index, scrollToView = true) {
             selectedBugIndex = index;
 
             // 更新选中状态
@@ -948,6 +971,21 @@
             const selectedItem = document.querySelector(`.bug-item[data-index="${index}"]`);
             if (selectedItem) {
                 selectedItem.classList.add('selected');
+
+                // 滚动到可视区域顶端（仅当不在可视范围内时）
+                if (scrollToView) {
+                    const bugsPane = document.querySelector('.bugs-pane');
+                    const itemRect = selectedItem.getBoundingClientRect();
+                    const paneRect = bugsPane.getBoundingClientRect();
+
+                    // 检查 item 是否在可视范围内
+                    const isVisible = itemRect.top >= paneRect.top && itemRect.bottom <= paneRect.bottom;
+
+                    if (!isVisible) {
+                        // 使用 scrollIntoView 滚动到顶部，带动画效果
+                        selectedItem.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                    }
+                }
             }
 
             // 显示 Bug 详情和代码
@@ -964,7 +1002,7 @@
         async function displayBugDetails(bug) {
             const codePane = document.querySelector('.code-pane');
 
-            codePane.innerHTML = '<div class="empty-state">Loading...</div>';
+            codePane.innerHTML = '<div class="empty-state">加载中...</div>';
 
             if (embedMode) {
                 // 嵌入模式：所有 snippet 已在 bug 对象中，直接显示
@@ -978,7 +1016,7 @@
                     if (response.ok) {
                         sourceCode = await response.text();
                     } else {
-                        sourceCode = `// Unable to load source file: ${bug.file_path}\\n// Please ensure the file exists and is accessible.`;
+                        sourceCode = `// 无法加载源文件: ${bug.file_path}\n// 请确保文件存在且可访问。`;
                     }
 
                     displayCodeWithBug(bug, sourceCode);
@@ -989,16 +1027,16 @@
                         <div class="bug-details">
                             <h3>${bug.id} - ${bug.type} [${bug.severity.toUpperCase()}]</h3>
                             <p>${bug.description}</p>
-                            <p><span class="label">Suggestion:</span> ${bug.suggestion}</p>
+                            <p><span class="label">建议:</span> ${bug.suggestion}</p>
                         </div>
-                        <div class="code-header">⚠️ Unable to load source file</div>
+                        <div class="code-header">⚠️ 无法加载源文件</div>
                         <div style="color: #858585; padding: 20px;">
-                            Source code cannot be displayed because the file could not be loaded.<br>
-                            File path: ${bug.file_path}<br><br>
-                            Please ensure:<br>
-                            1. The file exists at the specified location<br>
-                            2. You have permission to read the file<br>
-                            3. The HTML file is opened from a local file system (file:// protocol)
+                            无法显示源代码，因为文件加载失败。<br>
+                            文件路径: ${bug.file_path}<br><br>
+                            请确保:<br>
+                            1. 文件存在于指定位置<br>
+                            2. 您有读取文件的权限<br>
+                            3. HTML 文件是从本地文件系统打开的 (file:// 协议)
                         </div>
                     `;
                 }
@@ -1014,7 +1052,7 @@
                 <div class="bug-details">
                     <h3>${bug.id} - ${bug.type} [${bug.severity.toUpperCase()}]</h3>
                     <p>${bug.description}</p>
-                    <p><span class="label">Suggestion:</span> ${bug.suggestion}</p>
+                    <p><span class="label">建议:</span> ${bug.suggestion}</p>
                     ${bug.git_info ? `
                     <div class="git-info-section">
                         <div class="git-commit-card">
@@ -1030,7 +1068,7 @@
                             <span class="git-commit-date">${bug.git_info.date_relative}</span>
                             ${bug.git_info.url ? `
                             <a href="${bug.git_info.url}" target="_blank" class="git-commit-link">
-                                View ↗
+                                查看 ↗
                             </a>
                             ` : ''}
                         </div>
@@ -1096,12 +1134,12 @@
             // 添加 Callers 部分（使用 POI）
             if (bug.callers && bug.callers.length > 0) {
                 html += '<div class="caller-section">';
-                html += '<div class="caller-header">Callers (Functions that call this function)</div>';
+                html += '<div class="caller-header">调用者 (调用此函数的函数)</div>';
 
                 for (let i = 0; i < bug.callers.length; i++) {
                     const caller = bug.callers[i];
-                    const filePath = caller.file_path || 'Unknown';
-                    const functionName = caller.function_name || 'Unknown';
+                    const filePath = caller.file_path || '未知';
+                    const functionName = caller.function_name || '未知';
                     const callLines = caller.call_lines || [];
 
                     html += `
@@ -1124,7 +1162,7 @@
                         }
                     } else {
                         // Snippet 不存在，显示错误信息
-                        html += `<div class="code-line"><div class="line-content">// Error: Caller snippet not available</div></div>`;
+                        html += `<div class="code-line"><div class="line-content">// 错误: 调用者代码片段不可用</div></div>`;
                     }
 
                     html += `
@@ -1139,13 +1177,13 @@
             // 添加 Inferred Callers 部分（使用 POI）
             if (bug.inferred_callers && bug.inferred_callers.length > 0) {
                 html += '<div class="caller-section">';
-                html += '<div class="caller-header">Inferred Callers (Potential callers detected by analysis)</div>';
+                html += '<div class="caller-header">推断的调用者 (通过分析检测到的潜在调用者)</div>';
 
                 for (let i = 0; i < bug.inferred_callers.length; i++) {
                     const inferredCaller = bug.inferred_callers[i];
                     const hint = inferredCaller.hint || '';
-                    const filePath = inferredCaller.file_path || 'Unknown';
-                    const functionName = inferredCaller.function_name || 'Unknown';
+                    const filePath = inferredCaller.file_path || '未知';
+                    const functionName = inferredCaller.function_name || '未知';
                     const inferenceLines = inferredCaller.inference_lines || [];
 
                     html += `
@@ -1169,7 +1207,7 @@
                         }
                     } else {
                         // Snippet 不存在，显示错误信息
-                        html += `<div class="code-line"><div class="line-content">// Error: Inferred caller snippet not available</div></div>`;
+                        html += `<div class="code-line"><div class="line-content">// 错误: 推断的调用者代码片段不可用</div></div>`;
                     }
 
                     html += `
