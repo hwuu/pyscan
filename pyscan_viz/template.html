@@ -100,6 +100,33 @@
             margin-top: 20px;
             padding-top: 15px;
             border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .clear-filters-btn {
+            padding: 8px 12px;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background: white;
+            color: #dc3545;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-filters-btn:hover:not(:disabled) {
+            background: #dc3545;
+            color: white;
+        }
+
+        .clear-filters-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #ccc;
+            color: #ccc;
         }
 
         .export-link {
@@ -602,6 +629,7 @@
 
                     <!-- 导出数据 -->
                     <div class="export-section">
+                        <button class="clear-filters-btn" id="clearFiltersBtn" onclick="clearFilters()">清除过滤器</button>
                         <a href="#" class="export-link" onclick="exportToXlsx(); return false;">导出数据</a>
                     </div>
                 </div>
@@ -656,6 +684,7 @@
             generateFilterOptions();
             setupFilterControls();
             renderBugsList();
+            updateClearFiltersButton(); // 初始化清除按钮状态
 
             // 处理 URL hash，自动定位到相应的 bug
             handleUrlHash();
@@ -943,6 +972,36 @@
         function updateFiltersAndRender() {
             generateFilterOptions();  // 重新生成选项（联动更新）
             renderBugsList();          // 渲染 bug 列表
+            updateClearFiltersButton(); // 更新清除按钮状态
+        }
+
+        // 检查是否有活跃的过滤器
+        function hasActiveFilters() {
+            return currentFilters.severity !== 'all' ||
+                   currentFilters.path !== 'all' ||
+                   currentFilters.type !== 'all' ||
+                   currentFilters.commit !== null ||
+                   currentFilters.timeRange !== null ||
+                   currentFilters.owner !== null;
+        }
+
+        // 更新清除过滤器按钮状态
+        function updateClearFiltersButton() {
+            const clearBtn = document.getElementById('clearFiltersBtn');
+            if (clearBtn) {
+                clearBtn.disabled = !hasActiveFilters();
+            }
+        }
+
+        // 清除所有过滤器
+        function clearFilters() {
+            currentFilters.severity = 'all';
+            currentFilters.path = 'all';
+            currentFilters.type = 'all';
+            currentFilters.commit = null;
+            currentFilters.timeRange = null;
+            currentFilters.owner = null;
+            updateFiltersAndRender();
         }
 
         // 处理 URL hash
@@ -1353,19 +1412,18 @@
                 return;
             }
 
+            // 获取当前 HTML 文件的路径
+            const currentHtmlPath = window.location.href.split('#')[0];
+
             // 准备数据
             const data = filteredBugs.map(bug => ({
                 'Bug ID': bug.id,
                 '严重程度': bug.severity,
                 'Bug 类型': bug.type,
-                '函数名': bug.function_name,
-                '文件路径': bug.file_path,
-                '起始行': bug.bug_poi?.start_line || '',
-                '描述': bug.description,
-                '建议': bug.suggestion,
+                '位置': `${bug.function_name} @ ${bug.file_path}:${bug.bug_poi?.start_line || ''}`,
                 '作者': bug.git_info?.author || '',
-                '提交': bug.git_info?.hash || '',
-                '提交时间': bug.git_info?.date_relative || ''
+                '是否误报': '',
+                '对 PyScan 的改进建议': ''
             }));
 
             // 创建工作簿
@@ -1376,17 +1434,32 @@
             // 设置列宽
             ws['!cols'] = [
                 { wch: 12 },  // Bug ID
-                { wch: 8 },   // 严重程度
-                { wch: 20 },  // Bug 类型
-                { wch: 25 },  // 函数名
-                { wch: 40 },  // 文件路径
-                { wch: 8 },   // 起始行
-                { wch: 50 },  // 描述
-                { wch: 40 },  // 建议
-                { wch: 15 },  // 作者
-                { wch: 10 },  // 提交
-                { wch: 15 }   // 提交时间
+                { wch: 10 },  // 严重程度
+                { wch: 25 },  // Bug 类型
+                { wch: 60 },  // 位置
+                { wch: 20 },  // 作者
+                { wch: 12 },  // 是否误报
+                { wch: 40 }   // 对 PyScan 的改进建议
             ];
+
+            // 将数据区域转换为 Excel 表格（自动筛选）
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+            // 为 Bug ID 列添加超链接
+            filteredBugs.forEach((bug, index) => {
+                const rowNum = index + 2; // Excel 行号从1开始，第1行是表头
+                const cellRef = `A${rowNum}`;
+
+                // 使用完整的 URL（包含 file:// 协议和绝对路径）
+                const bugUrl = `${currentHtmlPath}#${bug.id}`;
+
+                ws[cellRef] = {
+                    t: 's',
+                    v: bug.id,
+                    l: { Target: bugUrl }
+                };
+            });
 
             // 生成文件名
             const timestamp = new Date().toISOString().slice(0, 10);
