@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any
 from jinja2 import Environment, FileSystemLoader
+from pyscan import __version__
 
 
 class Visualizer:
@@ -186,6 +187,10 @@ class Visualizer:
 
         html = template.render(
             page_title=page_title,
+            folder_name=folder_name,
+            git_branch=git_branch if git_branch and git_branch != 'N/A' else '',
+            date_str=date_str,
+            version=__version__,
             timestamp=report.get('timestamp', ''),
             bugs_json=json.dumps(bugs_list, ensure_ascii=False),
             source_files_json="{}",  # 始终为空，所有 snippet 已在 bugs_json 中

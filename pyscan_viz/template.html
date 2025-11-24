@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -54,10 +56,78 @@
             border-right: 1px solid #e0e0e0;
             overflow-y: auto;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .filters-content {
             padding: 15px;
+            flex: 1;
+        }
+
+        /* Logo 样式 */
+        .logo-section {
+            padding: 12px 8px 8px 8px;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .ascii-logo {
+            font-family: Consolas, monospace;
+            font-size: 8px;
+            line-height: 1.0;
+            color: #667eea;
+            margin: 0;
+            white-space: pre;
+            display: inline-block;
+            text-align: left;
+        }
+
+        .project-info {
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .project-info-item {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        /* 导出链接样式 */
+        .export-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .export-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 12px;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .export-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 底部项目链接样式 */
+        .footer-section {
+            padding: 12px 15px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .version-text {
+            color: #999;
+            font-size: 11px;
         }
 
         /* 中间 Bug 列表 */
@@ -444,9 +514,11 @@
 <body>
     <div class="container">
         <!-- 顶部标题栏 -->
+        <!--
         <div class="header">
             <h1>{{ page_title }}</h1>
         </div>
+        -->
 
         <!-- 展开按钮（当左侧栏折叠时显示） -->
         <button class="expand-btn" id="expandBtn" onclick="toggleFilters()" style="display: none;">过滤器</button>
@@ -455,6 +527,20 @@
         <div class="main-content">
             <!-- 左侧过滤面板 -->
             <div class="filters-pane" id="filtersPane">
+                <!-- Logo -->
+                <div class="logo-section">
+<pre class="ascii-logo">
+█████▄ ▄▄ ▄▄ ▄█████  ▄▄▄▄  ▄▄▄  ▄▄  ▄▄
+██▄▄█▀ ▀███▀ ▀▀▀▄▄▄ ██▀▀▀ ██▀██ ███▄██
+██       █   █████▀ ▀████ ██▀██ ██ ▀██
+</pre>
+                    <div class="project-info">
+                        <div class="project-info-item">{{ folder_name }}</div>
+                        {% if git_branch %}<div class="project-info-item">{{ git_branch }}</div>{% endif %}
+                        <div class="project-info-item">{{ date_str }}</div>
+                    </div>
+                </div>
+
                 <div class="filters-content">
                     <!-- 严重程度筛选 -->
                     <div class="filter-section">
@@ -513,6 +599,16 @@
                             <option value="90">最近 90 天</option>
                         </select>
                     </div>
+
+                    <!-- 导出数据 -->
+                    <div class="export-section">
+                        <a href="#" class="export-link" onclick="exportToXlsx(); return false;">导出数据</a>
+                    </div>
+                </div>
+
+                <!-- 项目地址 -->
+                <div class="footer-section">
+                    <span class="version-text">PyScan v{{ version }}</span>
                 </div>
             </div>
 
@@ -1246,6 +1342,58 @@
                 }
             });
             return formattedLines.join('\n');
+        }
+
+        // 导出当前过滤结果为 xlsx
+        function exportToXlsx() {
+            const filteredBugs = filterAndSortBugs();
+
+            if (filteredBugs.length === 0) {
+                alert('没有数据可导出');
+                return;
+            }
+
+            // 准备数据
+            const data = filteredBugs.map(bug => ({
+                'Bug ID': bug.id,
+                '严重程度': bug.severity,
+                'Bug 类型': bug.type,
+                '函数名': bug.function_name,
+                '文件路径': bug.file_path,
+                '起始行': bug.bug_poi?.start_line || '',
+                '描述': bug.description,
+                '建议': bug.suggestion,
+                '作者': bug.git_info?.author || '',
+                '提交': bug.git_info?.hash || '',
+                '提交时间': bug.git_info?.date_relative || ''
+            }));
+
+            // 创建工作簿
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Bugs');
+
+            // 设置列宽
+            ws['!cols'] = [
+                { wch: 12 },  // Bug ID
+                { wch: 8 },   // 严重程度
+                { wch: 20 },  // Bug 类型
+                { wch: 25 },  // 函数名
+                { wch: 40 },  // 文件路径
+                { wch: 8 },   // 起始行
+                { wch: 50 },  // 描述
+                { wch: 40 },  // 建议
+                { wch: 15 },  // 作者
+                { wch: 10 },  // 提交
+                { wch: 15 }   // 提交时间
+            ];
+
+            // 生成文件名
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `pyscan_bugs_${timestamp}.xlsx`;
+
+            // 下载文件
+            XLSX.writeFile(wb, filename);
         }
 
         // 启动应用
